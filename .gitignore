@@ -1,0 +1,4 @@
+*.o
+diag_import
+libmetagsm.*
+metadata.db
