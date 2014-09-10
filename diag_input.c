@@ -26,7 +26,8 @@ struct diag_packet {
 
 void diag_init()
 {
-	session_init(0, 1, CALLBACK_SQLITE);
+	session_init(1, 1, CALLBACK_SQLITE);
+	//msg_verbose = 1;
 }
 
 void diag_destroy()
@@ -189,6 +190,7 @@ struct radio_message * handle_bcch_and_rr(struct diag_packet *dp, unsigned len)
 		case 22: // Classmark change
 		case 39: // Paging response
 		case 41: // Assignment complete
+		case 44: // Handover complete
 		case 50: // Ciphering mode complete
 		case 52: // GPRS susp. request
 		case 96: // UTRAN classmark change

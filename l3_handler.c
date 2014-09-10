@@ -15,33 +15,7 @@
 #include "assignment.h"
 #include "address.h"
 #include "sms.h"
-
-int get_mcc(uint8_t *digits)
-{
-	int mcc;
-
-	mcc = (digits[0] & 0xf) * 100;
-	mcc += (digits[0] >> 4) * 10;
-	mcc += (digits[1] & 0xf) * 1;
-
-	return mcc;
-}
-
-int get_mnc(uint8_t *digits)
-{
-	int mnc;
-
-        if ((digits[1] >> 4) == 0xf) {
-                mnc = (digits[2] & 0xf) * 10;
-                mnc += (digits[2] >> 4) * 1;
-        } else {
-                mnc = (digits[2] & 0xf) * 100;
-                mnc += (digits[2] >> 4) * 10;
-                mnc += (digits[1] >> 4) * 1;
-        }
-
-	return mnc;
-}
+#include "cell_info.h"
 
 unsigned encapsulate_lapdm(uint8_t *data, unsigned len, uint8_t ul, uint8_t sacch, uint8_t **output)
 {
@@ -109,18 +83,6 @@ void handle_classmark(struct session_info *s, uint8_t *data, uint8_t type)
 	}
 }
 
-void handle_lai(struct session_info *s, uint8_t *data, int cid)
-{
-	struct gsm48_loc_area_id *lai = (struct gsm48_loc_area_id *) data;
-
-	s->mcc = get_mcc(lai->digits);
-	s->mnc = get_mnc(lai->digits);
-	s->lac = htons(lai->lac);
-
-	if (cid >= 0) {
-		s->cid = cid;
-	}
-}
 
 void handle_mi(struct session_info *s, uint8_t *data, uint8_t len, uint8_t new_tmsi)
 {
@@ -492,64 +454,22 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 
 void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uint32_t fn)
 {
-	struct gsm48_system_information_type_5 *si5;
-	struct gsm48_system_information_type_5bis *si5b;
-	struct gsm48_system_information_type_5ter *si5t;
-	struct gsm48_system_information_type_6 *si6;
 	struct tlv_parsed tp;
 
 	switch (dtap->msg_type) {
 	case GSM48_MT_RR_SYSINFO_1:
-		SET_MSG_INFO(s, "SYSTEM INFO 1");
-		break;
 	case GSM48_MT_RR_SYSINFO_2:
-		SET_MSG_INFO(s, "SYSTEM INFO 2");
-		break;
 	case GSM48_MT_RR_SYSINFO_2bis:
-		SET_MSG_INFO(s, "SYSTEM INFO 2bis");
-		break;
 	case GSM48_MT_RR_SYSINFO_2ter:
-		SET_MSG_INFO(s, "SYSTEM INFO 2ter");
-		break;
 	case GSM48_MT_RR_SYSINFO_2quater:
-		SET_MSG_INFO(s, "SYSTEM INFO 2quater");
-		break;
 	case GSM48_MT_RR_SYSINFO_3:
-		SET_MSG_INFO(s, "SYSTEM INFO 3");
-		break;
 	case GSM48_MT_RR_SYSINFO_4:
-		SET_MSG_INFO(s, "SYSTEM INFO 4");
-		break;
 	case GSM48_MT_RR_SYSINFO_5:
-		SET_MSG_INFO(s, "SYS INFO 5");
-		rand_check((uint8_t *)dtap, 18, &s->si5, s->cipher);
-		si5 = (struct gsm48_system_information_type_5 *) dtap;
-		gsm48_decode_freq_list(	s->neigh_arfcns, si5->bcch_frequency_list,
-					sizeof(si5->bcch_frequency_list), 0xff, 0x01);
-		break;
 	case GSM48_MT_RR_SYSINFO_5bis:
-		SET_MSG_INFO(s, "SYS INFO 5bis");
-		rand_check((uint8_t *)dtap, 18, &s->si5bis, s->cipher);
-		si5b = (struct gsm48_system_information_type_5bis *) dtap;
-		gsm48_decode_freq_list(	s->neigh_arfcns, si5b->bcch_frequency_list,
-					sizeof(si5b->bcch_frequency_list), 0xff, 0x02);
-		break;
 	case GSM48_MT_RR_SYSINFO_5ter:
-		SET_MSG_INFO(s, "SYS INFO 5ter");
-		rand_check((uint8_t *)dtap, 18, &s->si5ter, s->cipher);
-		si5t = (struct gsm48_system_information_type_5ter *) dtap;
-		gsm48_decode_freq_list(	s->neigh_arfcns, si5t->bcch_frequency_list,
-					sizeof(si5t->bcch_frequency_list), 0xff, 0x04);
-		break;
 	case GSM48_MT_RR_SYSINFO_6:
-		SET_MSG_INFO(s, "SYS INFO 6");
-		rand_check((uint8_t *)dtap, 18, &s->si6, s->cipher);
-		si6 = (struct gsm48_system_information_type_6 *) dtap;
-		handle_lai(s, (uint8_t*)&si6->lai, htons(si6->cell_identity));
-		s->cell_options = si6->cell_options;
-		break;
 	case GSM48_MT_RR_SYSINFO_13:
-		SET_MSG_INFO(s, "SYSTEM INFO 13");
+		handle_sysinfo(s, dtap, len, fn);
 		break;
 	case GSM48_MT_RR_CHAN_REL:
 		SET_MSG_INFO(s, "CHANNEL RELEASE");
@@ -594,6 +514,9 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		s->handover = 1;
 		s->use_jump = 2;
 		break;
+	case GSM48_MT_RR_HANDO_COMPL:
+		SET_MSG_INFO(s, "HANDOVER COMPLETE");
+		break;
 	case GSM48_MT_RR_ASS_CMD:
 		SET_MSG_INFO(s, "ASSIGNMENT COMMAND");
 		if ((s->fc.enc-s->fc.enc_null-s->fc.enc_si) == 1)
@@ -602,7 +525,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		s->assignment = 1;
 		s->use_jump = 1;
 		break;
-	case 0x29:
+	case GSM48_MT_RR_ASS_COMPL:
 		SET_MSG_INFO(s, "ASSIGNMENT COMPLETE");
 		break;
 	case GSM48_MT_RR_CIPH_M_COMPL:
@@ -666,8 +589,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		}
 		s->cipher_missing = -1;
 		break;
-	case 0x60:
-		// UTRAN CLASSMARK
+	case 0x60: // UTRAN CLASSMARK
 		SET_MSG_INFO(s, "UTRAN CLASSMARK");
 		break;
 	default:
@@ -1269,7 +1191,7 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 			printf("Wrong MSG flags %02x\n", m->flags);
 			abort();
 		}
-		if (m->flags & MSG_DECODED) {
+		if (msg_verbose && m->flags & MSG_DECODED) {
 			printf("GSM %s %s %u : %s\n", m->domain ? "PS" : "CS", ul ? "UL" : "DL",
 				m->bb.fn[0], m->info[0] ? m->info : osmo_hexdump_nospc(m->msg, m->msg_len));
 		}
@@ -1280,7 +1202,7 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 		} else {
 			handle_dcch_dl(s, m->bb.data, m->msg_len);
 		}
-		if (m->flags & MSG_DECODED) {
+		if (msg_verbose && m->flags & MSG_DECODED) {
 			printf("RRC %s %s %u : %s\n", m->domain ? "PS" : "CS", ul ? "UL" : "DL",
 				m->bb.fn[0], m->info[0] ? m->info : osmo_hexdump_nospc(m->bb.data, m->msg_len));
 		}

@@ -45,6 +45,7 @@ struct session_info {
 	int neigh_count;
 	int started;
 	int closed;
+	int cracked;
 	int processing;
 	int decoded;
 	int have_key;
@@ -137,7 +138,6 @@ struct session_info {
 	struct session_info *next;
 	struct session_info *prev;
 	struct gsm_sysinfo_freq cell_arfcns[1024];
-	struct gsm_sysinfo_freq neigh_arfcns[1024];
 	struct gsm48_cell_options cell_options;
 	struct rand_state null;
 	struct rand_state si5;
@@ -152,6 +152,7 @@ struct session_info {
 #define CALLBACK_NONE 0
 #define CALLBACK_MYSQL 1
 #define CALLBACK_SQLITE 2
+#define CALLBACK_CONSOLE 3
 
 #define SET_MSG_INFO(s, ... )  snprintf((s)->last_msg->info, sizeof((s)->last_msg->info), ##__VA_ARGS__);
 #define APPEND_MSG_INFO(s, ...) sprintf((s)->last_msg->info+strlen((s)->last_msg->info), ##__VA_ARGS__);

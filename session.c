@@ -13,7 +13,7 @@
 
 unsigned privacy = 0;
 unsigned msg_verbose = 0;
-static unsigned auto_reset = 0;
+unsigned auto_reset = 1;
 static unsigned output_console = 1;
 static unsigned output_gsmtap = 1;
 static unsigned output_sqlite = 1;
@@ -43,6 +43,10 @@ void session_init(int console, int gsmtap, int callback)
 		sqlite_api_init(&_s[0]);
 		sqlite_api_init(&_s[1]);
 		break;
+	case CALLBACK_CONSOLE:
+		_s[0].sql_callback = printf;
+		_s[1].sql_callback = printf;
+		break;
 	}
 	_s[1].domain = DOMAIN_PS;
 
@@ -52,6 +56,9 @@ void session_init(int console, int gsmtap, int callback)
 
 void session_destroy()
 {
+	session_reset(&_s[0]);
+	session_reset(&_s[1]);
+
 	if (_s[0].sql_callback) {
 		if (output_sqlite) {
 			sqlite_api_destroy();
@@ -410,7 +417,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 		return;
 
 	/* Prepare strings */
-	if (!output_sqlite && (s->id >= 0)) {
+	if (0 && s->id >= 0) {
 		strncpy(id_field, "id,", sizeof(id_field));
 		snprintf(id_value, sizeof(id_value), "%d,", s->id);
 	} else {
@@ -446,7 +453,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 
 	/* Prepare query */
 	snprintf(query, q_len,
-		"INSERT INTO session_info (%stimestamp,rat,domain,mcc,mnc,lac,cid,uarfcn,psc,neigh_count,"
+		"INSERT INTO session_info (%stimestamp,rat,domain,mcc,mnc,lac,cid,arfcn,psc,cracked,neigh_count,"
 		"unenc,unenc_rand,enc,enc_rand,enc_null,enc_null_rand,enc_si,enc_si_rand,predict,"
 		"avg_power,uplink_avail,initial_seq,cipher_seq,auth,auth_req_fn,auth_resp_fn,auth_delta,"
 		"cipher_missing,cipher_comp_first,cipher_comp_last,cipher_comp_count,cipher_delta,cipher,"
@@ -459,7 +466,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 		"call_presence,sms_presence,service_req,"
 		"imsi,imei,tmsi,new_tmsi,tlli,msisdn,"
 		"ms_cipher_mask,ue_cipher_cap,ue_integrity_cap) VALUES "
-		"(%s%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
+		"(%s%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 		"%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 		"%d,%d,%d,%d,%d,%d,%d,%d,"
 		"%d,%d,%d,%d,%d,%d,"
@@ -473,7 +480,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 		"%s,%s,%s,%s,%s,%s,"
 		"%d,%d,%d);",
 		id_field, id_value,
-		timestamp, s->rat, s->domain, s->mcc, s->mnc, s->lac, s->cid, s->arfcn, s->psc, s->neigh_count,
+		timestamp, s->rat, s->domain, s->mcc, s->mnc, s->lac, s->cid, s->arfcn, s->psc, s->cracked, s->neigh_count,
 		s->fc.unenc, s->fc.unenc_rand, s->fc.enc, s->fc.enc_rand, s->fc.enc_null, s->fc.enc_null_rand, s->fc.enc_si, s->fc.enc_si_rand, s->fc.predict,
 		s->avg_power, s->uplink, s->initial_seq, s->cipher_seq, s->auth, s->auth_req_fn, s->auth_resp_fn, s->auth_delta,
 		s->cipher_missing, s->cm_comp_first_fn, s->cm_comp_last_fn, s->cm_comp_count, s->cipher_delta, s->cipher,
@@ -495,8 +502,6 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 	free(imsi);
 	free(imei);
 	free(msisdn);
-
-	s->closed = 1;
 }
 
 void session_close(struct session_info *s)
@@ -535,6 +540,7 @@ void session_close(struct session_info *s)
 	}
 	s->cipher_delta *= 4.615f;
 
+#if 0
 	/* Process neighbour list */
 	s->neigh_count = 0;
 	for (i=0; i<1024; i++) {
@@ -542,6 +548,7 @@ void session_close(struct session_info *s)
 			s->neigh_count++;
 		}
 	}
+#endif
 
 	/* Output functions */
 	if (output_gsmtap)
@@ -551,27 +558,34 @@ void session_close(struct session_info *s)
 		session_print(s);
 
 	if (s->sql_callback) {
-		char sql_buffer[4096];
+		char sql_buffer[8192];
 
 		session_make_sql(s, sql_buffer, sizeof(sql_buffer), output_sqlite);
 
 		s->sql_callback(sql_buffer);
 	}
+
+	s->closed = 1;
 }
 
 void session_reset(struct session_info *s)
 {
 	struct session_info old_s;
 
+	if (auto_reset == 0) {
+		return;
+	}
+
 	assert(s != NULL);
 
 	gettimeofday(&s->timestamp, NULL);
 
-	memcpy(&old_s, s, sizeof(struct session_info));
-
 	if (s->started && !s->closed) {
+		s->cracked = 1;
 		session_close(s);
 	}
+
+	memcpy(&old_s, s, sizeof(struct session_info));
 
 	memset(s, 0, sizeof(struct session_info));
 

@@ -280,6 +280,7 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, unsigned len, uint8_t fro
 	// 00:f5 WSP
 	// 7f:f6 USIM data download
 	#pragma omp critical (print)
+#if 0
 	if ((sm->dcs == 246) || (sm->dcs == 22)) {
 		printf("[%06d] %3d %3d %13s", s->id, s->mcc, s->mnc, sm->smsc);
 
@@ -292,6 +293,7 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, unsigned len, uint8_t fro
 		}
 		printf("\n");
 	}
+#endif
 
 	/* Append SMS to list */
 	if (s->sms_list) {
