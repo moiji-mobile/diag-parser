@@ -26,7 +26,7 @@ struct diag_packet {
 
 void diag_init()
 {
-	session_init(1, 1, CALLBACK_SQLITE);
+	session_init(0, 1, CALLBACK_CONSOLE);
 	//msg_verbose = 1;
 }
 

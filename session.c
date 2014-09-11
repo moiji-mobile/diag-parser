@@ -34,6 +34,7 @@ void session_init(int console, int gsmtap, int callback)
 	switch (callback) {
 	case CALLBACK_NONE:
 		break;
+#if 0
 	case CALLBACK_MYSQL:
 		output_sqlite = 0;
 		mysql_api_init(&_s[0]);
@@ -43,6 +44,7 @@ void session_init(int console, int gsmtap, int callback)
 		sqlite_api_init(&_s[0]);
 		sqlite_api_init(&_s[1]);
 		break;
+#endif
 	case CALLBACK_CONSOLE:
 		_s[0].sql_callback = printf;
 		_s[1].sql_callback = printf;
@@ -59,6 +61,7 @@ void session_destroy()
 	session_reset(&_s[0]);
 	session_reset(&_s[1]);
 
+/*
 	if (_s[0].sql_callback) {
 		if (output_sqlite) {
 			sqlite_api_destroy();
@@ -66,6 +69,7 @@ void session_destroy()
 			mysql_api_destroy();
 		}
 	}
+*/
 }
 
 struct session_info *session_create(int id, char* name, uint8_t *key, int mcc, int mnc, int lac, int cid, struct gsm_sysinfo_freq *ca)
@@ -478,7 +482,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 		"%d,%d,%d,%d,%d,%d,%d,"
 		"%d,%d,%d,"
 		"%s,%s,%s,%s,%s,%s,"
-		"%d,%d,%d);",
+		"%d,%d,%d);\n",
 		id_field, id_value,
 		timestamp, s->rat, s->domain, s->mcc, s->mnc, s->lac, s->cid, s->arfcn, s->psc, s->cracked, s->neigh_count,
 		s->fc.unenc, s->fc.unenc_rand, s->fc.enc, s->fc.enc_rand, s->fc.enc_null, s->fc.enc_null_rand, s->fc.enc_si, s->fc.enc_si_rand, s->fc.predict,
