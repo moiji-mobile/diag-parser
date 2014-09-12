@@ -161,18 +161,22 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	struct gsm48_system_information_type_6 *si6;
 	struct gsm48_system_information_type_13 *si13;
 
+	struct cell_info tmp; //TESTING
+
 	struct cell_info *ci = NULL;
 
 	assert(s != NULL);
 	assert(dtap != NULL);
 	assert(len > 0);
 
-	return;
-
+#if 0
 	ci = get_cell_info(s);
 	if (!ci) {
+		ci = (struct cell_info *) malloc(sizeof(struct cell_info));
 		return;
 	}
+#endif
+	ci = &tmp;
 
 	switch (dtap->msg_type) {
 	case GSM48_MT_RR_SYSINFO_1:

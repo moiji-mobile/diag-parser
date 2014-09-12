@@ -9,7 +9,7 @@ OBJ =	address.o assignment.o bit_func.o ccch.o cch.o chan_detect.o crc.o \
 %.o: %.c %.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-all: libmetagsm diag_import
+all: libmetagsm diag_import gsmtap_import
 
 libmetagsm: $(OBJ) sqlite_api.o mysql_api.o
 	ar rcs $@.a $^
@@ -25,6 +25,9 @@ libmetagsm-mysql: $(OBJ) mysql_api.o
 
 diag_import: diag_import.o libmetagsm.a
 	gcc -o $@ $^ $(LDFLAGS)
+
+gsmtap_import: gsmtap_import.o libmetagsm.a
+	gcc -o $@ $^ $(LDFLAGS) -lpcap
 
 clean:
 	@rm -f *.o diag_import libmetagsm*
