@@ -1,4 +1,4 @@
-CC=/home/luca/Downloads/android-ndk-r10/ndk-build
+CC=gcc
 CFLAGS=-O2 -ggdb -I. -I/usr/share/asn1c -fPIC
 LDFLAGS=-losmocore -losmogsm -lasn1c -lm -losmo-asn1-rrc
 OBJ =	address.o assignment.o bit_func.o ccch.o cch.o chan_detect.o crc.o \
