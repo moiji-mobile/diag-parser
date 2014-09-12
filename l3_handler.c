@@ -934,11 +934,13 @@ void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, 
 	dtap = (struct gsm48_hdr *) msg;
 	s->last_msg->info[0] = 0;
 
-	if (len == 0)
+	if (len == 0) {
 		return;
+	}
 
-	if (is_double(s, msg, len))
+	if (is_double(s, msg, len)) {
 		return;
+	}
 
 	switch (dtap->proto_discr & GSM48_PDISC_MASK) {
 	case GSM48_PDISC_CC:
@@ -1032,6 +1034,7 @@ hdr_parse:
 		if (retry)
 			goto hdr_reparse;
 
+		SET_MSG_INFO(s, "FAILED SANITY CHECKS");
 		return;
 	}
 
@@ -1060,13 +1063,11 @@ hdr_parse:
 		/* I frame */
 		nr = msg[1] >> 5;
 		ns = (msg[1] >> 1) & 0x07;
-		//printf("I ");
 		break;
 	case 1:
 		/* S frame */
 		nr = msg[1] >> 5;
 		ns = (msg[1] >> 2) & 0x03;
-		//printf("S ");
 		break;
 	case 3:
 		/* U frame */
@@ -1074,15 +1075,17 @@ hdr_parse:
 		ns = (msg[1] >> 2) & 0x03;
 		/* not allowed configurations */
 		if (ns == 0 && (nr == 1 || nr >= 4)) {
+			SET_MSG_INFO(s, "INVALID LAPDm"); 
 			return;
 		}
 		if (ns == 1 || ns == 2) {
+			SET_MSG_INFO(s, "INVALID LAPDm"); 
 			return;
 		}
 		if (ns == 3 && nr > 1) {
+			SET_MSG_INFO(s, "INVALID LAPDm"); 
 			return;
 		}
-		//printf("U ");
 		break;
 	}
 

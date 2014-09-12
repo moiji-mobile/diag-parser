@@ -582,7 +582,9 @@ void session_reset(struct session_info *s)
 
 	assert(s != NULL);
 
-	gettimeofday(&s->timestamp, NULL);
+	if (s->timestamp.tv_sec == 0) {
+		gettimeofday(&s->timestamp, NULL);
+	}
 
 	if (s->started && !s->closed) {
 		s->cracked = 1;

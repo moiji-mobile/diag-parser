@@ -121,7 +121,7 @@ struct radio_message * new_l2(uint8_t *data, uint8_t len, uint8_t rat, uint8_t d
 
 	m->rat = rat;
 	m->domain = domain;
-	switch (flags) {
+	switch (flags & 0x0f) {
 	case MSG_SDCCH:
 	case MSG_SACCH:
 		m->chan_nr = 0x41;
