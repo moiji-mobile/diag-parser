@@ -8,6 +8,7 @@
 #include "process.h"
 #include "rand_check.h"
 #include "assignment.h"
+#include "cell_info.h"
 
 struct frame_count {
 	int unenc;
@@ -113,7 +114,6 @@ struct session_info {
 	float r_time;
 	int sms_presence;
 	int call_presence;
-	struct sms_meta *sms_list;
 	uint8_t old_tmsi[4];
 	uint8_t new_tmsi[4];
 	uint8_t tlli[4];
@@ -136,10 +136,12 @@ struct session_info {
 	uint8_t last_dtap_rat;
 	struct radio_message *first_msg;
 	struct radio_message *last_msg;
+	struct sms_meta *sms_list;
 	struct session_info *next;
 	struct session_info *prev;
 	struct gsm_sysinfo_freq cell_arfcns[1024];
 	struct gsm48_cell_options cell_options;
+	struct cell_info ci;
 	struct rand_state null;
 	struct rand_state si5;
 	struct rand_state si5bis;

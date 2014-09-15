@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
+#include <osmocom/gsm/gsm_utils.h>
 
 #define APPEND(log, msg) strncat(log, msg, sizeof(log))
 
@@ -213,24 +214,6 @@ void session_stream(struct session_info *s)
 		}
 		m = m->next;
 	}
-}
-
-char * strescape_or_null(char *str)
-{
-	char *escaped;
-	size_t len;
-
-	if (!str || !str[0]) {
-		return strdup("NULL");
-	}
-
-	len = strlen(str);
-
-	escaped = malloc(len + 3);
-
-	snprintf(escaped, len + 3, "'%s'", str);
-
-	return escaped;
 }
 
 void session_print(struct session_info *s)
@@ -531,7 +514,7 @@ void session_close(struct session_info *s)
 	if (s->first_fn <= s->last_fn)
 		s->duration = s->last_fn - s->first_fn;
 	else
-		s->duration = ((s->last_fn + FN_MAX) - s->first_fn) % FN_MAX;
+		s->duration = ((s->last_fn + GSM_MAX_FN) - s->first_fn) % GSM_MAX_FN;
 
 	s->duration *= 4.615f;
 
@@ -540,7 +523,7 @@ void session_close(struct session_info *s)
 		if (s->auth_req_fn <= s->auth_resp_fn) {
 			s->auth_delta = s->auth_resp_fn - s->auth_req_fn;
 		} else {
-			s->auth_delta = ((s->auth_resp_fn + FN_MAX) - s->auth_req_fn) % FN_MAX;
+			s->auth_delta = ((s->auth_resp_fn + GSM_MAX_FN) - s->auth_req_fn) % GSM_MAX_FN;
 		}
 	}
 	s->auth_delta *= 4.615f;
@@ -550,7 +533,7 @@ void session_close(struct session_info *s)
 		if (s->cm_cmd_fn <= s->cm_comp_last_fn) {
 			s->cipher_delta = s->cm_comp_last_fn - s->cm_cmd_fn;
 		} else {
-			s->cipher_delta = ((s->cm_comp_last_fn + FN_MAX) - s->cm_cmd_fn) % FN_MAX;
+			s->cipher_delta = ((s->cm_comp_last_fn + GSM_MAX_FN) - s->cm_cmd_fn) % GSM_MAX_FN;
 		}
 	}
 	s->cipher_delta *= 4.615f;
@@ -574,10 +557,20 @@ void session_close(struct session_info *s)
 
 	if (s->sql_callback) {
 		char sql_buffer[8192];
+		struct sms_meta *sm;
 
 		session_make_sql(s, sql_buffer, sizeof(sql_buffer), output_sqlite);
 
 		s->sql_callback(sql_buffer);
+
+		sm = s->sms_list;
+		while (sm) {
+			sms_make_sql(s->id, sm, sql_buffer, sizeof(sql_buffer));
+
+			s->sql_callback(sql_buffer);
+
+			sm = sm->next;
+		}
 	}
 
 	s->closed = 1;

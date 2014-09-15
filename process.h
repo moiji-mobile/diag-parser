@@ -20,8 +20,6 @@
 #define MSG_CIPHERED	0x40
 #define MSG_DECODED	0x80
 
-#define FN_MAX (2048*26*51)
-
 struct burst_buf {
 	unsigned count;
 	unsigned errors;

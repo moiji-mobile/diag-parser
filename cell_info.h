@@ -3,6 +3,8 @@
 
 #include <osmocom/core/linuxlist.h>
 
+struct session_info;
+
 enum si_index {
 	SI1 = 0,
 	SI2, SI2b, SI2t, SI2q,

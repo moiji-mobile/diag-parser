@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "bit_func.h"
 
@@ -143,19 +144,23 @@ inline int hex_str2bin(const char *str, uint8_t *vec, unsigned len)
 
 inline int bcd2str(uint8_t *bcd, char *s, unsigned len, unsigned off)
 {
+	char code[] = {'0', '1', '2', '3', '4', '5', '6', '7',
+			  '8', '9', '*', '*', '#', '*', '#'};
 	unsigned i;
-	char c;
+	uint8_t n;
 
 	for (i=off; i<len; i++) {
-		if (i & 1)
-			c = '0' + (bcd[i/2] >> 4);
-		else
-			c = '0' + (bcd[i/2] & 0xf);
+		if (i & 1) {
+			n = bcd[i/2] >> 4;
+		} else {
+			n = bcd[i/2] & 0xf;
+		}
 
-		if (c > '9')	
+		if (n < 15) {
+			*(s++) = code[n];
+		} else {
 			break;
-
-		*(s++) = c;
+		}
 	}
 
 	*s = 0;
@@ -197,3 +202,20 @@ unsigned fread_unescape(FILE *f, uint8_t *msg, unsigned len)
 	return i;
 }
 
+char * strescape_or_null(char *str)
+{
+	char *escaped;
+	size_t len;
+
+	if (!str || !str[0]) {
+		return strdup("NULL");
+	}
+
+	len = strlen(str);
+
+	escaped = malloc(len + 3);
+
+	snprintf(escaped, len + 3, "'%s'", str);
+
+	return escaped;
+}

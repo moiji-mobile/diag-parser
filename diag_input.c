@@ -3,8 +3,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include <osmocom/core/utils.h>
 #include <osmocom/gsm/rsl.h>
+#include <osmocom/core/utils.h>
+#include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <assert.h>
 
@@ -26,7 +27,7 @@ struct diag_packet {
 
 void diag_init()
 {
-	session_init(0, 1, CALLBACK_CONSOLE);
+	session_init(0, 1, CALLBACK_MYSQL);
 	//msg_verbose = 1;
 }
 
@@ -38,7 +39,7 @@ void diag_destroy()
 inline
 uint32_t get_fn(struct diag_packet *dp)
 {
-	return ((dp->timestamp>>8)/204800)%FN_MAX;
+	return ((dp->timestamp>>8)/204800)%GSM_MAX_FN;
 }
 
 inline

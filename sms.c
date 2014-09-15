@@ -16,6 +16,8 @@
 #include "session.h"
 #include "bit_func.h"
 
+#define APPEND_INFO(sm, ...) snprintf((sm)->info+strlen((sm)->info), sizeof((sm)->info)-strlen((sm)->info), ##__VA_ARGS__);
+
 struct sec_header {
 	uint16_t cpl;
 	uint8_t chl;
@@ -28,120 +30,6 @@ struct sec_header {
 	uint8_t pcntr;
 };
 
-void handle_sec_cp(uint8_t *msg, unsigned len)
-{
-	struct sec_header *sh = (struct sec_header *) msg;
-
-#if 0
-	/* keysets should match in Kic and Kid */
-	if ((sh->kic ^ sh->kid) & 0xf0) {
-		printf(" KEYSETS DON'T MATCH");
-		return;
-	}
-#endif
-
-	printf(" TAR %02X%02X%02X",
-		sh->tar[0],
-		sh->tar[1],
-		sh->tar[2]);
-
-	switch ((sh->spi1 >> 3) & 0x03) {
-	case 0:
-		printf(" NO_CNTR");
-		break;
-	case 1:
-		printf(" CNTR_AV");
-		break;
-	case 2:
-		printf(" CNTR_HI");
-		break;
-	case 3:
-		printf(" CNTR_+1");
-		break;
-
-	}
-
-	if (sh->spi1 & 0x04) {
-		printf(" ENC");
-		switch (sh->kic & 0x03) {
-		case 0:
-			printf(" IMPLICIT");
-			break;
-		case 1:
-			switch((sh->kic>>2) & 0x03) {
-			case 0:
-				printf(" 1DES-CBC");
-				break;
-			case 1:
-				printf(" 3DES-2K ");
-				break;
-			case 2:
-				printf(" 3DES-3K ");
-				break;
-			case 3:
-				printf(" 1DES-EBC");
-				break;
-			}
-			break;
-		case 2:
-			printf(" RESERVED");
-			break;
-		case 3:
-			printf(" PROPRIET");
-			break;
-		}
-	} else {
-		printf(" --- --------");
-	}
-
-	switch (sh->spi1 & 0x03) {
-	case 0:
-		printf(" --");
-		break;
-	case 1:
-		printf(" RC");
-		break;
-	case 2:
-		printf(" CC");
-		break;
-	case 3:
-		printf(" DS");
-		break;
-	}
-
-	if (sh->spi1 & 0x03) {
-		switch (sh->kid & 0x03) {
-		case 0:
-			printf(" IMPLICIT");
-			break;
-		case 1:
-			switch((sh->kid>>2) & 0x03) {
-			case 0:
-				printf(" 1DES-CBC");
-				break;
-			case 1:
-				printf(" 3DES-2K ");
-				break;
-			case 2:
-				printf(" 3DES-3K ");
-				break;
-			case 3:
-				printf(" RESERVED");
-				break;
-			}
-			break;
-		case 2:
-			printf(" RESERVED");
-			break;
-		case 3:
-			printf(" PROPRIET");
-			break;
-		}
-	} else {
-		printf(" --------");
-	}
-}
-
 struct sec_header_rp {
 	uint16_t rpl;
 	uint8_t rhl;
@@ -153,61 +41,204 @@ struct sec_header_rp {
 	uint8_t sw[0];
 };
 
-void handle_sec_rp(uint8_t *msg, unsigned len)
+void handle_text(struct sms_meta *sm, uint8_t *msg, unsigned len)
+{
+	uint8_t text[256];
+
+	switch (gsm338_get_sms_alphabet(sm->dcs)) {
+	case DCS_7BIT_DEFAULT:
+		gsm_7bit_decode_n(text, sizeof(text), msg, len);
+		APPEND_INFO(sm, "TEXT \"%s\"", text);
+		break;
+	case DCS_NONE:
+	case DCS_UCS2:
+	case DCS_8BIT_DATA:
+		if (sm->pid == 124 || sm->pid == 127) {
+			sm->ota = 1;
+		}
+		if (sm->dcs == 246 || sm->dcs == 22) {
+			sm->ota = 1;
+		}
+		APPEND_INFO(sm, "RAW %s", osmo_hexdump_nospc(msg, len));
+		break;
+	}
+}
+
+void handle_sec_cp(struct sms_meta *sm, uint8_t *msg, unsigned len)
+{
+	struct sec_header *sh = (struct sec_header *) msg;
+
+	switch ((sh->spi1 >> 3) & 0x03) {
+	case 0:
+		APPEND_INFO(sm, " NO_CNTR");
+		break;
+	case 1:
+		APPEND_INFO(sm, " CNTR_AV");
+		break;
+	case 2:
+		APPEND_INFO(sm, " CNTR_HI");
+		break;
+	case 3:
+		APPEND_INFO(sm, " CNTR_+1");
+		break;
+
+	}
+
+	if (sh->spi1 & 0x04) {
+		APPEND_INFO(sm, " ENC");
+		switch (sh->kic & 0x03) {
+		case 0:
+			APPEND_INFO(sm, " IMPLICIT");
+			break;
+		case 1:
+			switch((sh->kic>>2) & 0x03) {
+			case 0:
+				APPEND_INFO(sm, " 1DES-CBC");
+				break;
+			case 1:
+				APPEND_INFO(sm, " 3DES-2K");
+				break;
+			case 2:
+				APPEND_INFO(sm, " 3DES-3K");
+				break;
+			case 3:
+				APPEND_INFO(sm, " 1DES-EBC");
+				break;
+			}
+			break;
+		case 2:
+			APPEND_INFO(sm, " RESERVED");
+			break;
+		case 3:
+			APPEND_INFO(sm, " PROPRIET");
+			break;
+		}
+	} else {
+		APPEND_INFO(sm, " --");
+	}
+
+	switch (sh->spi1 & 0x03) {
+	case 0:
+		APPEND_INFO(sm, " --");
+		break;
+	case 1:
+		APPEND_INFO(sm, " RC");
+		break;
+	case 2:
+		APPEND_INFO(sm, " CC");
+		break;
+	case 3:
+		APPEND_INFO(sm, " DS");
+		break;
+	}
+
+	if (sh->spi1 & 0x03) {
+		switch (sh->kid & 0x03) {
+		case 0:
+			APPEND_INFO(sm, " IMPLICIT");
+			break;
+		case 1:
+			switch((sh->kid>>2) & 0x03) {
+			case 0:
+				APPEND_INFO(sm, " 1DES-CBC");
+				break;
+			case 1:
+				APPEND_INFO(sm, " 3DES-2K");
+				break;
+			case 2:
+				APPEND_INFO(sm, " 3DES-3K");
+				break;
+			case 3:
+				APPEND_INFO(sm, " RESERVED");
+				break;
+			}
+			break;
+		case 2:
+			APPEND_INFO(sm, " RESERVED");
+			break;
+		case 3:
+			APPEND_INFO(sm, " PROPRIET");
+			break;
+		}
+	} else {
+		APPEND_INFO(sm, " --");
+	}
+}
+
+void handle_sec_rp(struct sms_meta *sm, uint8_t *msg, unsigned len)
 {
 	struct sec_header_rp *rp = (struct sec_header_rp *) msg;
 	uint8_t sign_len;
 
-	printf(" TAR %02X%02X%02X",
-		rp->tar[0],
-		rp->tar[1],
-		rp->tar[2]);
+	APPEND_INFO(sm, " TAR %02X%02X%02X",
+		rp->tar[0], rp->tar[1], rp->tar[2]);
 
-	printf(" POR %02X", rp->status);
+	APPEND_INFO(sm, " POR %02X", rp->status);
 
 	if (len > 13) {
 		sign_len = (len-13 > 16 ? 16 : len-13);
-		printf(" CC %s      ", osmo_hexdump_nospc(rp->sign, sign_len));
+		APPEND_INFO(sm, " CC %s ", osmo_hexdump_nospc(rp->sign, sign_len));
 	} else {
-		printf(" CC ----------------      ");
+		APPEND_INFO(sm, " CC -- ");
 	}
 }
 
-void handle_binary_data(struct session_info *s, uint8_t *msg, unsigned len)
+void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 {
 	uint8_t header_len;
 	uint8_t *user_data;
+	unsigned user_data_len;
+	uint8_t offset = 1;
+	uint8_t ota_cmd = 0;
+
+	assert(sm != NULL);
+	assert(msg != NULL);
+	assert(len > 0);
 
 	header_len = msg[0];
 
-	if (header_len > (len-1)) {
-		printf(" CORRUPTED DATA!");
+	/* Sanity check */
+	if (header_len > (len-1))
 		return;
-	}
 
+	/* Data offset */
 	user_data = msg + header_len + 1;
+	user_data_len = len - header_len - 1;
 
-	switch (msg[1]) {
-	case 0x00:
-		/* Fragment */
-		if ((msg[2] == 0x03) && (msg[5] == 0x01)) {
-			/* First fragment */
-			handle_sec_cp(user_data, len-header_len-1);
-		} else {
-			printf(" FRAGMENT (%3d/%3d)                         ", msg[5], msg[4]);	
+	/* Parse header elements (TLV) */
+	while (offset < header_len) {
+		switch (msg[offset]) {
+		case 0x00:
+			/* Concatenated header */
+			APPEND_INFO(sm, "FRAG(%d/%d)", msg[5], msg[4]);	
+			sm->concat = 1;
+			break;
+		case 0x70:
+			/* OTA Command */
+			sm->ota = 1;
+			ota_cmd = 1;
+			break;
+		case 0x71:
+			/* OTA Response */
+			sm->ota = 1;
+			ota_cmd = 0;
+			break;
 		}
-		break;
-	case 0x70:
-		/* Command */
-		handle_sec_cp(user_data, len-header_len-1);
-		break;
-	case 0x71:
-		/* Response */
-		handle_sec_rp(user_data, len-header_len-1);
-		break;
+
+		offset += msg[offset + 1];
 	}
 
-	printf(" %s", osmo_hexdump_nospc(msg, len));
+	/* Parse message content */
+	if (sm->ota) {
+		APPEND_INFO(sm, "OTA");
+		if (ota_cmd) {
+			handle_sec_cp(sm, user_data, user_data_len);
+		} else {
+			handle_sec_rp(sm, user_data, user_data_len);
+		}
+	} else {
+		handle_text(sm, user_data, user_data_len);
+	}
 }
 
 void handle_tpdu(struct session_info *s, uint8_t *msg, unsigned len, uint8_t from_network, char *smsc)
@@ -248,10 +279,10 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, unsigned len, uint8_t fro
 	handle_address(&msg[off], f_len, sm->msisdn, 1);
 	if (from_network) {
 		sm->from_network = 1;
-		sprintf(s->last_msg->info+strlen(s->last_msg->info), ", FROM %s", sm->msisdn);
+		APPEND_MSG_INFO(s, ", FROM %s", sm->msisdn);
 	} else {
 		sm->from_network = 0;
-		sprintf(s->last_msg->info+strlen(s->last_msg->info), ", TO %s", sm->msisdn);
+		APPEND_MSG_INFO(s, ", TO %s", sm->msisdn);
 	}
 	off += 1 + f_len;
 
@@ -269,31 +300,18 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, unsigned len, uint8_t fro
 	}
 
 	/* User data length */
-	f_len = msg[off++];
+	sm->length = msg[off++];
+	assert(sm->length*7/8 <= len - off);
 
-	/* Store text message */
-	if ((sm->dcs == 0) || ((sm->dcs & 0xfc) == 0x10)) {
-		gsm_7bit_decode_n(sm->text, sizeof(sm->text), &msg[off], f_len);
+	/* Store unparsed bytes */
+	memcpy(sm->data, &msg[off], len - off);
+
+	/* Handle UDH if present */
+	if (sm->udhi) {
+		handle_udh(sm, &msg[off], sm->length);
+	} else {
+		handle_text(sm, &msg[off], sm->length);
 	}
-
-	/* only binary encoded */
-	// 00:f5 WSP
-	// 7f:f6 USIM data download
-	#pragma omp critical (print)
-#if 0
-	if ((sm->dcs == 246) || (sm->dcs == 22)) {
-		printf("[%06d] %3d %3d %13s", s->id, s->mcc, s->mnc, sm->smsc);
-
-		printf(" %c %3d/%3d U%d %3d", from_network ? 'N' : 'M', sm->pid, sm->dcs, sm->udhi, f_len);
-
-		if (sm->udhi || (msg[off] == 0x02 && ((msg[off+1] == 0x70) || (msg[off+1] == 0x71)))) {
-			handle_binary_data(s, &msg[off], f_len);
-		} else {
-			printf(" RAW %s", osmo_hexdump_nospc(&msg[off], f_len));
-		}
-		printf("\n");
-	}
-#endif
 
 	/* Append SMS to list */
 	if (s->sms_list) {
@@ -440,5 +458,28 @@ void handle_sms(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 	default:
 		s->unknown = 1;
 	}
+}
+
+void sms_make_sql(int sid, struct sms_meta *sm, char *query, unsigned len)
+{
+	char *smsc;
+	char *msisdn;
+	char *info;
+
+	assert(sm != NULL);
+	assert(query != NULL);
+
+	smsc = strescape_or_null(sm->smsc);
+	msisdn = strescape_or_null(sm->msisdn);
+	info = strescape_or_null(sm->info);
+
+	snprintf(query, len, "INSERT INTO sms_meta VALUES ("
+		 "%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%s);\n",
+		 sid, sm->sequence, sm->from_network, sm->pid, sm->dcs,
+		 sm->udhi, sm->ota, sm->concat, smsc, msisdn, info);
+
+	free(smsc);
+	free(msisdn);
+	free(info);
 }
 

@@ -6,6 +6,7 @@
 #include <osmocom/gsm/tlv.h>
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/gsm/gsm48_ie.h>
+#include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <osmocom/gsm/protocol/gsm_04_11.h>
 #include <assert.h>
@@ -345,7 +346,7 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 			if (fn) {
 				s->auth_req_fn = fn;
 			} else {
-				s->auth_req_fn = FN_MAX;
+				s->auth_req_fn = GSM_MAX_FN;
 			}
 		}
 		break;
@@ -362,7 +363,7 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 			if (fn) {
 				s->auth_resp_fn = fn;
 			} else {
-				s->auth_resp_fn = FN_MAX;
+				s->auth_resp_fn = GSM_MAX_FN;
 			}
 		}
 		break;
@@ -541,14 +542,14 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 			if (fn) {
 				s->cm_comp_first_fn = fn;
 			} else {
-				s->cm_comp_first_fn = FN_MAX;
+				s->cm_comp_first_fn = GSM_MAX_FN;
 			}
 		}
 
 		if (fn) {
 			s->cm_comp_last_fn = fn;
 		} else {
-			s->cm_comp_last_fn = FN_MAX;
+			s->cm_comp_last_fn = GSM_MAX_FN;
 		}
 
 		s->cm_comp_count++;
@@ -575,7 +576,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 			if (fn) {
 				s->cm_cmd_fn = fn;
 			} else {
-				s->cm_cmd_fn = FN_MAX;
+				s->cm_cmd_fn = GSM_MAX_FN;
 			}
 		}
 
@@ -820,7 +821,7 @@ void update_counters(struct session_info *s, uint8_t *data, unsigned len, unsign
 		if (fn) {
 			s->first_fn = fn;
 		} else {
-			s->first_fn = FN_MAX;
+			s->first_fn = GSM_MAX_FN;
 		}
 	}
 
@@ -1136,7 +1137,7 @@ ts_update:
 		if (fn) {
 			s->auth_resp_fn = fn;
 		} else {
-			s->auth_resp_fn = FN_MAX;
+			s->auth_resp_fn = GSM_MAX_FN;
 		}
 	}
 	if (s->cipher && old_cipher && !s->cm_comp_last_fn && (len > 21)
@@ -1148,9 +1149,9 @@ ts_update:
 			s->cm_comp_last_fn = fn;
 		} else {
 			if (!s->cm_comp_first_fn) {
-				s->cm_comp_first_fn = FN_MAX;
+				s->cm_comp_first_fn = GSM_MAX_FN;
 			}
-			s->cm_comp_last_fn = FN_MAX;
+			s->cm_comp_last_fn = GSM_MAX_FN;
 		}
 	}
 }

@@ -9,12 +9,13 @@ struct sms_meta {
 	uint8_t pid;
 	uint8_t dcs;
 	uint8_t udhi;
-	uint8_t rp;
+	uint8_t ota;
 	uint8_t concat;
-	char smsc[GSM48_MI_SIZE];
-	char msisdn[GSM48_MI_SIZE];
-	uint8_t text[256];
-	uint8_t data[256];
+	char smsc[32];
+	char msisdn[32];
+	uint8_t length;
+	uint8_t data[140];
+	uint8_t info[256];
 	struct sms_meta *next;
 };
 

@@ -1,11 +1,17 @@
 #include "address.h"
 #include "bit_func.h"
 #include <string.h>
+#include <assert.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <stdio.h>
 
 int handle_addr_national(uint8_t *data, unsigned digit_len, char *dest)
 {
+	assert(data != NULL);
+	assert(dest != NULL);
+	assert(digit_len > 0);
+
 	/* Check first digit */
 	if (data[0] & 0x0f) {
 		/* Insert additional 0 */
@@ -18,6 +24,10 @@ int handle_addr_national(uint8_t *data, unsigned digit_len, char *dest)
 
 int handle_addr_e164(uint8_t *data, unsigned digit_len, char *dest)
 {
+	assert(data != NULL);
+	assert(dest != NULL);
+	assert(digit_len > 0);
+
 	/* Insert "+" before number */
 	dest[0] = '+';
 
@@ -32,49 +42,70 @@ int handle_addr_e164(uint8_t *data, unsigned digit_len, char *dest)
 
 void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 {
-	uint8_t ext = (data[0] & 0x80);
-	uint8_t ton = (data[0] & 0x70) >> 4;
-	uint8_t npi = (data[0] & 0x0f);
+	uint8_t ext;
+	uint8_t ton;
+	uint8_t npi;
 	uint8_t digit_len;
+	uint8_t ret;
 
-	/* check if extension is present */
+	assert(data != NULL);
+	assert(dest != NULL);
+	assert(len > 0);
+
+	/* Decode basic info */
+	ext = (data[0] & 0x80);
+	ton = (data[0] & 0x70) >> 4;
+	npi = (data[0] & 0x0f);
+
+	/* Check if extension is present */
 	if (ext) {
-		/* not present */
+		/* Not present */
+		if (len == 1) {
+			digit_len = 1;
+		} else {
+			digit_len = (len-1)*2;
+		}
 		data++;
-		digit_len = (len-1)*2;
 	} else {
-		/* present */
+		/* Present */
 		if (data[1] & 0x60) {
-			/* restricted number */
+			/* Restricted number */
 			strcpy(dest, "<hidden>");
 			return;
 		}
+		if (len == 2) {
+			digit_len = 1;
+		} else {
+			digit_len = (len-2)*2;
+		}
 		data += 2;
-		digit_len = (len-2)*2;
 	}
 	if (digit_only)
 		digit_len = len*2;
+
+	assert(digit_len > 0);
 
 	switch (ton) {
 	case 2: /* National */
 		switch (npi) {
 		case 1: /* E.164 */
-			handle_addr_national(data, digit_len, dest);
+			ret = handle_addr_national(data, digit_len, dest);
+			break;
 		default:
-			bcd2str(data, dest, digit_len, 0);
+			ret = bcd2str(data, dest, digit_len, 0);
 		}
 		break;
 	case 1: /* International */
 		switch (npi) {
 		case 1: /* E.164 */
-			handle_addr_e164(data, digit_len, dest);
+			ret = handle_addr_e164(data, digit_len, dest);
 			break;
 		default:
-			bcd2str(data, dest, digit_len, 0);
+			ret = bcd2str(data, dest, digit_len, 0);
 		} 
 		break;
 	case 5: /* Alphanumeric - GSM 7bit */
-		gsm_7bit_decode_n(dest, GSM48_MI_SIZE, data, (len*8)/7);
+		ret = gsm_7bit_decode_n(dest, GSM48_MI_SIZE, data, (len*8)/7);
 		break;
 	case 0: /* Unknown */
 	case 3: /* Network specific */
@@ -84,7 +115,7 @@ void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 	default:
 		switch (npi) {
 		case 8: /* National */
-			handle_addr_national(data, digit_len, dest);
+			ret = handle_addr_national(data, digit_len, dest);
 			break;
 		case 0: /* Unknown */
 		case 1: /* E.164 */
@@ -97,7 +128,7 @@ void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 		case 13: /* Internet IP */
 		case 15: /* Reserved value */
 		default:
-			bcd2str(data, dest, digit_len, 0);
+			ret = bcd2str(data, dest, digit_len, 0);
 		} 
 		break;
 	}
