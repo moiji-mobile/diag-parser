@@ -23,6 +23,13 @@ pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct session_info _s[2];
 
+void console_callback(const char *sql)
+{
+	assert(sql != NULL);
+
+	printf("SQL: %s\n", sql);
+}
+
 void session_init(int console, int gsmtap, int callback)
 {
 	output_console = console;
@@ -48,8 +55,8 @@ void session_init(int console, int gsmtap, int callback)
 		break;
 #endif
 	case CALLBACK_CONSOLE:
-		_s[0].sql_callback = printf;
-		_s[1].sql_callback = printf;
+		_s[0].sql_callback = console_callback;
+		_s[1].sql_callback = console_callback;
 		break;
 	}
 	_s[1].domain = DOMAIN_PS;

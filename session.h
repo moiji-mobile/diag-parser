@@ -156,7 +156,7 @@ struct session_info {
 #define CALLBACK_CONSOLE 3
 
 #define SET_MSG_INFO(s, ... )  snprintf((s)->last_msg->info, sizeof((s)->last_msg->info), ##__VA_ARGS__);
-#define APPEND_MSG_INFO(s, ...) sprintf((s)->last_msg->info+strlen((s)->last_msg->info), ##__VA_ARGS__);
+#define APPEND_MSG_INFO(s, ...) snprintf((s)->last_msg->info+strlen((s)->last_msg->info), sizeof((s)->last_msg->info)-strlen((s)->last_msg->info), ##__VA_ARGS__);
 
 void session_init();
 void session_destroy();
