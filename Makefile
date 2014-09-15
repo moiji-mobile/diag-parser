@@ -1,10 +1,18 @@
 CC=gcc
-CFLAGS=-O2 -ggdb -I. -I/usr/share/asn1c -fPIC -DGSM48_MT_RR_SYSINFO_2quater=0x07
+CFLAGS=-O2 -ggdb -I. -I/usr/share/asn1c -fPIC
 LDFLAGS=-losmocore -losmogsm -lasn1c -lm -losmo-asn1-rrc
 OBJ =	address.o assignment.o bit_func.o ccch.o cch.o chan_detect.o crc.o \
 	umts_rrc.o diag_input.o gprs.o gsm_interleave.o cell_info.o \
 	l3_handler.o output.o process.o punct.o rand_check.o rlcmac.o \
 	sch.o session.o sms.o tch.o viterbi.o
+
+# Android build
+CFLAGS+=-DGSM48_MT_RR_SYSINFO_2quater=0x07
+
+# Host build
+CFLAGS+=-DUSE_MYSQL -DUSE_SQLITE $(shell mysql_config --cflags)
+LDFLAGS+=$(shell mysql_config --libs) -lsqlite3
+OBJ+=mysql_api.o sqlite_api.o
 
 %.o: %.c %.h
 	$(CC) -c -o $@ $< $(CFLAGS)

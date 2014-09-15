@@ -109,7 +109,8 @@ void process_gsmtap(const struct pcap_pkthdr* pkt_hdr, const u_char* pkt_data, u
 	}
 
 	if (m->flags) {
-		memcpy(&_s->timestamp, &pkt_hdr->ts, sizeof(_s->timestamp));
+		_s->timestamp = pkt_hdr->ts;
+		m->timestamp = pkt_hdr->ts;
 		handle_radio_msg(_s, m);
 	}
 }
@@ -177,7 +178,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	session_init(1, 0, CALLBACK_MYSQL);
+	session_init(0, 1, CALLBACK_MYSQL);
 	msg_verbose = 1;
 
 	pcap_loop(read_fp, -1, process_ethernet, NULL);

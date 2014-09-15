@@ -3,8 +3,21 @@
 
 #include <osmocom/core/linuxlist.h>
 
+enum si_index {
+	SI1 = 0,
+	SI2, SI2b, SI2t, SI2q,
+	SI3,
+	SI4,
+	SI5, SI5b, SI5t,
+	SI6,
+	SI13,
+
+	SI_MAX
+};
+
 struct cell_info {
 	int id;
+	int stored;
 	struct timeval first_seen;
 	struct timeval last_seen;
 	int mcc;
@@ -16,38 +29,22 @@ struct cell_info {
 	int ba_len;
 	int power_sum;
 	int power_count;
-	int combined;
 	int gprs;
 	int t3212;
 	int cro;
 	int c1;
 	int c2;
 	int agch_blocks;
-	int neigh_2_count;
-	int neigh_2b_count;
-	int neigh_2t_count;
-	int neigh_2q_count;
-	int neigh_5_count;
-	int neigh_5b_count;
-	int neigh_5t_count;
-	struct gsm_sysinfo_freq bcch_list[1024];
-	struct gsm_sysinfo_freq neigh_list[1024];
-	uint8_t si1[23];
-	uint8_t si2[23];
-	uint8_t si2b[23];
-	uint8_t si2t[23];
-	uint8_t si2q[23];
-	uint8_t si3[23];
-	uint8_t si4[23];
-	uint8_t si5[23];
-	uint8_t si5b[23];
-	uint8_t si5t[23];
-	uint8_t si6[23];
-	uint8_t si13[23];
+	int pag_mframes;
+	int combined;
+	struct gsm_sysinfo_freq arfcn_list[1024];
+	uint32_t si_counters[SI_MAX];
+	uint8_t si_data[SI_MAX][20];
 
 	struct llist_head entry;
 };
 
+void cell_init();
 int get_mcc(uint8_t *digits);
 int get_mnc(uint8_t *digits);
 void handle_lai(struct session_info *s, uint8_t *data, int cid);

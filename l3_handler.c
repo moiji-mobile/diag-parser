@@ -527,6 +527,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		break;
 	case GSM48_MT_RR_ASS_COMPL:
 		SET_MSG_INFO(s, "ASSIGNMENT COMPLETE");
+		s->assign_complete = 1;
 		break;
 	case GSM48_MT_RR_CIPH_M_COMPL:
 		SET_MSG_INFO(s, "CIPHER MODE COMPLETE");
@@ -1164,14 +1165,14 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 	ul = !!(m->bb.arfcn[0] & ARFCN_UPLINK);
 
 	m->info[0] = 0;
+	m->flags |= MSG_DECODED;
 
+	// Link to last message
 	if (s->last_msg)
 		s->last_msg->next = m;
 	m->prev = s->last_msg;
 	s[0].last_msg = m;
 	s[1].last_msg = m;
-
-	m->flags |= MSG_DECODED;
 
 	switch (m->rat) {
 	case RAT_GSM:
@@ -1215,7 +1216,6 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 		break;
 	default:
 		goto free_m;		
-		break;
 	}
 
 	net_send_msg(m);

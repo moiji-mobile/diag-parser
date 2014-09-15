@@ -18,12 +18,13 @@ CREATE TABLE cell_info (
   neigh_2b smallint DEFAULT NULL,	-- Neighboring cell count derived from SI2bis
   neigh_2t smallint DEFAULT NULL,	-- Neighboring cell count derived from SI2ter
   neigh_2q smallint DEFAULT NULL,	-- Neighboring cell count derived from SI2quater
-  combined smallint DEFAULT NULL,	-- Cell uses BCCH combined mode
   t3212 smallint DEFAULT NULL,		-- Location update timer
   cro smallint DEFAULT NULL,		-- Cell reselection offset
   c1 smallint DEFAULT NULL,		-- C1 parameter
   c2 smallint DEFAULT NULL,		-- C2 parameter
   agch_blocks smallint DEFAULT NULL,	-- # of blocks reserved to AGCH
+  pag_mframes smallint DEFAULT NULL,	-- # of multi frames used for paging
+  combined smallint DEFAULT NULL,	-- Cell uses BCCH combined mode
   si1 binary(23) DEFAULT NULL,		-- Binary message SI1
   si2 binary(23) DEFAULT NULL,		-- Binary message SI2
   si2b binary(23) DEFAULT NULL,		-- Binary message SI2bis

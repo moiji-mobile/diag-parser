@@ -254,6 +254,7 @@ void handle_diag(uint8_t *msg, unsigned len)
 	}
 
 	if (m) {
+		gettimeofday(&m->timestamp, NULL);
 		handle_radio_msg(_s, m);
 	}
 }

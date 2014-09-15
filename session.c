@@ -34,12 +34,14 @@ void session_init(int console, int gsmtap, int callback)
 	switch (callback) {
 	case CALLBACK_NONE:
 		break;
-#if 0
+#ifdef USE_MYSQL
 	case CALLBACK_MYSQL:
 		output_sqlite = 0;
 		mysql_api_init(&_s[0]);
 		mysql_api_init(&_s[1]);
 		break;
+#endif
+#ifdef USE_SQLITE
 	case CALLBACK_SQLITE:
 		sqlite_api_init(&_s[0]);
 		sqlite_api_init(&_s[1]);
@@ -51,6 +53,8 @@ void session_init(int console, int gsmtap, int callback)
 		break;
 	}
 	_s[1].domain = DOMAIN_PS;
+
+	cell_init();
 
 	if (gsmtap)
 		net_init();
@@ -465,7 +469,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 		"t_unknown,t_detach,t_locupd,lu_acc,lu_rej_cause,lu_type,lu_mcc,lu_mnc,lu_lac,"
 		"t_raupd,t_attach,att_acc,t_pdp,pdp_ip,t_call,t_sms,t_ss,"
 		"t_tmsi_realloc,t_release,rr_cause,t_gprs,iden_imsi_ac,iden_imsi_bc,iden_imei_ac,iden_imei_bc,"
-		"assign,handover,forced_ho,a_timeslot,a_chan_type,a_tsc,"
+		"assign,assign_cmpl,handover,forced_ho,a_timeslot,a_chan_type,a_tsc,"
 		"a_hopping,a_arfcn,a_hsn,a_maio,a_ma_len,a_chan_mode,a_multirate,"
 		"call_presence,sms_presence,service_req,"
 		"imsi,imei,tmsi,new_tmsi,tlli,msisdn,"
@@ -478,7 +482,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 		"%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 		"%d,%d,%d,%d,%s,%d,%d,%d,"
 		"%d,%d,%d,%d,%d,%d,%d,%d,"
-		"%d,%d,%d,%d,%d,%d,"
+		"%d,%d,%d,%d,%d,%d,%d,"
 		"%d,%d,%d,%d,%d,%d,%d,"
 		"%d,%d,%d,"
 		"%s,%s,%s,%s,%s,%s,"
@@ -492,7 +496,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 		s->unknown, s->detach, s->locupd, s->lu_acc, s->lu_type, s->lu_rej_cause, s->lu_mcc, s->lu_mnc, s->lac,
 	 	s->raupd, s->attach, s->att_acc, s->pdp_activate, pdpip, s->call, s->sms, s->ssa,
 		s->tmsi_realloc, s->release, s->rr_cause, s->have_gprs, s->iden_imsi_ac, s->iden_imsi_bc, s->iden_imei_ac, s->iden_imei_bc,
-		s->assignment, s->handover, s->forced_ho, s->ga.chan_nr&7, s->ga.chan_nr>>3, s->ga.tsc,
+		s->assignment, s->assign_complete, s->handover, s->forced_ho, s->ga.chan_nr&7, s->ga.chan_nr>>3, s->ga.tsc,
 		s->ga.h, s->ga.h0.band_arfcn, s->ga.h1.hsn, s->ga.h1.maio, s->ga.h1.ma_len, s->ga.chan_mode, s->ga.rate_conf,
 		s->call_presence, s->sms_presence, s->serv_req,
 		imsi, imei, tmsi, new_tmsi, tlli, msisdn,

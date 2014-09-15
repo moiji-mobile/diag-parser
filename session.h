@@ -104,6 +104,7 @@ struct session_info {
 	int ue_cipher_cap;
 	int ue_integrity_cap;
 	int assignment;
+	int assign_complete;
 	int handover;
 	int forced_ho;
 	int use_tmsi;

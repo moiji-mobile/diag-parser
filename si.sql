@@ -69,6 +69,7 @@ CREATE TABLE session_info (
   iden_imei_ac tinyint DEFAULT NULL,	-- IMEI was requested after ciphering
   iden_imei_bc tinyint DEFAULT NULL,	-- IMEI was requested before ciphering
   assign tinyint DEFAULT NULL,		-- Transaction contains an assignment to other channel
+  assign_cmpl tinyint DEFAULT NULL,	-- Transaction contains an assignment complete
   handover tinyint DEFAULT NULL,	-- Transaction contains a handover to other channel
   forced_ho tinyint DEFAULT NULL,	-- Handover was forced just after ciphering
   a_timeslot tinyint DEFAULT NULL,	-- Assigned channel timeslot

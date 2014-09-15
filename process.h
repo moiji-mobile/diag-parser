@@ -2,6 +2,7 @@
 #define PROCESS_H
 
 #include <stdint.h>
+#include <time.h>
 
 #include "burst_desc.h"
 
@@ -37,6 +38,7 @@ struct radio_message {
 	uint8_t rat;
 	uint8_t domain;
 	uint8_t flags;	/* MSG_* */
+	struct timeval timestamp;
 	char info[128];
 	uint8_t chan_nr;
 	uint8_t msg[256];
