@@ -1215,11 +1215,8 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 		strcpy(m->info, "LTE");
 		break;
 	default:
-		goto free_m;		
+		return;
 	}
 
 	net_send_msg(m);
-
-free_m:
-	free(m);
 }
