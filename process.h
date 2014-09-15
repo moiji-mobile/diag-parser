@@ -2,7 +2,7 @@
 #define PROCESS_H
 
 #include <stdint.h>
-#include <time.h>
+#include <sys/time.h>
 
 #include "burst_desc.h"
 
