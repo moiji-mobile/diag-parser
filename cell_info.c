@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <arpa/inet.h>
 
 #include "session.h"
 #include "cell_info.h"
