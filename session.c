@@ -29,6 +29,7 @@ void console_callback(const char *sql)
 	assert(sql != NULL);
 
 	printf("SQL: %s\n", sql);
+	fflush(stdout);
 }
 
 void session_init(int console, int gsmtap, int callback)
