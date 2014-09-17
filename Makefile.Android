@@ -23,7 +23,7 @@ diag_import: diag_import.o libmetagsm.a libcompat.so
 	$(CC) -o $@ diag_import.o libmetagsm.a $(LDFLAGS)
 
 clean:
-	@rm -f *.o diag_import libmetagsm*
+	@rm -f *.o diag_import libmetagsm* *.so
 
 database:
 	@rm metadata.db
