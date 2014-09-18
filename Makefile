@@ -1,6 +1,8 @@
 MYSQL_ARGS = -u root --batch
 MYSQL_DB   = test2g
 
+all: new
+
 old: SM = sm_2.4.sql
 old: result.dat
 
@@ -15,4 +17,4 @@ result.dat: main.sql data/functions.sql #data/expected.dat $(SM)
 	@diff -u result.dat.tmp data/expected.dat
 	@mv result.dat.tmp result.dat
 
-.PHONY: old new
+.PHONY: old new clean all
