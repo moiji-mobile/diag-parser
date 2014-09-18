@@ -335,38 +335,38 @@ insert into attack_component_x4
 delete from attack_component;
 insert into attack_component
  select mcc, mnc, lac, month,
-        sum(if(cipher=3,
-                        (1.0/2+realtime_crack/2)*avg_of_2(call_perc,sms_perc),
-                        if(cipher=2,
-                                0.2/2*avg_of_2(call_perc,sms_perc),
-                                if(cipher=1,
-                                        (0.5/2+realtime_crack/2)*avg_of_2(call_perc,sms_perc),
-                                        0)
-                                )
-                        )
-                ) as realtime_crack,
-        sum(if(cipher=3,
-                        (1.0/2+offline_crack/2)*avg_of_2(call_perc,sms_perc),
-                        if(cipher=2,
-                                0.2/2*avg_of_2(call_perc,sms_perc),
-                                if(cipher=1,
-                                        (0.5/2+offline_crack/2)*avg_of_2(call_perc,sms_perc),
-                                        0)
-                                )
-                        )
-                ) as offline_crack,
+        sum(CASE
+               WHEN cipher=3 THEN
+                  (1.0/2+realtime_crack/2)*avg_of_2(call_perc,sms_perc)
+               WHEN cipher=2 THEN
+                  (0.2/2*avg_of_2(call_perc,sms_perc))
+               WHEN cipher=1 THEN
+                  (0.5/2+realtime_crack/2)*avg_of_2(call_perc,sms_perc)
+               ELSE
+                  0
+            END) as realtime_crack,
+        sum(CASE
+               WHEN cipher=3 THEN
+                  (1.0/2+offline_crack/2)*avg_of_2(call_perc,sms_perc)
+               WHEN cipher=2 THEN
+                  0.2/2*avg_of_2(call_perc,sms_perc)
+               WHEN cipher=1 THEN
+                  (0.5/2+offline_crack/2)*avg_of_2(call_perc,sms_perc)
+               ELSE
+                  0
+            END) as offline_crack,
         sum(avg_of_2(call_perc,sms_perc)*key_reuse_mt) as key_reuse_mt,
         sum(avg_of_2(call_perc,sms_perc)*key_reuse_mo) as key_reuse_mo,
-        sum(if(cipher=3,
-                        1*0.4*avg_of_2(call_perc,sms_perc),
-                        if(cipher=2,
-                                0.2*0.4*avg_of_2(call_perc,sms_perc),
-                                if(cipher=1,
-                                        0.5*0.4*avg_of_2(call_perc,sms_perc)+track_tmsi,
-                                        0)
-                                )
-                        )
-                ) as track_imsi,
+        sum(CASE
+               WHEN cipher=3 THEN
+                    1 * 0.4 * avg_of_2(call_perc,sms_perc)
+               WHEN cipher=2 THEN
+                  0.2 * 0.4 * avg_of_2(call_perc,sms_perc)
+               WHEN cipher=1 THEN
+                  0.5 * 0.4 * avg_of_2(call_perc,sms_perc) + track_tmsi
+               ELSE
+                  0
+            END) as track_imsi,
         avg(hlr_inf) as hlr_info,
         sum(call_perc*freq_predict) as freq_predict
  from attack_component_x4 as x
