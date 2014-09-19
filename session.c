@@ -63,7 +63,7 @@ void session_init(int console, int gsmtap, int callback)
 	}
 	_s[1].domain = DOMAIN_PS;
 
-	cell_init();
+	cell_init(0);
 
 	if (gsmtap)
 		net_init();
@@ -74,15 +74,20 @@ void session_destroy()
 	session_reset(&_s[0]);
 	session_reset(&_s[1]);
 
-/*
+	cell_destroy(_s[0].sql_callback);
+
 	if (_s[0].sql_callback) {
-		if (output_sqlite) {
+#ifdef USE_SQLITE
+		if (output_sqlite == 1) {
 			sqlite_api_destroy();
-		} else {
+		}
+#endif
+#ifdef USE_MYSQL
+		if (output_sqlite == 0) {
 			mysql_api_destroy();
 		}
+#endif
 	}
-*/
 }
 
 struct session_info *session_create(int id, char* name, uint8_t *key, int mcc, int mnc, int lac, int cid, struct gsm_sysinfo_freq *ca)
@@ -587,11 +592,15 @@ void session_reset(struct session_info *s)
 
 	assert(s != NULL);
 
+	/* Attach a timestamp if not present */
 	if (s->timestamp.tv_sec == 0) {
 		gettimeofday(&s->timestamp, NULL);
 	}
 
 	if (s->started && !s->closed) {
+		if ((s->mt || s->locupd || s->serv_req) && !s->release) {
+			return;
+		}
 		s->cracked = 1;
 		session_close(s);
 	}

@@ -178,8 +178,11 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	session_init(0, 1, CALLBACK_MYSQL);
-	msg_verbose = 1;
+	session_init(1, 1, CALLBACK_MYSQL);
+	//msg_verbose = 1;
+	_s[0].id=10;
+	_s[1].id=10;
+	cell_init(202);
 
 	pcap_loop(read_fp, -1, process_ethernet, NULL);
 

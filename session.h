@@ -140,8 +140,7 @@ struct session_info {
 	struct session_info *next;
 	struct session_info *prev;
 	struct gsm_sysinfo_freq cell_arfcns[1024];
-	struct gsm48_cell_options cell_options;
-	struct cell_info ci;
+	struct cell_info *ci;
 	struct rand_state null;
 	struct rand_state si5;
 	struct rand_state si5bis;

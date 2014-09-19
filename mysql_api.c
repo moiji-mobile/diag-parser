@@ -1,20 +1,32 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <mysql.h>
+#include <assert.h>
 
 #include "mysql_api.h"
 
 static MYSQL *meta_db;
 
-void mysql_api_query_cb(const char *query)
+void mysql_api_query_cb(const char *input)
 {
+	const char *ptr = input;
+	char query[4096];
 	int ret;
 
-	ret = mysql_query(meta_db, query);
-	if (ret) {
-		printf("Error executing query:\n%s\n", query);
-		printf("MySQL error: %s\n", mysql_error(meta_db));
-		exit(1);
+	assert(input != NULL);
+
+	if (input[0] == 0) {
+		return;
+	}
+
+	while (sgets(query, sizeof(query), &ptr)) {
+		ret = mysql_query(meta_db, query);
+		if (ret) {
+			printf("Error executing query:\n%s\n", query);
+			printf("MySQL error: %s\n", mysql_error(meta_db));
+			exit(1);
+		}
 	}
 }
 

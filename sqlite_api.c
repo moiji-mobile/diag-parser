@@ -1,19 +1,30 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <sqlite3.h>
 
 #include "sqlite_api.h"
 
 static sqlite3 *meta_db;
 
-void sqlite_api_query_cb(const char *query)
+void sqlite_api_query_cb(const char *input)
 {
+	const char *ptr = input;
+	char query[4096];
 	int ret;
 
-	ret = sqlite3_exec(meta_db, query, 0, 0, 0);
-	if (ret != SQLITE_OK) {
-		printf("Error executing query:\n%s\n", query);
-		exit(1);
+	assert(input != NULL);
+
+	if (input[0] == 0) {
+		return;
+	}
+
+	while (sgets(query, sizeof(query), &ptr)) {
+		ret = sqlite3_exec(meta_db, query, 0, 0, 0);
+		if (ret != SQLITE_OK) {
+			printf("Error executing query:\n%s\n", query);
+			exit(1);
+		}
 	}
 }
 

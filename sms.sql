@@ -10,5 +10,6 @@ CREATE TABLE sms_meta (
   concat tinyint NOT NULL,		-- Message is a fragment of a concatenated message 
   smsc CHAR(32) NOT NULL,		-- SMSC that handled or will handle the message
   msisdn CHAR(32) NOT NULL,		-- Destination or source number of message
-  info CHAR(255) NOT NULL		-- Decoded information in human readable form
+  info CHAR(255) NOT NULL,		-- Decoded information in human readable form
+  PRIMARY KEY(id, sequence)
 );

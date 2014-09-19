@@ -27,7 +27,15 @@ struct diag_packet {
 
 void diag_init()
 {
+#ifdef USE_MYSQL
+	session_init(0, 1, CALLBACK_MYSQL);
+#else
+#ifdef USE_SQLITE
+	session_init(0, 1, CALLBACK_SQLITE);
+#else
 	session_init(0, 1, CALLBACK_CONSOLE);
+#endif
+#endif
 	//msg_verbose = 1;
 }
 

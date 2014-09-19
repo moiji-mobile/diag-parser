@@ -5,12 +5,14 @@
 #include "diag_input.h"
 #include "bit_func.h"
 
-int main()
+int main(int argc, char *argv[])
 {
 	uint8_t msg[4096]; 
 	unsigned len = 0;
+
 	printf("PARSER_OK\n");
 	fflush(stdout);
+
 	diag_init();
 
 	for (;;) {

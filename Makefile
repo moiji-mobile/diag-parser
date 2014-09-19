@@ -6,9 +6,6 @@ OBJ =	address.o assignment.o bit_func.o ccch.o cch.o chan_detect.o crc.o \
 	l3_handler.o output.o process.o punct.o rand_check.o rlcmac.o \
 	sch.o session.o sms.o tch.o viterbi.o
 
-# Android build
-CFLAGS+=-DGSM48_MT_RR_SYSINFO_2quater=0x07
-
 # Host build
 CFLAGS+=-DUSE_MYSQL -DUSE_SQLITE $(shell mysql_config --cflags)
 LDFLAGS+=$(shell mysql_config --libs) -lsqlite3
