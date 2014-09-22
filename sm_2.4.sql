@@ -325,21 +325,21 @@ delete from attack_component;
 insert into attack_component
  select mcc, mnc, lac, month,
         sum(if(cipher=3,
-                        (1.0/2+realtime_crack/2)*avg_of_2(call_perc,sms_perc),
+                        1.0/2*avg_of_2(call_perc,sms_perc)+if(avg_of_2(call_perc,sms_perc) = 1.0, realtime_crack/2, realtime_crack/4*avg_of_2(call_perc,sms_perc)),
                         if(cipher=2,
                                 0.2/2*avg_of_2(call_perc,sms_perc),
                                 if(cipher=1,
-                                        (0.5/2+realtime_crack/2)*avg_of_2(call_perc,sms_perc),
+                                        0.5/2*avg_of_2(call_perc,sms_perc)+if(avg_of_2(call_perc,sms_perc) = 1.0, realtime_crack/2, realtime_crack/4*avg_of_2(call_perc,sms_perc)),
                                         0)
                                 )
                         )
                 ) as realtime_crack,
         sum(if(cipher=3,
-                        (1.0/2+offline_crack/2)*avg_of_2(call_perc,sms_perc),
+                        1.0/2*avg_of_2(call_perc,sms_perc)+if(avg_of_2(call_perc,sms_perc) = 1.0, offline_crack/2, offline_crack/4*avg_of_2(call_perc,sms_perc)),
                         if(cipher=2,
                                 0.2/2*avg_of_2(call_perc,sms_perc),
                                 if(cipher=1,
-                                        (0.5/2+offline_crack/2)*avg_of_2(call_perc,sms_perc),
+                                        0.5/2*avg_of_2(call_perc,sms_perc)+if(avg_of_2(call_perc,sms_perc) = 1.0, offline_crack/2, offline_crack/4*avg_of_2(call_perc,sms_perc)),
                                         0)
                                 )
                         )
