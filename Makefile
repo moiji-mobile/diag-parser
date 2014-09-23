@@ -29,8 +29,8 @@ clean:
 run: $(addsuffix .tbl, $(addprefix tmp/, $(COMPARE_TABLES)))
 
 tmp/result.log: $(SM)
-	@echo -n Generating security scores...
-	@mysql $(MYSQL_ARGS) -e "source $(SM);" -e "source data/functions.sql;" $(MYSQL_DB) > $@.tmp
+	@echo Generating security scores...
+	@time mysql $(MYSQL_ARGS) -e "source $(SM);" -e "source data/functions.sql;" $(MYSQL_DB) > $@.tmp
 	@mv $@.tmp $@
 	@echo OK.
 
