@@ -29,10 +29,11 @@ run: $(addsuffix .tbl, $(addprefix tmp/, $(COMPARE_TABLES)))
 
 tmp/result.log: $(SM)
 	@echo -n Generating security scores...
-	@mysql $(MYSQL_ARGS) -e "source $(SM);" -e "source data/functions.sql;" -e "source main.sql;" $(MYSQL_DB) > $@.tmp
+	@mysql $(MYSQL_ARGS) -e "source $(SM);" -e "source data/functions.sql;" $(MYSQL_DB) > $@.tmp
+	@mv $@.tmp $@
 	@echo OK.
 
-tmp/%.tbl: tests/%.tbl $(SM) tmp/result.log
+tmp/%.tbl: tests/%.tbl tmp/result.log
 	@echo -n ...$*...
 	@mysql $(MYSQL_ARGS) -e "select * from $*;" $(MYSQL_DB) > $@.tmp
 	@diff -q $@.tmp $<
