@@ -11,6 +11,10 @@ OBJ =	address.o assignment.o bit_func.o ccch.o cch.o chan_detect.o crc.o \
 
 all: diag_import
 
+install: diag_import libcompat.so
+	install -d $(DESTDIR)
+	install $^ $(DESTDIR)
+
 libmetagsm.a: $(OBJ)
 	ar rcs $@ $^
 #	$(CC) -o $@.so $^ -shared -fPIC $(LDFLAGS)
