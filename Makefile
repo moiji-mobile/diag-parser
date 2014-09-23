@@ -24,6 +24,7 @@ new: run
 
 clean:
 	@rm -f result.dat result.dat.tmp
+	@rm -rf tmp
 
 run: $(addsuffix .tbl, $(addprefix tmp/, $(COMPARE_TABLES)))
 
