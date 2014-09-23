@@ -313,20 +313,42 @@ insert into sec_params
 delete from attack_component_x4;
 insert into attack_component_x4
  select s.mcc, s.mnc, s.lac, s.month, s.cipher,
-	s.call_count/t.call_tot as call_perc,
-	s.sms_count/t.sms_tot as sms_perc,
-	s.loc_count/t.loc_tot as loc_perc,
-	avg_of_2(if(call_nulls>5, 0, 1-call_nulls/5), if(sms_nulls>10, 0, 1-sms_nulls/10)) as realtime_crack,
-	avg_of_2(if(call_pred>10, 0, 1-call_pred/10), if(sms_pred>15, 0, 1-sms_pred/15)) as off_crack,
+
+	s.call_count / t.call_tot as call_perc,
+
+	s.sms_count  / t.sms_tot  as sms_perc,
+
+	s.loc_count  / t.loc_tot  as loc_perc,
+
+	avg_of_2
+        (
+                CASE WHEN call_nulls >  5 THEN 0 ELSE 1 - call_nulls /  5 END,
+                CASE WHEN sms_nulls  > 10 THEN 0 ELSE 1 - sms_nulls  / 10 END
+        )
+        as realtime_crack,
+
+	avg_of_2
+        (
+                CASE WHEN call_pred > 10 THEN 0 ELSE 1 - call_pred / 10 END,
+                CASE WHEN sms_pred  > 15 THEN 0 ELSE 1 - sms_pred  / 15 END
+        ) as offline_crack,
+
 	pag_auth_mt as key_reuse_mt,
+
 	avg_of_2(call_auth_mo,sms_auth_mo) as key_reuse_mo,
-	avg_of_3(call_tmsi,sms_tmsi,loc_tmsi)*0.4
-	+ if(loc_imsi<0.05, 1-loc_imsi*20, 0)*0.2 as track_tmsi,
-	rand_imsi*0.5 + home_routing*0.5 as hlr_inf,
+
+        --  FIXME: This value won't exceed 0.6 - is this on purpose?
+	0.4 * avg_of_3 (call_tmsi, sms_tmsi, loc_tmsi) +
+        0.2 * CASE WHEN loc_imsi < 0.05 THEN 1 - loc_imsi * 20 ELSE 0 END
+           as track_tmsi,
+
+	0.5 * rand_imsi + 0.5 * home_routing as hlr_inf,
+
 	( if(ma_len<8, ma_len/8, 1) + if(var_len<0.01, var_len*100, 1)
 	+ if(var_hsn<0.01, var_hsn*100, 1)
 	+ if(var_maio<0.1, var_maio*10, 1)
 	+ if(var_ts<0.1, var_ts*10, 1) )/5 as freq_predict
+
   from sec_params as s, lac_session_type_count as t
   where s.mcc = t.mcc and s.mnc = t.mnc and
 	s.lac = t.lac and s.month = t.month
@@ -335,28 +357,33 @@ insert into attack_component_x4
 delete from attack_component;
 insert into attack_component
  select mcc, mnc, lac, month,
+
         sum(CASE
                WHEN cipher=3 THEN
-                  (1.0/2+realtime_crack/2)*avg_of_2(call_perc,sms_perc)
+                  (1.0 / 2 + realtime_crack / 2)
                WHEN cipher=2 THEN
-                  (0.2/2*avg_of_2(call_perc,sms_perc))
+                  0.2 / 2
                WHEN cipher=1 THEN
-                  (0.5/2+realtime_crack/2)*avg_of_2(call_perc,sms_perc)
+                  (0.5 / 2 + realtime_crack / 2)
                ELSE
                   0
-            END) as realtime_crack,
+            END * avg_of_2(call_perc,sms_perc)) as realtime_crack,
+
         sum(CASE
                WHEN cipher=3 THEN
-                  (1.0/2+offline_crack/2)*avg_of_2(call_perc,sms_perc)
+                  (1.0 / 2 + offline_crack / 2)
                WHEN cipher=2 THEN
-                  0.2/2*avg_of_2(call_perc,sms_perc)
+                   0.2 / 2
                WHEN cipher=1 THEN
-                  (0.5/2+offline_crack/2)*avg_of_2(call_perc,sms_perc)
+                  (0.5 / 2 + offline_crack / 2)
                ELSE
                   0
-            END) as offline_crack,
+            END * avg_of_2(call_perc,sms_perc)) as offline_crack,
+
         sum(avg_of_2(call_perc,sms_perc)*key_reuse_mt) as key_reuse_mt,
+
         sum(avg_of_2(call_perc,sms_perc)*key_reuse_mo) as key_reuse_mo,
+
         sum(CASE
                WHEN cipher=3 THEN
                     1 * 0.4 * avg_of_2(call_perc,sms_perc)
@@ -367,9 +394,12 @@ insert into attack_component
                ELSE
                   0
             END) as track_imsi,
+
         avg(hlr_inf) as hlr_info,
-        sum(call_perc*freq_predict) as freq_predict
- from attack_component_x4 as x
+
+        sum(call_perc * freq_predict) as freq_predict
+
+ from attack_component_x4
  group by mcc, mnc, lac, month
  order by mcc, mnc, lac, month;
 
