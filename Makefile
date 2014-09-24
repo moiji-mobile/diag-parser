@@ -17,10 +17,8 @@ COMPARE_TABLES = \
 all: new
 
 old: SM = sm_2.4.sql
-old: run
-
 new: SM = sm_2.4.new.sql
-new: run
+old new: run
 
 clean:
 	@rm -f result.dat result.dat.tmp
@@ -28,7 +26,7 @@ clean:
 
 run: $(addsuffix .tbl, $(addprefix tmp/, $(COMPARE_TABLES)))
 
-tmp/result.log: $(SM)
+tmp/result.log: *.sql
 	@echo Generating security scores...
 	@time mysql $(MYSQL_ARGS) -e "source $(SM);" -e "source data/functions.sql;" $(MYSQL_DB) > $@.tmp
 	@mv $@.tmp $@
