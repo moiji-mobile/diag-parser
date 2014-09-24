@@ -196,28 +196,8 @@ insert into va (select distinct mcc,mnc,country,network,oldest,latest,3 from va)
 
 --
 
-# "sec_params" population
-delete from sec_params;
-
-insert into sec_params
- select va.mcc as mcc, va.mnc as mnc,
-		 va.country as country, va.network as network,
-		 c.lac as lac, c.month as month, va.cipher as cipher,
-		 c.count, c.mo_count, s.count, s.mo_count, l.count,
-		 c.success, s.success, l.success,
-		 c.rand_null_perc, s.rand_null_perc, l.rand_null_perc,
-		 c.rand_si_perc, s.rand_si_perc, l.rand_si_perc,
-		 c.nulls, s.nulls, l.nulls,
-		 c.pred, s.pred, l.pred,
-		 c.imeisv, s.imeisv, l.imeisv,
-		 avg_of_2(c.auth_mt, s.auth_mt),
-		 c.auth_mo, s.auth_mo, l.auth_mo,
-		 c.tmsi, s.tmsi, l.tmsi,
-		 c.imsi, s.imsi, l.imsi,
-		 e.ma_len, e.var_len, e.var_hsn, e.var_maio, e.var_ts,
-		 h.rand_imsi,
-		 h.home_routing
- from va left outer join (
+drop view if exists call_avg;
+create view call_avg as
   select mcc, mnc, lac, date_format(timestamp, "%Y-%m") as month, cipher,
 	 count(*) as count,
 	 sum(if(mobile_orig,1,0)) as mo_count,
@@ -227,6 +207,8 @@ insert into sec_params
 	 avg(enc_null-enc_null_rand) as nulls,
 	 avg(predict) as pred,
 	 avg(cmc_imeisv) as imeisv,
+         -- FIXME: This calculates average of different authentication algorithms (none=0, GSM A3/A3=1, UMTS AKA=2).
+         --        Does this make sense?
 	 avg(if(mobile_term, auth, NULL)) as auth_mt,
 	 avg(if(mobile_orig, auth, NULL)) as auth_mo,
 	 avg(t_tmsi_realloc) as tmsi,
@@ -236,9 +218,13 @@ insert into sec_params
 	(call_presence or (cipher=1 and cracked=0) or cipher>1)) and
 	(cipher > 0 or duration > 350)
   group by mcc, mnc, lac, month, cipher
-  order by mcc, mnc, lac, month, cipher) as c
- on (va.mcc = c.mcc and va.mnc = c.mnc and va.cipher = c.cipher)
- left outer join (
+  order by mcc, mnc, lac, month, cipher;
+
+-- FIXME: How about A5/2 - this could also be cracked...
+-- FIXME: Why longer than 350ms or ciphered?
+
+drop view if exists sms_avg;
+create view sms_avg as
   select mcc, mnc, lac, date_format(timestamp, "%Y-%m") as month, cipher,
 	 count(*) as count,
 	 sum(if(mobile_orig,1,0)) as mo_count,
@@ -255,10 +241,10 @@ insert into sec_params
   from session_info
   where rat = 0 and (t_sms and (sms_presence or (cipher=1 and cracked=0) or cipher>1))
   group by mcc, mnc, lac, month, cipher
-  order by mcc, mnc, lac, month, cipher) as s
- on (va.mcc = s.mcc and va.mnc = s.mnc and va.cipher = s.cipher
-     and c.lac = s.lac and c.month = s.month)
- left outer join (
+  order by mcc, mnc, lac, month, cipher;
+
+drop view if exists loc_avg;
+create view loc_avg as
   select mcc, mnc, lac, date_format(timestamp, "%Y-%m") as month, cipher,
 	 count(*) as count,
 	 avg(cracked) as success,
@@ -272,39 +258,106 @@ insert into sec_params
 	 avg(t_tmsi_realloc) as tmsi,
 	 avg(iden_imsi_bc) as imsi
   from session_info
+  -- FIXME: Why do we ignore A5/1 here? Too little data?
+  -- FIXME: Why do accepted LURQs not need to be encrypted (lu_acc or cipher > 1)?
   where rat = 0 and t_locupd and (lu_acc or cipher > 1)
   group by mcc, mnc, lac, month, cipher
-  order by mcc, mnc, lac, month, cipher) as l
- on (va.mcc = l.mcc and va.mnc = l.mnc and va.cipher = l.cipher
-     and c.lac = l.lac and c.month = l.month)
- left outer join
-  (select mcc, mnc, lac, month, cipher,
+  order by mcc, mnc, lac, month, cipher;
+
+drop view if exists en;
+create view en as
+  select mcc, mnc, lac, cid, date_format(timestamp, "%Y-%m") as month, cipher,
+	avg(a_ma_len + 1 - a_hopping) as a_len,
+	variance((a_ma_len + 1 - a_hopping)/64) as v_len,
+	variance(a_hsn/64) as v_hsn,
+	variance(a_maio/64) as v_maio,
+	variance(a_timeslot/8) as v_ts,
+	variance(a_tsc/8) as v_tsc
+  from session_info
+  where rat = 0 and (assign or handover) and
+  (cipher > 0 or duration > 350)
+  group by mcc, mnc, lac, cid, month, cipher;
+
+drop view if exists e;
+create view e as
+  select mcc, mnc, lac, month, cipher,
 	 avg(a_len) as ma_len,
 	 avg(v_len) as var_len,
 	 avg(v_hsn) as var_hsn,
 	 avg(v_maio) as var_maio,
 	 avg(v_ts) as var_ts,
 	 avg(v_tsc) as var_tsc
-  from (
-  	select mcc, mnc, lac, cid, date_format(timestamp, "%Y-%m") as month, cipher,
-	 	avg(a_ma_len + 1 - a_hopping) as a_len,
-	 	variance((a_ma_len + 1 - a_hopping)/64) as v_len,
-	 	variance(a_hsn/64) as v_hsn,
-	 	variance(a_maio/64) as v_maio,
-	 	variance(a_timeslot/8) as v_ts,
-	 	variance(a_tsc/8) as v_tsc
- 	from session_info
- 	where rat = 0 and (assign or handover) and
-	(cipher > 0 or duration > 350)
- 	group by mcc, mnc, lac, cid, month, cipher) as en
-  group by mcc, mnc, lac, month, cipher
-  order by mcc, mnc, lac, month, cipher) as e
- on (va.mcc = e.mcc and va.mnc = e.mnc and va.cipher = e.cipher
-     and c.lac = e.lac and c.month = e.month)
- left outer join hlr_info as h
- on (va.mcc = h.mcc and va.mnc = h.mnc) 
+    from en
+    group by mcc, mnc, lac, month, cipher
+    order by mcc, mnc, lac, month, cipher;
+
+# "sec_params" population
+delete from sec_params;
+
+insert into sec_params
+ select
+        va.mcc                         as mcc,
+        va.mnc                         as mnc,
+        va.country                     as country,
+        va.network                     as network,
+        c.lac                          as lac,
+        c.month                        as month,
+        va.cipher                      as cipher,
+        c.count                        as call_count,
+        c.mo_count                     as call_mo_count,
+        s.count                        as sms_count,
+        s.mo_count                     as sms_mo_count,
+        l.count                        as loc_count,
+        c.success                      as call_success,
+        s.success                      as sms_success,
+        l.success                      as loc_success,
+        c.rand_null_perc               as call_null_rand,
+        s.rand_null_perc               as sms_null_rand,
+        l.rand_null_perc               as loc_null_rand,
+        c.rand_si_perc                 as call_si_rand,
+        s.rand_si_perc                 as sms_si_rand,
+        l.rand_si_perc                 as loc_si_rand,
+        c.nulls                        as call_nulls,
+        s.nulls                        as sms_nulls,
+        l.nulls                        as loc_nulls,
+        c.pred                         as call_pred,
+        s.pred                         as sms_pred,
+        l.pred                         as loc_pred,
+        c.imeisv                       as call_imeisv,
+        s.imeisv                       as sms_imeisv,
+        l.imeisv                       as loc_imeisv,
+        avg_of_2(c.auth_mt, s.auth_mt) as pag_auth_mt,
+        c.auth_mo                      as call_auth_mo,
+        s.auth_mo                      as sms_auth_mo,
+        l.auth_mo                      as loc_auth_mo,
+        c.tmsi                         as call_tmsi,
+        s.tmsi                         as sms_tmsi,
+        l.tmsi                         as loc_tmsi,
+        c.imsi                         as call_imsi,
+        s.imsi                         as sms_imsi,
+        l.imsi                         as loc_imsi,
+        e.ma_len                       as ma_len,
+        e.var_len                      as var_len,
+        e.var_hsn                      as var_hsn,
+        e.var_maio                     as var_maio,
+        e.var_ts                       as var_ts,
+        h.rand_imsi                    as rand_imsi,
+        h.home_routing                 as home_routing
+ from
+        va
+        left outer join call_avg as c on (va.mcc = c.mcc and va.mnc = c.mnc and va.cipher = c.cipher)
+        left outer join sms_avg  as s on (va.mcc = s.mcc and va.mnc = s.mnc and va.cipher = s.cipher and c.lac = s.lac and c.month = s.month)
+        left outer join loc_avg  as l on (va.mcc = l.mcc and va.mnc = l.mnc and va.cipher = l.cipher and c.lac = l.lac and c.month = l.month)
+        left outer join             e on (va.mcc = e.mcc and va.mnc = e.mnc and va.cipher = e.cipher and c.lac = e.lac and c.month = e.month)
+        left outer join hlr_info as h on (va.mcc = h.mcc and va.mnc = h.mnc)
  where c.lac <> 0 and c.month <> ""
  order by mcc, mnc, lac, month, cipher; 
+
+drop view call_avg;
+drop view sms_avg;
+drop view loc_avg;
+drop view e;
+drop view en;
 
 --
 
