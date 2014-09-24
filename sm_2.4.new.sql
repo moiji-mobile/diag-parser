@@ -182,8 +182,8 @@ insert into va
       (t_sms and (t_release or cipher > 1)) or
       (t_call and (assign or cipher > 1)))
  and (cipher > 0 or duration > 350) and rat = 0
- group by mcc, mnc
- order by mcc, mnc;
+ group by session_info.mcc, session_info.mnc
+ order by session_info.mcc, session_info.mnc;
 
 delete from va
  where mcc >= 1000 or mnc >= 1000
@@ -196,9 +196,9 @@ delete from va
  or (mcc = 208 and mnc = 14)
  or (mcc = 901);
 
-insert into va (select distinct mcc,mnc,country,network,oldest,latest,1 from va);
-insert into va (select distinct mcc,mnc,country,network,oldest,latest,2 from va);
-insert into va (select distinct mcc,mnc,country,network,oldest,latest,3 from va);
+insert into va select distinct mcc,mnc,country,network,oldest,latest,1 from va;
+insert into va select distinct mcc,mnc,country,network,oldest,latest,2 from va;
+insert into va select distinct mcc,mnc,country,network,oldest,latest,3 from va;
 
 --
 
@@ -220,7 +220,7 @@ create view call_avg as
 	 avg(t_tmsi_realloc) as tmsi,
 	 avg(iden_imsi_bc) as imsi
   from session_info
-  where rat = 0 and ((t_call or (mobile_term and !t_sms)) and
+  where rat = 0 and ((t_call or (mobile_term and t_sms = 0)) and
 	(call_presence or (cipher=1 and cracked=0) or cipher>1)) and
 	(cipher > 0 or duration > 350)
   group by mcc, mnc, lac, month, cipher
