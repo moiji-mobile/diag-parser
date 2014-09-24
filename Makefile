@@ -1,4 +1,5 @@
-MYSQL_ARGS = -u root --batch
+MYSQL_ARGS = -u root --batch -e "SET storage_engine=MyISAM;"
+
 MYSQL_DB   = test2g_1
 DUMMY := $(shell mkdir -p tmp)
 

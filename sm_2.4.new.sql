@@ -10,7 +10,7 @@ create table va(
 	oldest DATE NOT NULL,
 	latest DATE NOT NULL,
 	cipher TINYINT UNSIGNED NOT NULL
-) ENGINE=MyISAM;
+);
 
 -- operator risk, main score (level 1)
 drop table if exists risk_category;
@@ -22,7 +22,7 @@ create table risk_category(
 	intercept FLOAT(1),
 	impersonation FLOAT(1),
 	tracking FLOAT(1)
-) ENGINE=MyISAM;
+);
 
 -- operator risk, intercept sub-score (level 2)
 drop table if exists risk_intercept;
@@ -33,7 +33,7 @@ create table risk_intercept(
 	month CHAR(7) NOT NULL,
 	voice FLOAT(1),
 	sms FLOAT(1)
-) ENGINE=MyISAM;
+);
 
 -- operator risk, impersonation sub-score (level 2)
 drop table if exists risk_impersonation;
@@ -44,7 +44,7 @@ create table risk_impersonation(
 	month CHAR(7) NOT NULL,
 	make_calls FLOAT(1),
 	recv_calls FLOAT(1)
-) ENGINE=MyISAM;
+);
 
 -- operator risk, tracking  sub-score (level 2)
 drop table if exists risk_tracking;
@@ -55,7 +55,7 @@ create table risk_tracking(
 	month CHAR(7) NOT NULL,
 	local_track FLOAT(1),
 	global_track FLOAT(1)
-) ENGINE=MyISAM;
+);
 
 -- operator risk, attack components (level 3)
 drop table if exists attack_component;
@@ -72,7 +72,7 @@ create table attack_component(
 	hlr_inf FLOAT(1),
 	freq_predict FLOAT(1),
 	PRIMARY KEY (mcc,mnc,lac,month)
-) ENGINE=MyISAM;
+);
 
 drop table if exists attack_component_x4;
 create table attack_component_x4(
@@ -92,7 +92,7 @@ create table attack_component_x4(
 	hlr_inf FLOAT(1),
 	freq_predict FLOAT(1),
 	PRIMARY KEY (mcc,mnc,lac,month,cipher)
-) ENGINE=MyISAM;
+);
 
 -- operator security metrics (level 4)
 drop table if exists sec_params;
@@ -145,7 +145,7 @@ create table sec_params(
 	rand_imsi REAL,
 	home_routing REAL,
 	PRIMARY KEY (mcc,mnc,lac,month,cipher)
-) ENGINE=MyISAM;
+);
 	
 -- operator hlr query information (level 4+)
 -- !! manually populated !!
