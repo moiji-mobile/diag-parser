@@ -1,6 +1,6 @@
-# security metrics v2.4
+-- security metrics v2.4
 
-# operators to be listed ("valid")
+-- operators to be listed ("valid")
 drop table if exists va;
 create table va(
 	mcc SMALLINT UNSIGNED NOT NULL,
@@ -12,7 +12,7 @@ create table va(
 	cipher TINYINT UNSIGNED NOT NULL
 ) ENGINE=MyISAM;
 
-# operator risk, main score (level 1)
+-- operator risk, main score (level 1)
 drop table if exists risk_category;
 create table risk_category(
 	mcc SMALLINT UNSIGNED NOT NULL,
@@ -24,7 +24,7 @@ create table risk_category(
 	tracking FLOAT(1)
 ) ENGINE=MyISAM;
 
-# operator risk, intercept sub-score (level 2)
+-- operator risk, intercept sub-score (level 2)
 drop table if exists risk_intercept;
 create table risk_intercept(
 	mcc SMALLINT UNSIGNED NOT NULL,
@@ -35,7 +35,7 @@ create table risk_intercept(
 	sms FLOAT(1)
 ) ENGINE=MyISAM;
 
-# operator risk, impersonation sub-score (level 2)
+-- operator risk, impersonation sub-score (level 2)
 drop table if exists risk_impersonation;
 create table risk_impersonation(
 	mcc SMALLINT UNSIGNED NOT NULL,
@@ -46,7 +46,7 @@ create table risk_impersonation(
 	recv_calls FLOAT(1)
 ) ENGINE=MyISAM;
 
-# operator risk, tracking  sub-score (level 2)
+-- operator risk, tracking  sub-score (level 2)
 drop table if exists risk_tracking;
 create table risk_tracking(
 	mcc SMALLINT UNSIGNED NOT NULL,
@@ -57,7 +57,7 @@ create table risk_tracking(
 	global_track FLOAT(1)
 ) ENGINE=MyISAM;
 
-# operator risk, attack components (level 3) 
+-- operator risk, attack components (level 3)
 drop table if exists attack_component;
 create table attack_component(
 	mcc SMALLINT UNSIGNED NOT NULL,
@@ -94,7 +94,7 @@ create table attack_component_x4(
 	PRIMARY KEY (mcc,mnc,lac,month,cipher)
 ) ENGINE=MyISAM;
 
-# operator security metrics (level 4)
+-- operator security metrics (level 4)
 drop table if exists sec_params;
 create table sec_params(
 	mcc SMALLINT UNSIGNED NOT NULL,
@@ -147,19 +147,19 @@ create table sec_params(
 	PRIMARY KEY (mcc,mnc,lac,month,cipher)
 ) ENGINE=MyISAM;
 	
-# operator hlr query information (level 4+)
-# !! manually populated !!
+-- operator hlr query information (level 4+)
+-- !! manually populated !!
 
-#create table hlr_info(
-#	mcc SMALLINT UNSIGNED NOT NULL,
-#	mnc SMALLINT UNSIGNED NOT NULL,
-#	rand_imsi BOOLEAN,
-#	home_routing BOOLEAN
-#) ENGINE=MyISAM;
+-- create table hlr_info(
+--	mcc SMALLINT UNSIGNED NOT NULL,
+--	mnc SMALLINT UNSIGNED NOT NULL,
+--	rand_imsi BOOLEAN,
+--	home_routing BOOLEAN
+-- );
 
-#--
+----
 
-# "va" population
+-- "va" population
 delete from va;
 
 insert into va
@@ -296,7 +296,7 @@ create view e as
     group by mcc, mnc, lac, month, cipher
     order by mcc, mnc, lac, month, cipher;
 
-# "sec_params" population
+-- "sec_params" population
 delete from sec_params;
 
 insert into sec_params
@@ -366,7 +366,7 @@ drop view en;
 
 --
 
-# "attack_component" population
+-- "attack_component" population
 
 delete from attack_component_x4;
 insert into attack_component_x4
@@ -466,7 +466,7 @@ insert into attack_component
 
 --
 
-# "risk_intercept" population
+-- "risk_intercept" population
 delete from risk_intercept;
 insert into risk_intercept
  select mcc, mnc, lac, month,
@@ -480,7 +480,7 @@ insert into risk_intercept
 
 --
 
-# "risk_impersonation" population
+-- "risk_impersonation" population
 delete from risk_impersonation;
 
 insert into risk_impersonation
@@ -492,7 +492,7 @@ insert into risk_impersonation
 
 --
 
-# "risk_tracking" population
+-- "risk_tracking" population
 delete from risk_tracking;
 
 insert into risk_tracking
@@ -504,7 +504,7 @@ insert into risk_tracking
 
 --
 
-# "risk_category" population
+-- "risk_category" population
 delete from risk_category;
 
 insert into risk_category
@@ -521,7 +521,7 @@ insert into risk_category
    and inter.month = imper.month and imper.month = track.month
  order by inter.mcc, inter.mnc, inter.lac, inter.month;
 
-# definition of views
+-- definition of views
 
 drop view lac_session_type_count;
 create view lac_session_type_count as
