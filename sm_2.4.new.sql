@@ -200,17 +200,17 @@ drop view if exists call_avg;
 create view call_avg as
   select mcc, mnc, lac, date_format(timestamp, "%Y-%m") as month, cipher,
 	 count(*) as count,
-	 sum(if(mobile_orig,1,0)) as mo_count,
+	 sum(CASE WHEN mobile_orig THEN 1 ELSE 0 END) as mo_count,
 	 avg(cracked) as success,
-	 avg(if(enc_null, enc_null_rand/enc_null, NULL)) as rand_null_perc,
-	 avg(if(enc_si, enc_si_rand/enc_si, NULL)) as rand_si_perc,
-	 avg(enc_null-enc_null_rand) as nulls,
+	 avg(CASE WHEN enc_null THEN enc_null_rand / enc_null ELSE NULL END) as rand_null_perc,
+	 avg(CASE WHEN enc_si   THEN enc_si_rand   / enc_si   ELSE NULL END) as rand_si_perc,
+	 avg(enc_null - enc_null_rand) as nulls,
 	 avg(predict) as pred,
 	 avg(cmc_imeisv) as imeisv,
          -- FIXME: This calculates average of different authentication algorithms (none=0, GSM A3/A3=1, UMTS AKA=2).
          --        Does this make sense?
-	 avg(if(mobile_term, auth, NULL)) as auth_mt,
-	 avg(if(mobile_orig, auth, NULL)) as auth_mo,
+	 avg(CASE WHEN mobile_term THEN auth ELSE NULL END) as auth_mt,
+	 avg(CASE WHEN mobile_orig THEN auth ELSE NULL END) as auth_mo,
 	 avg(t_tmsi_realloc) as tmsi,
 	 avg(iden_imsi_bc) as imsi
   from session_info
@@ -227,15 +227,17 @@ drop view if exists sms_avg;
 create view sms_avg as
   select mcc, mnc, lac, date_format(timestamp, "%Y-%m") as month, cipher,
 	 count(*) as count,
-	 sum(if(mobile_orig,1,0)) as mo_count,
+	 sum(CASE WHEN mobile_orig THEN 1 ELSE 0 END) as mo_count,
 	 avg(cracked) as success,
-	 avg(if(enc_null, enc_null_rand/enc_null, NULL)) as rand_null_perc,
-	 avg(if(enc_si, enc_si_rand/enc_si, NULL)) as rand_si_perc,
-	 avg(enc_null-enc_null_rand) as nulls,
+	 avg(CASE WHEN enc_null THEN enc_null_rand / enc_null ELSE NULL END) as rand_null_perc,
+	 avg(CASE WHEN enc_si   THEN enc_si_rand   / enc_si   ELSE NULL END) as rand_si_perc,
+	 avg(enc_null - enc_null_rand) as nulls,
 	 avg(predict) as pred,
 	 avg(cmc_imeisv) as imeisv,
-	 avg(if(mobile_term, auth, NULL)) as auth_mt,
-	 avg(if(mobile_orig, auth, NULL)) as auth_mo,
+         -- FIXME: This calculates average of different authentication algorithms (none=0, GSM A3/A3=1, UMTS AKA=2).
+         --        Does this make sense?
+	 avg(CASE WHEN mobile_term THEN auth ELSE NULL END) as auth_mt,
+	 avg(CASE WHEN mobile_orig THEN auth ELSE NULL END) as auth_mo,
 	 avg(t_tmsi_realloc) as tmsi,
 	 avg(iden_imsi_bc) as imsi
   from session_info
@@ -247,14 +249,17 @@ drop view if exists loc_avg;
 create view loc_avg as
   select mcc, mnc, lac, date_format(timestamp, "%Y-%m") as month, cipher,
 	 count(*) as count,
+	 sum(CASE WHEN mobile_orig THEN 1 ELSE 0 END) as mo_count,
 	 avg(cracked) as success,
-	 avg(if(enc_null, enc_null_rand/enc_null, NULL)) as rand_null_perc,
-	 avg(if(enc_si, enc_si_rand/enc_si, NULL)) as rand_si_perc,
-	 avg(enc_null-enc_null_rand) as nulls,
+	 avg(CASE WHEN enc_null THEN enc_null_rand / enc_null ELSE NULL END) as rand_null_perc,
+	 avg(CASE WHEN enc_si   THEN enc_si_rand   / enc_si   ELSE NULL END) as rand_si_perc,
+	 avg(enc_null - enc_null_rand) as nulls,
 	 avg(predict) as pred,
 	 avg(cmc_imeisv) as imeisv,
-	 avg(if(mobile_term, auth, NULL)) as auth_mt,
-	 avg(if(mobile_orig, auth, NULL)) as auth_mo,
+         -- FIXME: This calculates average of different authentication algorithms (none=0, GSM A3/A3=1, UMTS AKA=2).
+         --        Does this make sense?
+	 avg(CASE WHEN mobile_term THEN auth ELSE NULL END) as auth_mt,
+	 avg(CASE WHEN mobile_orig THEN auth ELSE NULL END) as auth_mo,
 	 avg(t_tmsi_realloc) as tmsi,
 	 avg(iden_imsi_bc) as imsi
   from session_info
@@ -516,8 +521,6 @@ insert into risk_category
    and inter.month = imper.month and imper.month = track.month
  order by inter.mcc, inter.mnc, inter.lac, inter.month;
 
---
-exit
 # definition of views
 
 drop view lac_session_type_count;
@@ -528,18 +531,3 @@ create view lac_session_type_count as
 	sum(loc_count) as loc_tot
  from sec_params
  group by mcc,mnc,lac,month;
-
-drop view a53_in_use;
-create view a53_in_use as
- select mcc, mnc, lac, month,
-	if((call_count+sms_count+loc_count)>0, if(cipher = 3, 1, 0), 0) as in_use
- from sec_params
- group by mcc,mnc,lac,month;
-
-select r.mcc as mcc, r.mnc as mnc, r.lac as lac, r.month as month,
- if(call_tot, call_tot, 9)+if(sms_tot, sms_tot, 0)+if(loc_tot, loc_tot, 0) as samples,
- intercept as intercept_avg, impersonation as impersonation_avg, tracking as tracking_avg
-from risk_category as r, session_type_count as s
-where r.mcc = s.mcc and r.mnc = s.mnc
-  and r.lac = s.lac and r.month = s.month;
-

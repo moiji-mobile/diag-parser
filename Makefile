@@ -5,7 +5,6 @@ DUMMY := $(shell mkdir -p tmp)
 COMPARE_TABLES = \
         va \
         sec_params \
-        a53_in_use \
         lac_session_type_count \
         attack_component_x4 \
         attack_component \
@@ -27,7 +26,7 @@ clean:
 run: $(addsuffix .tbl, $(addprefix tmp/, $(COMPARE_TABLES)))
 
 tmp/result.log: *.sql
-	@echo Generating security scores...
+	@echo Generating security score $(SM)...
 	@time mysql $(MYSQL_ARGS) -e "source $(SM);" -e "source data/functions.sql;" $(MYSQL_DB) > $@.tmp
 	@mv $@.tmp $@
 	@echo OK.
