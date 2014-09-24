@@ -159,18 +159,24 @@ create table sec_params(
 
 ----
 
+drop view if exists n_src;
+create view n_src as select * from mnc;
+
+drop view if exists c_src;
+create view c_src as select * from mcc;
+
 -- "va" population
 delete from va;
 
 insert into va
- select session_info.mcc,
-	session_info.mnc,
-	c_src.name,
-	n_src.name,
-	date(min(timestamp)),
-	date(max(timestamp)),
-	0
- from session_info, mnc as n_src, mcc as c_src
+ select session_info.mcc     as mcc,
+	session_info.mnc     as mnc,
+	c_src.name           as country,
+	n_src.name           as network,
+	date(min(timestamp)) as oldest,
+	date(max(timestamp)) as latest,
+	0                    as cipher
+ from session_info, n_src, c_src
  where c_src.mcc = n_src.mcc and n_src.mcc = session_info.mcc and n_src.mnc = session_info.mnc
  and ((t_locupd and (lu_acc or cipher > 1)) or
       (t_sms and (t_release or cipher > 1)) or
