@@ -395,12 +395,15 @@ insert into attack_component_x4
         0.2 * CASE WHEN loc_imsi < 0.05 THEN 1 - loc_imsi * 20 ELSE 0 END
            as track_tmsi,
 
-	0.5 * rand_imsi + 0.5 * home_routing as hlr_inf,
+	0.5 * rand_imsi + 0.5 * home_routing
+           as hlr_inf,
 
-	( if(ma_len<8, ma_len/8, 1) + if(var_len<0.01, var_len*100, 1)
-	+ if(var_hsn<0.01, var_hsn*100, 1)
-	+ if(var_maio<0.1, var_maio*10, 1)
-	+ if(var_ts<0.1, var_ts*10, 1) )/5 as freq_predict
+	0.2 * CASE WHEN ma_len   < 8    THEN       ma_len  / 8 ELSE 1 END +
+	0.2 * CASE WHEN var_len  < 0.01 THEN 100 * var_len     ELSE 1 END +
+	0.2 * CASE WHEN var_hsn  < 0.01 THEN 100 * var_hsn     ELSE 1 END +
+	0.2 * CASE WHEN var_maio < 0.1  THEN  10 * var_maio    ELSE 1 END +
+	0.2 * CASE WHEN var_ts   < 0.1  THEN  10 * var_ts      ELSE 1 END
+           as freq_predict
 
   from sec_params as s, lac_session_type_count as t
   where s.mcc = t.mcc and s.mnc = t.mnc and
