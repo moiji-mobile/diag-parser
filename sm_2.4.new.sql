@@ -476,11 +476,13 @@ insert into attack_component
 delete from risk_intercept;
 insert into risk_intercept
  select mcc, mnc, lac, month,
-	(realtime_crack*0.4
-	+ offline_crack*0.25
-	+ avg_of_2(key_reuse_mt, key_reuse_mo)*0.20
-	+ freq_predict*0.15) as voice,
-	offline_crack as sms
+        0.4  * realtime_crack +
+        0.25 * offline_crack +
+        0.20 * avg_of_2(key_reuse_mt, key_reuse_mo) +
+        0.15 * freq_predict
+           as voice,
+        offline_crack
+           as sms
  from attack_component
  order by mcc, mnc, lac, month;
 
@@ -515,9 +517,18 @@ delete from risk_category;
 
 insert into risk_category
  select inter.mcc, inter.mnc, inter.lac, inter.month,
-	(inter.voice*0.8+inter.sms*0.2) as intercept,
-	(imper.make_calls*0.7+imper.recv_calls*0.3) as impersonation,
-	(track.local_track*0.3+track.global_track*0.7) as tracking
+
+        0.8 * inter.voice +
+        0.2 * inter.sms
+            as intercept,
+
+        0.7 * imper.make_calls +
+        0.3 * imper.recv_calls
+            as impersonation,
+
+        0.7 * track.global_track +
+        0.3 * track.local_track
+            as tracking
  from	risk_intercept as inter,
 	risk_impersonation as imper,
 	risk_tracking as track
