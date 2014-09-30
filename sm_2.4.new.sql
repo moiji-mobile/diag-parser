@@ -1,4 +1,23 @@
--- security metrics v2.4
+-- security metrics v2.5beta
+
+-- FIXME: The orignal avg_of_* functions had a different semantics, which
+-- resulted in NULL if both, a and b is NULL. Also, if a parameter is NULL the
+-- other parameters value is inherited.
+
+#define avg_of_2(a,b) ((IFNULL(a,0) + IFNULL(b,0)) / 2)
+#define avg_of_3(a,b,c) ((IFNULL(a,0) + IFNULL(b,0) + IFNULL(c,0)) / 3)
+
+#ifdef MYSQL
+SET storage_engine=MyISAM;
+#endif
+
+#ifdef SQLITE
+
+-- As per definition of VAR_POP SQL function
+#define variance(x) ((sum((x)*(x)) - (sum(x) * sum(x)) / count(x)) / count(x)) 
+#define date_format(x,y) strftime(y,x)
+
+#endif
 
 -- operators to be listed ("valid")
 drop table if exists va;
@@ -213,8 +232,6 @@ create view call_avg as
 	 avg(enc_null - enc_null_rand) as nulls,
 	 avg(predict) as pred,
 	 avg(cmc_imeisv) as imeisv,
-         -- FIXME: This calculates average of different authentication algorithms (none=0, GSM A3/A3=1, UMTS AKA=2).
-         --        Does this make sense?
 	 avg(CASE WHEN mobile_term THEN auth ELSE NULL END) as auth_mt,
 	 avg(CASE WHEN mobile_orig THEN auth ELSE NULL END) as auth_mo,
 	 avg(t_tmsi_realloc) as tmsi,
@@ -225,9 +242,6 @@ create view call_avg as
 	(cipher > 0 or duration > 350)
   group by mcc, mnc, lac, month, cipher
   order by mcc, mnc, lac, month, cipher;
-
--- FIXME: How about A5/2 - this could also be cracked...
--- FIXME: Why longer than 350ms or ciphered?
 
 drop view if exists sms_avg;
 create view sms_avg as
@@ -240,8 +254,6 @@ create view sms_avg as
 	 avg(enc_null - enc_null_rand) as nulls,
 	 avg(predict) as pred,
 	 avg(cmc_imeisv) as imeisv,
-         -- FIXME: This calculates average of different authentication algorithms (none=0, GSM A3/A3=1, UMTS AKA=2).
-         --        Does this make sense?
 	 avg(CASE WHEN mobile_term THEN auth ELSE NULL END) as auth_mt,
 	 avg(CASE WHEN mobile_orig THEN auth ELSE NULL END) as auth_mo,
 	 avg(t_tmsi_realloc) as tmsi,
@@ -262,15 +274,11 @@ create view loc_avg as
 	 avg(enc_null - enc_null_rand) as nulls,
 	 avg(predict) as pred,
 	 avg(cmc_imeisv) as imeisv,
-         -- FIXME: This calculates average of different authentication algorithms (none=0, GSM A3/A3=1, UMTS AKA=2).
-         --        Does this make sense?
 	 avg(CASE WHEN mobile_term THEN auth ELSE NULL END) as auth_mt,
 	 avg(CASE WHEN mobile_orig THEN auth ELSE NULL END) as auth_mo,
 	 avg(t_tmsi_realloc) as tmsi,
 	 avg(iden_imsi_bc) as imsi
   from session_info
-  -- FIXME: Why do we ignore A5/1 here? Too little data?
-  -- FIXME: Why do accepted LURQs not need to be encrypted (lu_acc or cipher > 1)?
   where rat = 0 and t_locupd and (lu_acc or cipher > 1)
   group by mcc, mnc, lac, month, cipher
   order by mcc, mnc, lac, month, cipher;
@@ -364,13 +372,18 @@ insert into sec_params
  where c.lac <> 0 and c.month <> ""
  order by mcc, mnc, lac, month, cipher; 
 
-drop view call_avg;
-drop view sms_avg;
-drop view loc_avg;
-drop view e;
-drop view en;
-
 --
+
+-- count calls, SMSes and location updates
+
+drop view if exists lac_session_type_count;
+create view lac_session_type_count as
+ select mcc, mnc, lac, month,
+	sum(call_count) as call_tot,
+	sum(sms_count) as sms_tot,
+	sum(loc_count) as loc_tot
+ from sec_params
+ group by mcc,mnc,lac,month;
 
 -- "attack_component" population
 
@@ -384,15 +397,13 @@ insert into attack_component_x4
 
 	s.loc_count  / t.loc_tot  as loc_perc,
 
-	avg_of_2
-        (
+	avg_of_2(
                 CASE WHEN call_nulls >  5 THEN 0 ELSE 1 - call_nulls /  5 END,
                 CASE WHEN sms_nulls  > 10 THEN 0 ELSE 1 - sms_nulls  / 10 END
         )
         as realtime_crack,
 
-	avg_of_2
-        (
+	avg_of_2(
                 CASE WHEN call_pred > 10 THEN 0 ELSE 1 - call_pred / 10 END,
                 CASE WHEN sms_pred  > 15 THEN 0 ELSE 1 - sms_pred  / 15 END
         ) as offline_crack,
@@ -401,8 +412,7 @@ insert into attack_component_x4
 
 	avg_of_2(call_auth_mo,sms_auth_mo) as key_reuse_mo,
 
-        --  FIXME: This value won't exceed 0.6 - is this on purpose?
-	0.4 * avg_of_3 (call_tmsi, sms_tmsi, loc_tmsi) +
+	0.4 * avg_of_3(call_tmsi, sms_tmsi, loc_tmsi) +
         0.2 * CASE WHEN loc_imsi < 0.05 THEN 1 - loc_imsi * 20 ELSE 0 END
            as track_tmsi,
 
@@ -460,9 +470,9 @@ insert into attack_component
                   0.5 * 0.4 * avg_of_2(call_perc,sms_perc) + track_tmsi
                ELSE
                   0
-            END) as track_imsi,
+            END) as track_tmsi,
 
-        avg(hlr_inf) as hlr_info,
+        avg(hlr_inf) as hlr_inf,
 
         sum(call_perc * freq_predict) as freq_predict
 
@@ -538,13 +548,3 @@ insert into risk_category
    and inter.month = imper.month and imper.month = track.month
  order by inter.mcc, inter.mnc, inter.lac, inter.month;
 
--- definition of views
-
-drop view lac_session_type_count;
-create view lac_session_type_count as
- select mcc, mnc, lac, month,
-	sum(call_count) as call_tot,
-	sum(sms_count) as sms_tot,
-	sum(loc_count) as loc_tot
- from sec_params
- group by mcc,mnc,lac,month;

@@ -1,18 +1,29 @@
-MYSQL_ARGS = -u root --batch -e "SET storage_engine=MyISAM;"
+ifeq ($(DB),mysql)
+CPP_FLAGS = -DMYSQL
+DB_NAME   = test2g_1
+DB_ENGINE = mysql -u root --batch
+else
+ifeq ($(DB),sqlite)
+CPP_FLAGS = -DSQLITE
+DB_NAME   ?= data/gsmmap_full.sqlite
+DB_ENGINE = sqlite3
+else
+$(error No DB selected!)
+endif
+endif
 
-MYSQL_DB   = test2g_1
 DUMMY := $(shell mkdir -p tmp)
 
 COMPARE_TABLES = \
-        va \
-        sec_params \
-        lac_session_type_count \
-        attack_component_x4 \
         attack_component \
-        risk_tracking \
-        risk_intercept \
         risk_impersonation \
         risk_category \
+        risk_intercept \
+        risk_tracking \
+        attack_component_x4 \
+        lac_session_type_count \
+        sec_params \
+        va \
 
 all: new
 
@@ -23,18 +34,20 @@ old new: run
 clean:
 	@rm -f result.dat result.dat.tmp
 	@rm -rf tmp
+	@cat cleanup.sql | $(DB_ENGINE) $(DB_NAME)
 
 run: $(addsuffix .tbl, $(addprefix tmp/, $(COMPARE_TABLES)))
 
 tmp/result.log: *.sql
 	@echo Generating security score $(SM)...
-	@time mysql $(MYSQL_ARGS) -e "source $(SM);" -e "source data/functions.sql;" $(MYSQL_DB) > $@.tmp
+	cpp $(CPP_FLAGS) -w $(SM) | grep -ve "^#" > $@.tmp
+	time cpp $(CPP_FLAGS) -w $(SM) | grep -ve "^#" | $(DB_ENGINE) $(DB_NAME)
 	@mv $@.tmp $@
 	@echo OK.
 
 tmp/%.tbl: tests/%.tbl tmp/result.log
 	@echo -n ...$*...
-	@mysql $(MYSQL_ARGS) -e "select * from $*;" $(MYSQL_DB) > $@.tmp
+	@echo "select * from $*;" | $(DB_ENGINE) $(DB_NAME) > $@.tmp
 	@diff -q $@.tmp $<
 	@mv $@.tmp $@
 	@echo OK.
