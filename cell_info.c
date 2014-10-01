@@ -13,6 +13,10 @@
 #define MASK_NEIGH_5b	0x20
 #define MASK_NEIGH_5t	0x40
 
+#ifndef SQLITE_QUERY
+#define SQLITE_QUERY 0
+#endif
+
 #include <osmocom/core/bitvec.h>
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/gsm48.h>
@@ -42,11 +46,12 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite);
 
 void cell_destroy(void (*callback)(char *))
 {
+
 	char query[8192];
 	struct cell_info *ci;
 
 	llist_for_each_entry(ci, &cell_list, entry) {
-		cell_make_sql(ci, query, sizeof(query), 0);
+		cell_make_sql(ci, query, sizeof(query), SQLITE_QUERY);
 		if (callback) {
 			(*callback)(query);
 		}
