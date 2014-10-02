@@ -336,7 +336,6 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		// LOC UPD REJ
 		SET_MSG_INFO(s, "LOC UPD REJECT");
 		s->locupd = 1;
-		s->lu_acc = -1;
 		s->lu_rej_cause = dtap->data[0];
 		s->mo = 1;
 		break;

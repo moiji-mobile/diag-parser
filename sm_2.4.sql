@@ -179,6 +179,17 @@ insert into va
  group by mcc, mnc
  order by mcc, mnc;
 
+delete from va
+ where mcc >= 1000 or mnc >= 1000
+ or (mcc = 262 and mnc = 10)
+ or (mcc = 262 and mnc = 42)
+ or (mcc = 204 and mnc = 21)
+ or (mcc = 222 and mnc = 30)
+ or (mcc = 228 and mnc = 6)
+ or (mcc = 244 and mnc = 17)
+ or (mcc = 208 and mnc = 14)
+ or (mcc = 901);
+
 insert into va (select distinct mcc,mnc,country,network,oldest,latest,1 from va);
 insert into va (select distinct mcc,mnc,country,network,oldest,latest,2 from va);
 insert into va (select distinct mcc,mnc,country,network,oldest,latest,3 from va);

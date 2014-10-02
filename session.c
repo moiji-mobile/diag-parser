@@ -621,7 +621,7 @@ void session_reset(struct session_info *s)
 
 	strncpy(s->name, old_s.name, sizeof(s->name));
 	s->domain = old_s.domain;
-	s->timestamp = old_s.timestamp;
+	//s->timestamp = old_s.timestamp;
 	s->mcc = old_s.mcc;
 	s->mnc = old_s.mnc;
 	s->lac = old_s.lac;
