@@ -625,7 +625,7 @@ void session_reset(struct session_info *s)
 	s->mcc = old_s.mcc;
 	s->mnc = old_s.mnc;
 	s->lac = old_s.lac;
-	s->cid = old_s.cid;
+	//s->cid = old_s.cid;
 	s->sql_callback = old_s.sql_callback;
 	s->last_msg = old_s.last_msg;
 	if (old_s.last_dtap_len) {
