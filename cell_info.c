@@ -49,9 +49,10 @@ static void cell_dump_cb(void *arg)
 	struct cell_info *ci;
 
 	llist_for_each_entry(ci, &cell_list, entry) {
-		cell_make_sql(ci, query, sizeof(query), SQLITE_QUERY);
-		if (sql_callback) {
+		if (sql_callback && !ci->stored) {
+			cell_make_sql(ci, query, sizeof(query), SQLITE_QUERY);
 			(*sql_callback)(query);
+			ci->stored = 1;
 		}
 	}
 }
@@ -398,6 +399,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	if (ci) {
 		/* Found reference */
 		append = 0;
+		ci->stored = 0;
 	} else {
 		/* Allocate new cell */
 		ci = (struct cell_info *) malloc(sizeof(struct cell_info));
