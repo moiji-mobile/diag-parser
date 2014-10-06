@@ -470,6 +470,8 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 	struct gsm48_system_information_type_6 *si6;
 	struct tlv_parsed tp;
 
+	s->rat = RAT_GSM;
+
 	switch (dtap->msg_type) {
 	case GSM48_MT_RR_SYSINFO_1:
 		SET_MSG_INFO(s, "SYSTEM INFO 1");
@@ -547,12 +549,15 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		break;
 	case GSM48_MT_RR_PAG_REQ_1:
 		SET_MSG_INFO(s, "PAGING REQ 1");
+		paging_inc(1);
 		break;
 	case GSM48_MT_RR_PAG_REQ_2:
 		SET_MSG_INFO(s, "PAGING REQ 2");
+		paging_inc(2);
 		break;
 	case GSM48_MT_RR_PAG_REQ_3:
 		SET_MSG_INFO(s, "PAGING REQ 3");
+		paging_inc(3);
 		break;
 	case GSM48_MT_RR_IMM_ASS:
 		SET_MSG_INFO(s, "IMM ASSIGNMENT");
@@ -1230,13 +1235,15 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 
 	switch (m->rat) {
 	case RAT_GSM:
-		if (s->rat != RAT_GSM)
-			break;
 		switch (m->flags & 0x0f) {
 		case MSG_SACCH:
+			if (s->rat != RAT_GSM)
+				break;
 			handle_lapdm(s, &s->chan_sacch[ul], &m->msg[2], m->msg_len-2, m->bb.fn[0], ul);
 			break;
 		case MSG_SDCCH:
+			if (s->rat != RAT_GSM)
+				break;
 			handle_lapdm(s, &s->chan_sdcch[ul], m->msg, m->msg_len, m->bb.fn[0], ul);
 			break;
 		case MSG_FACCH:

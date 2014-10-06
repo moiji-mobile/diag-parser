@@ -28,7 +28,8 @@ struct diag_packet {
 void diag_init(unsigned start_sid, unsigned start_cid)
 {
 #ifdef USE_MYSQL
-	session_init(start_sid, start_cid, 0, 1, CALLBACK_MYSQL);
+	session_init(start_sid, start_cid, 1, 1, CALLBACK_MYSQL);
+	msg_verbose = 1;
 #else
 #ifdef USE_SQLITE
 	session_init(start_sid, start_cid, 0, 1, CALLBACK_SQLITE);
@@ -36,7 +37,6 @@ void diag_init(unsigned start_sid, unsigned start_cid)
 	session_init(start_sid, start_cid, 0, 1, CALLBACK_CONSOLE);
 #endif
 #endif
-	//msg_verbose = 1;
 }
 
 void diag_destroy()
@@ -229,6 +229,11 @@ struct radio_message * handle_bcch_and_rr(struct diag_packet *dp, unsigned len)
 	}
 
 	return 0;
+}
+
+void handle_periodic_task()
+{
+	cell_and_paging_dump();
 }
 
 void handle_diag(uint8_t *msg, unsigned len)

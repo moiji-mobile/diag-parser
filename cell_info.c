@@ -20,6 +20,7 @@
 
 #include <osmocom/core/bitvec.h>
 #include <osmocom/core/timer.h>
+#include <osmocom/core/linuxlist.h>
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/gsm/gsm48_ie.h>
@@ -29,7 +30,21 @@ static unsigned cell_info_id;
 static struct llist_head cell_list;
 static struct osmo_timer_list dump_timer;
 static unsigned output_sqlite = 1;
-static void (*sql_callback)(char *) = NULL;
+static struct timeval periodic_ts;
+static struct session_info s;
+unsigned paging_count[3];
+
+enum si_index {
+	SI1 = 0,
+	SI2, SI2b, SI2t, SI2q,
+	SI3,
+	SI4,
+	SI5, SI5b, SI5t,
+	SI6,
+	SI13,
+
+	SI_MAX
+};
 
 const char * si_name[] = {
 	"SI1",
@@ -41,49 +56,130 @@ const char * si_name[] = {
 	"SI13"
 };
 
-void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite);
+struct cell_info {
+	int id;
+	int stored;
+	struct timeval first_seen;
+	struct timeval last_seen;
+	/* DIAG or Android */
+	int mcc;
+	int mnc;
+	int lac;
+	int cid;
+	int rat;
+	int bcch_arfcn;
+	int c1;
+	int c2;
+	int power_sum;
+	int power_count;
+	/* SI3 */
+	int msc_ver;
+	int combined;
+	int agch_blocks;
+	int pag_mframes;
+	int t3212;
+	int dtx;
+	/* SI3 & SI4 */
+	int cro;
+	int temp_offset;
+	int pen_time;
+	int pwr_offset;
+	int gprs;
 
-static void cell_dump_cb(void *arg)
+	struct gsm_sysinfo_freq arfcn_list[1024];
+
+	uint32_t si_counter[SI_MAX];
+	uint8_t si_data[SI_MAX][20];
+	uint16_t a_count[SI_MAX];
+
+	struct llist_head entry;
+};
+
+void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite);
+void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite);
+
+void cell_and_paging_dump()
 {
 	char query[8192];
-	struct cell_info *ci;
+	struct cell_info *ci, *ci2;
+	struct timeval ts_now;
+	unsigned time_delta;
 
-	llist_for_each_entry(ci, &cell_list, entry) {
-		if (sql_callback && !ci->stored) {
-			cell_make_sql(ci, query, sizeof(query), SQLITE_QUERY);
-			(*sql_callback)(query);
-			ci->stored = 1;
+	gettimeofday(&ts_now, NULL);
+
+	/* Elapsed time from measurement start */
+	time_delta = ts_now.tv_sec - periodic_ts.tv_sec;
+
+	if (time_delta < 10)
+		return;
+
+	/* dump & delete cell_info */
+	llist_for_each_entry_safe(ci, ci2, &cell_list, entry) {
+		if (s.sql_callback) {
+			cell_make_sql(ci, query, sizeof(query), output_sqlite);
+			(*s.sql_callback)(query);
 		}
+		llist_del(&ci->entry);
+		free(ci);
 	}
+
+	/* dump paging info */
+	paging_make_sql(ts_now.tv_sec, query, sizeof(query), output_sqlite);
+	if (s.sql_callback) {
+		(*s.sql_callback)(query);
+	}
+
+	periodic_ts = ts_now;
 }
 
-static void stop_timer()
+static void console_callback(const char *sql)
 {
-	if (osmo_timer_pending(&dump_timer))
-		osmo_timer_del(&dump_timer);
+	assert(sql != NULL);
+
+	printf("SQL: %s\n", sql);
+	fflush(stdout);
 }
 
-static void start_timer()
-{
-	stop_timer();
-	dump_timer.cb = cell_dump_cb;
-	osmo_timer_schedule(&dump_timer, 60, 0);
-}
-
-void cell_init(unsigned start_id, void (*callback)(char *))
+void cell_init(unsigned start_id, int callback)
 {
 	INIT_LLIST_HEAD(&cell_list);
-	cell_info_id = start_id;
-	sql_callback = callback;
 
-	start_timer();
+	memset(paging_count, 0, sizeof(paging_count));
+	gettimeofday(&periodic_ts, NULL);
+
+	cell_info_id = start_id;
+
+	switch (callback) {
+	case CALLBACK_NONE:
+		break;
+#ifdef USE_MYSQL
+	case CALLBACK_MYSQL:
+		output_sqlite = 0;
+		mysql_api_init(&s);
+		break;
+#endif
+#ifdef USE_SQLITE
+	case CALLBACK_SQLITE:
+		sqlite_api_init(&s);
+		break;
+#endif
+	case CALLBACK_CONSOLE:
+		s.sql_callback = console_callback;
+		break;
+	}
 }
 
 void cell_destroy()
 {
-	cell_dump_cb(NULL);
+	cell_and_paging_dump();
+}
 
-	stop_timer();
+void paging_inc(int pag_type)
+{
+	assert(pag_type > 0);
+	assert(pag_type < 4);
+
+	paging_count[pag_type - 1]++;
 }
 
 int get_mcc(uint8_t *digits)
@@ -665,4 +761,27 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 		}
 		append_arfcn_list(ci, i, &query[offset], len-offset);
 	}
+}
+
+void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite)
+{
+	char paging_ts[40];
+
+	/* Format timestamp according to db */
+	if (sqlite) {
+		snprintf(paging_ts, sizeof(paging_ts), "datetime(%lu, 'unixepoch')", epoch_now);
+	} else {
+		snprintf(paging_ts, sizeof(paging_ts), "FROM_UNIXTIME(%lu)", epoch_now);
+	}
+
+	printf("Pag counters: %d %d %d\n", paging_count[0], paging_count[1], paging_count[2]);
+
+	snprintf(query, len, "INSERT INTO paging_info VALUES (%s, %f, %f, %f);\n",
+			paging_ts,
+			(float)paging_count[0]/(float)(epoch_now-periodic_ts.tv_sec),
+			(float)paging_count[1]/(float)(epoch_now-periodic_ts.tv_sec),
+			(float)paging_count[2]/(float)(epoch_now-periodic_ts.tv_sec));
+
+	/* Reset counters */
+	memset(&paging_count, 0, sizeof(paging_count));
 }

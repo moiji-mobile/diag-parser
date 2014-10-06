@@ -73,3 +73,11 @@ CREATE TABLE arfcn_list (
   arfcn integer	NOT NULL,		-- Neighboring ARFCN
   PRIMARY KEY(id, source, arfcn)
 );
+
+DROP TABLE IF EXISTS paging_info;
+CREATE TABLE paging_info (
+  timestamp DATETIME PRIMARY KEY,	-- End of measurement timestamp
+  pag1_rate float NOT NULL,		-- Paging1 rate (paging/s)
+  pag2_rate float NOT NULL,		-- Paging2 rate (paging/s)
+  pag3_rate float NOT NULL		-- Paging3 rate (paging/s)
+);

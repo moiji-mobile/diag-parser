@@ -65,7 +65,7 @@ void session_init(unsigned start_sid, unsigned start_cid, int console, int gsmta
 	_s[1].id = start_sid;
 	_s[1].domain = DOMAIN_PS;
 
-	cell_init(start_cid, _s[0].sql_callback);
+	cell_init(start_cid, callback);
 
 	if (gsmtap)
 		net_init();

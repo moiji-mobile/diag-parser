@@ -31,6 +31,8 @@ int main(int argc, char *argv[])
 		}
 
 		handle_diag(msg, len);
+
+		handle_periodic_task();
 	}
 
 	diag_destroy();
