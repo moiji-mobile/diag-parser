@@ -171,6 +171,12 @@ int main(int argc, char *argv[]) {
 	pcap_t *read_fp;
 	int ret;
 
+	if (argc < 4) {
+		printf("Not enough arguments\n");
+		printf("Usage: %s <file.pcap> <start session id> <start cell id>\n", argv[0]);
+		return -1;
+	}
+
 	read_fp = pcap_open_offline(argv[1], errbuf);
 
 	if (pcap_datalink(read_fp) != DLT_EN10MB) {
@@ -178,11 +184,8 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	session_init(1, 1, CALLBACK_MYSQL);
+	session_init(atoi(argv[2]), atoi(argv[3]), 1, 1, CALLBACK_MYSQL);
 	//msg_verbose = 1;
-	_s[0].id=10;
-	_s[1].id=10;
-	cell_init(202);
 
 	pcap_loop(read_fp, -1, process_ethernet, NULL);
 

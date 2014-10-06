@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <assert.h>
 #include <arpa/inet.h>
 
@@ -18,13 +19,17 @@
 #endif
 
 #include <osmocom/core/bitvec.h>
+#include <osmocom/core/timer.h>
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/gsm/gsm48_ie.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
-static struct llist_head cell_list;
 static unsigned cell_info_id;
+static struct llist_head cell_list;
+static struct osmo_timer_list dump_timer;
+static unsigned output_sqlite = 1;
+static void (*sql_callback)(char *) = NULL;
 
 const char * si_name[] = {
 	"SI1",
@@ -36,26 +41,48 @@ const char * si_name[] = {
 	"SI13"
 };
 
-void cell_init(unsigned start_id)
-{
-	INIT_LLIST_HEAD(&cell_list);
-	cell_info_id = start_id;
-}
-
 void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite);
 
-void cell_destroy(void (*callback)(char *))
+static void cell_dump_cb(void *arg)
 {
-
 	char query[8192];
 	struct cell_info *ci;
 
 	llist_for_each_entry(ci, &cell_list, entry) {
 		cell_make_sql(ci, query, sizeof(query), SQLITE_QUERY);
-		if (callback) {
-			(*callback)(query);
+		if (sql_callback) {
+			(*sql_callback)(query);
 		}
 	}
+}
+
+static void stop_timer()
+{
+	if (osmo_timer_pending(&dump_timer))
+		osmo_timer_del(&dump_timer);
+}
+
+static void start_timer()
+{
+	stop_timer();
+	dump_timer.cb = cell_dump_cb;
+	osmo_timer_schedule(&dump_timer, 60, 0);
+}
+
+void cell_init(unsigned start_id, void (*callback)(char *))
+{
+	INIT_LLIST_HEAD(&cell_list);
+	cell_info_id = start_id;
+	sql_callback = callback;
+
+	start_timer();
+}
+
+void cell_destroy()
+{
+	cell_dump_cb(NULL);
+
+	stop_timer();
 }
 
 int get_mcc(uint8_t *digits)

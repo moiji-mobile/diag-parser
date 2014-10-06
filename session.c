@@ -24,7 +24,7 @@ pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct session_info _s[2];
 
-void console_callback(const char *sql)
+static void console_callback(const char *sql)
 {
 	assert(sql != NULL);
 
@@ -32,7 +32,7 @@ void console_callback(const char *sql)
 	fflush(stdout);
 }
 
-void session_init(int console, int gsmtap, int callback)
+void session_init(unsigned start_sid, unsigned start_cid, int console, int gsmtap, int callback)
 {
 	output_console = console;
 	output_gsmtap = gsmtap;
@@ -61,9 +61,11 @@ void session_init(int console, int gsmtap, int callback)
 		_s[1].sql_callback = console_callback;
 		break;
 	}
+	_s[0].id = start_sid;
+	_s[1].id = start_sid;
 	_s[1].domain = DOMAIN_PS;
 
-	cell_init(0);
+	cell_init(start_cid, _s[0].sql_callback);
 
 	if (gsmtap)
 		net_init();

@@ -159,7 +159,7 @@ struct session_info {
 #define SET_MSG_INFO(s, ... )  snprintf((s)->last_msg->info, sizeof((s)->last_msg->info), ##__VA_ARGS__);
 #define APPEND_MSG_INFO(s, ...) snprintf((s)->last_msg->info+strlen((s)->last_msg->info), sizeof((s)->last_msg->info)-strlen((s)->last_msg->info), ##__VA_ARGS__);
 
-void session_init();
+void session_init(unsigned start_sid, unsigned start_cid, int console, int gsmtap, int callback);
 void session_destroy();
 struct session_info *session_create(int id, char* name, uint8_t *key, int mcc, int mnc, int lac, int cid, struct gsm_sysinfo_freq *ca);
 void session_close(struct session_info *s);

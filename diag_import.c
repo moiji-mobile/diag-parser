@@ -10,10 +10,17 @@ int main(int argc, char *argv[])
 	uint8_t msg[4096]; 
 	unsigned len = 0;
 
+	if (argc < 3) {
+		printf("Not enough arguments\n");
+		printf("Usage: %s <session_info id> <cell_info id>\n", argv[0]);
+		fflush(stdout);
+		return -1;
+	}
+
+	diag_init(atoi(argv[1]), atoi(argv[2]));
+
 	printf("PARSER_OK\n");
 	fflush(stdout);
-
-	diag_init();
 
 	for (;;) {
 		memset(msg, 0x2b, sizeof(msg));
