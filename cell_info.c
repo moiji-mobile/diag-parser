@@ -109,7 +109,7 @@ static void paging_reset()
 	paging_tmsi = 0;
 }
 
-void cell_and_paging_dump()
+void cell_and_paging_dump(int force)
 {
 	char query[8192];
 	struct cell_info *ci, *ci2;
@@ -121,14 +121,16 @@ void cell_and_paging_dump()
 	/* Elapsed time from measurement start */
 	time_delta = ts_now.tv_sec - periodic_ts.tv_sec;
 
-	if (time_delta < 10)
+	if (!force && time_delta < 10)
 		return;
 
 	/* dump & delete cell_info */
 	llist_for_each_entry_safe(ci, ci2, &cell_list, entry) {
-		if (s.sql_callback) {
+		if (!ci->stored) {
 			cell_make_sql(ci, query, sizeof(query), output_sqlite);
-			(*s.sql_callback)(query);
+			if (s.sql_callback && strlen(query))
+				(*s.sql_callback)(query);
+			ci->stored = 1;
 		}
 		llist_del(&ci->entry);
 		free(ci);
@@ -136,7 +138,7 @@ void cell_and_paging_dump()
 
 	/* dump paging info */
 	paging_make_sql(ts_now.tv_sec, query, sizeof(query), output_sqlite);
-	if (s.sql_callback) {
+	if (s.sql_callback && strlen(query)) {
 		(*s.sql_callback)(query);
 	}
 
@@ -186,7 +188,7 @@ void cell_init(unsigned start_id, int callback)
 
 void cell_destroy()
 {
-	cell_and_paging_dump();
+	cell_and_paging_dump(1);
 }
 
 int get_mcc(uint8_t *digits)
@@ -851,6 +853,7 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite)
 {
 	char paging_ts[40];
+	float time_delta;
 
 	/* Format timestamp according to db */
 	if (sqlite) {
@@ -859,11 +862,17 @@ void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite)
 		snprintf(paging_ts, sizeof(paging_ts), "FROM_UNIXTIME(%lu)", epoch_now);
 	}
 
-	snprintf(query, len, "INSERT INTO paging_info VALUES (%s, %f, %f, %f, %f, %f);\n",
-			paging_ts,
-			(float)paging_count[0]/(float)(epoch_now-periodic_ts.tv_sec),
-			(float)paging_count[1]/(float)(epoch_now-periodic_ts.tv_sec),
-			(float)paging_count[2]/(float)(epoch_now-periodic_ts.tv_sec),
-			(float)paging_imsi/(float)(epoch_now-periodic_ts.tv_sec),
-			(float)paging_tmsi/(float)(epoch_now-periodic_ts.tv_sec));
+	time_delta = (float) (epoch_now-periodic_ts.tv_sec);
+
+	if (time_delta > 0.0) {
+		snprintf(query, len, "INSERT INTO paging_info VALUES (%s, %f, %f, %f, %f, %f);\n",
+				paging_ts,
+				(float)paging_count[0]/time_delta,
+				(float)paging_count[1]/time_delta,
+				(float)paging_count[2]/time_delta,
+				(float)paging_imsi/time_delta,
+				(float)paging_tmsi/time_delta);
+	} else {
+		query[0] = 0;
+	}
 }

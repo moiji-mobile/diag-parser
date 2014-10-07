@@ -47,7 +47,7 @@ void diag_destroy()
 inline
 uint32_t get_fn(struct diag_packet *dp)
 {
-	return (dp->timestamp*2/(204800*9))%GSM_MAX_FN;
+	return (dp->timestamp/204800)%GSM_MAX_FN;
 }
 
 inline
@@ -233,7 +233,7 @@ struct radio_message * handle_bcch_and_rr(struct diag_packet *dp, unsigned len)
 
 void handle_periodic_task()
 {
-	cell_and_paging_dump();
+	cell_and_paging_dump(0);
 }
 
 void handle_diag(uint8_t *msg, unsigned len)

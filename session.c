@@ -76,7 +76,7 @@ void session_destroy()
 	session_reset(&_s[0]);
 	session_reset(&_s[1]);
 
-	cell_destroy(_s[0].sql_callback);
+	cell_destroy();
 
 	if (_s[0].sql_callback) {
 #ifdef USE_SQLITE

@@ -7,7 +7,7 @@ struct session_info;
 
 void cell_init(unsigned start_id, int callback);
 void cell_destroy();
-void cell_and_paging_dump();
+void cell_and_paging_dump(int force);
 int get_mcc(uint8_t *digits);
 int get_mnc(uint8_t *digits);
 void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uint32_t fn);
