@@ -280,6 +280,10 @@ void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		}
 
 		break;
+	case 0x07:
+		// CALL CONNECT
+		SET_MSG_INFO(s, "CALL CONNECT");
+		break;
 	case 0x08:
 		// CALL CONFIRMED
 		SET_MSG_INFO(s, "CALL CONFIRMED");
@@ -304,10 +308,13 @@ void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		// CALL RELEASE
 		SET_MSG_INFO(s, "CALL RELEASE");
 		break;
-	case 0x2e:
 	case 0x3a:
 		// CALL FACILITY
 		SET_MSG_INFO(s, "CALL FACILITY");
+		break;
+	case 0x3d:
+		// CALL STATUS
+		SET_MSG_INFO(s, "CALL STATUS");
 		break;
 	default:
 		SET_MSG_INFO(s, "UNKNOWN CC (%02x)", dtap->msg_type & 0x3f);
@@ -549,18 +556,21 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		break;
 	case GSM48_MT_RR_PAG_REQ_1:
 		SET_MSG_INFO(s, "PAGING REQ 1");
-		paging_inc(1);
+		handle_paging1(dtap, len);
 		break;
 	case GSM48_MT_RR_PAG_REQ_2:
 		SET_MSG_INFO(s, "PAGING REQ 2");
-		paging_inc(2);
+		handle_paging2(dtap, len);
 		break;
 	case GSM48_MT_RR_PAG_REQ_3:
 		SET_MSG_INFO(s, "PAGING REQ 3");
-		paging_inc(3);
+		handle_paging3(dtap, len);
 		break;
 	case GSM48_MT_RR_IMM_ASS:
 		SET_MSG_INFO(s, "IMM ASSIGNMENT");
+		break;
+	case GSM48_MT_RR_IMM_ASS_REJ:
+		SET_MSG_INFO(s, "IMM ASSIGNMENT REJECT");
 		break;
 	case GSM48_MT_RR_PAG_RESP:
 		session_reset(s);
@@ -778,6 +788,14 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		s->serv_req = 1;
 		handle_serv_req(s, dtap->data);
 		break;
+	case 0x0d:
+		// SERVICE ACCEPT
+		SET_MSG_INFO(s, "SERVICE ACCEPT");
+		break;
+	case 0x0e:
+		// SERVICE REJECT
+		SET_MSG_INFO(s, "SERVICE REJECT");
+		break;
 	case 0x10:
 		// PTMSI REALLOC COMMAND
 		SET_MSG_INFO(s, "PTMSI REALLOC COMMAND");
@@ -846,6 +864,10 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 	case 0x06:
 		// DEACTIVATE PDP CTX REQUEST
 		SET_MSG_INFO(s, "DEACTIVATE PDP REQUEST");
+		break;
+	case 0x07:
+		// DEACTIVATE PDP CTX ACCEPT
+		SET_MSG_INFO(s, "DEACTIVATE PDP ACCEPT");
 		break;
 	case 0x08:
 		// MODIFY PDP CTX REQUEST

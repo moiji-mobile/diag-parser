@@ -79,5 +79,7 @@ CREATE TABLE paging_info (
   timestamp DATETIME PRIMARY KEY,	-- End of measurement timestamp
   pag1_rate float NOT NULL,		-- Paging1 rate (paging/s)
   pag2_rate float NOT NULL,		-- Paging2 rate (paging/s)
-  pag3_rate float NOT NULL		-- Paging3 rate (paging/s)
+  pag3_rate float NOT NULL,		-- Paging3 rate (paging/s)
+  imsi_rate float NOT NULL,		-- IMSI paging rate (IMSI/s)
+  tmsi_rate float NOT NULL		-- TMSI paging rate (TMSI/s)
 );

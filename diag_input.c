@@ -47,7 +47,7 @@ void diag_destroy()
 inline
 uint32_t get_fn(struct diag_packet *dp)
 {
-	return ((dp->timestamp>>8)/204800)%GSM_MAX_FN;
+	return (dp->timestamp*2/(204800*9))%GSM_MAX_FN;
 }
 
 inline

@@ -33,6 +33,8 @@ static unsigned output_sqlite = 1;
 static struct timeval periodic_ts;
 static struct session_info s;
 unsigned paging_count[3];
+unsigned paging_imsi;
+unsigned paging_tmsi;
 
 enum si_index {
 	SI1 = 0,
@@ -98,6 +100,15 @@ struct cell_info {
 void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite);
 void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite);
 
+static void paging_reset()
+{
+	paging_count[0] = 0;
+	paging_count[1] = 0;
+	paging_count[2] = 0;
+	paging_imsi = 0;
+	paging_tmsi = 0;
+}
+
 void cell_and_paging_dump()
 {
 	char query[8192];
@@ -129,6 +140,9 @@ void cell_and_paging_dump()
 		(*s.sql_callback)(query);
 	}
 
+	/* reset counters */
+	paging_reset();
+
 	periodic_ts = ts_now;
 }
 
@@ -144,7 +158,8 @@ void cell_init(unsigned start_id, int callback)
 {
 	INIT_LLIST_HEAD(&cell_list);
 
-	memset(paging_count, 0, sizeof(paging_count));
+	paging_reset();
+
 	gettimeofday(&periodic_ts, NULL);
 
 	cell_info_id = start_id;
@@ -172,14 +187,6 @@ void cell_init(unsigned start_id, int callback)
 void cell_destroy()
 {
 	cell_and_paging_dump();
-}
-
-void paging_inc(int pag_type)
-{
-	assert(pag_type > 0);
-	assert(pag_type < 4);
-
-	paging_count[pag_type - 1]++;
 }
 
 int get_mcc(uint8_t *digits)
@@ -643,6 +650,84 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	}
 }
 
+void paging_inc(int pag_type, uint8_t mi_type)
+{
+	assert(pag_type < 4);
+
+	if (pag_type > 0) {
+		paging_count[pag_type - 1]++;
+	}
+
+	switch (mi_type) {
+	case GSM_MI_TYPE_IMSI:
+		paging_imsi++;
+		break;
+	case GSM_MI_TYPE_TMSI:
+		paging_tmsi++;
+		break;
+	}
+}
+
+void handle_paging1(struct gsm48_hdr *dtap, unsigned len)
+{
+	struct gsm48_paging1 *pag;
+	int len1, mi_type, tag;
+
+	if (len < sizeof(*pag))
+		return;
+
+	pag = (struct gsm48_paging1 *) dtap;
+
+	len1 = pag->data[0];
+	mi_type = pag->data[1] & GSM_MI_TYPE_MASK;
+
+	paging_inc(1, mi_type);
+
+	if (len < sizeof(*pag) + 2 + len1 + 3)
+		return;
+
+	tag = pag->data[2 + len1 + 0];
+	mi_type = pag->data[2 + len1 + 2] & GSM_MI_TYPE_MASK;
+	if (tag != GSM48_IE_MOBILE_ID)
+		return;
+
+	paging_inc(0, mi_type);
+}
+
+void handle_paging2(struct gsm48_hdr *dtap, unsigned len)
+{
+	struct gsm48_paging2 *pag;
+	int tag, mi_type;
+
+	if (len < sizeof(*pag))
+		return;
+
+	pag = (struct gsm48_paging2 *) dtap; 
+
+	paging_inc(2, GSM_MI_TYPE_TMSI);
+	paging_inc(0, GSM_MI_TYPE_TMSI);
+
+	/* no optional element */
+	if (len < sizeof(*pag) + 3)
+		return;
+
+	tag = pag->data[0];
+	mi_type = pag->data[2] & GSM_MI_TYPE_MASK;
+
+	if (tag != GSM48_IE_MOBILE_ID)
+		return;
+
+	paging_inc(0, mi_type);
+}
+
+void handle_paging3(struct gsm48_hdr *dtap, unsigned len)
+{
+	paging_inc(3, GSM_MI_TYPE_TMSI);
+	paging_inc(0, GSM_MI_TYPE_TMSI);
+	paging_inc(0, GSM_MI_TYPE_TMSI);
+	paging_inc(0, GSM_MI_TYPE_TMSI);
+}
+
 void append_arfcn_list(struct cell_info *ci, enum si_index index, char *query, unsigned len)
 {
 	unsigned offset;
@@ -774,14 +859,11 @@ void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite)
 		snprintf(paging_ts, sizeof(paging_ts), "FROM_UNIXTIME(%lu)", epoch_now);
 	}
 
-	printf("Pag counters: %d %d %d\n", paging_count[0], paging_count[1], paging_count[2]);
-
-	snprintf(query, len, "INSERT INTO paging_info VALUES (%s, %f, %f, %f);\n",
+	snprintf(query, len, "INSERT INTO paging_info VALUES (%s, %f, %f, %f, %f, %f);\n",
 			paging_ts,
 			(float)paging_count[0]/(float)(epoch_now-periodic_ts.tv_sec),
 			(float)paging_count[1]/(float)(epoch_now-periodic_ts.tv_sec),
-			(float)paging_count[2]/(float)(epoch_now-periodic_ts.tv_sec));
-
-	/* Reset counters */
-	memset(&paging_count, 0, sizeof(paging_count));
+			(float)paging_count[2]/(float)(epoch_now-periodic_ts.tv_sec),
+			(float)paging_imsi/(float)(epoch_now-periodic_ts.tv_sec),
+			(float)paging_tmsi/(float)(epoch_now-periodic_ts.tv_sec));
 }
