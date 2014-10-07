@@ -1,5 +1,5 @@
 CC=$(CROSS_COMPILE)-gcc
-CFLAGS=-DSQLITE_QUERY -O2 -ggdb -I. -I$(PREFIX)/include -I$(PREFIX)/include/asn1c/ --sysroot=$(SYSROOT) -nostdlib -fPIC
+CFLAGS=-DSQLITE_QUERY=1 -O2 -ggdb -I. -I$(PREFIX)/include -I$(PREFIX)/include/asn1c/ --sysroot=$(SYSROOT) -nostdlib -fPIC
 LDFLAGS=-losmocore -losmogsm -lasn1c -lm -losmo-asn1-rrc -lcompat --sysroot $(SYSROOT) -L $(PREFIX)/lib -L .
 OBJ =	address.o assignment.o bit_func.o ccch.o cch.o chan_detect.o crc.o \
 	umts_rrc.o diag_input.o gprs.o gsm_interleave.o cell_info.o \
