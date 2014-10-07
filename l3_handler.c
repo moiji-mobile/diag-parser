@@ -310,7 +310,7 @@ void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		SET_MSG_INFO(s, "CALL FACILITY");
 		break;
 	default:
-		SET_MSG_INFO(s, "UNKNOWN CC");
+		SET_MSG_INFO(s, "UNKNOWN CC (%02x)", dtap->msg_type & 0x3f);
 		s->unknown = 1;
 	}
 }
@@ -460,7 +460,7 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		SET_MSG_INFO(s, "MM INFORMATION");
 		break;
 	default:
-		SET_MSG_INFO(s, "UNKNOWN MM");
+		SET_MSG_INFO(s, "UNKNOWN MM (%02x)", dtap->msg_type & 0x3f);
 		s->unknown = 1;
 	}
 }
@@ -653,7 +653,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		SET_MSG_INFO(s, "UTRAN CLASSMARK");
 		break;
 	default:
-		SET_MSG_INFO(s, "UNKNOWN RR %02x", dtap->msg_type);
+		SET_MSG_INFO(s, "UNKNOWN RR (%02x)", dtap->msg_type);
 		s->unknown = 1;
 	}
 }
@@ -680,7 +680,7 @@ void handle_ss(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		SET_MSG_INFO(s, "SS REGISTER");
 		break;
 	default:
-		SET_MSG_INFO(s, "UNKNOWN SS");
+		SET_MSG_INFO(s, "UNKNOWN SS (%02x)", dtap->msg_type & 0x3f);
 		s->unknown = 1;
 	}
 }
@@ -818,7 +818,7 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		SET_MSG_INFO(s, "GMM INFORMATION");
 		break;
 	default:
-		SET_MSG_INFO(s, "UNKNOWN (GMM)");
+		SET_MSG_INFO(s, "UNKNOWN GMM (%02x)", dtap->msg_type & 0x3f);
 	}
 }
 
@@ -864,7 +864,7 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		SET_MSG_INFO(s, "SM STATUS");
 		break;
 	default:
-		SET_MSG_INFO(s, "UNKNOWN (SM)");
+		SET_MSG_INFO(s, "UNKNOWN SM (%02x)", dtap->msg_type & 0x3f);
 	}
 }
 
