@@ -12,8 +12,12 @@
 
 #define APPEND(log, msg) strncat(log, msg, sizeof(log))
 
+#ifndef MSG_VERBOSE
+#defined MSG_VERBOSE 0
+#endif /* !MSG_VERBOSE */
+
 unsigned privacy = 0;
-unsigned msg_verbose = 0;
+unsigned msg_verbose = MSG_VERBOSE;
 unsigned auto_reset = 1;
 static unsigned output_console = 1;
 static unsigned output_gsmtap = 1;
