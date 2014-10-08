@@ -1,0 +1,6 @@
+*.o
+*.so
+diag_import
+gsmtap_import
+libmetagsm.*
+metadata.db
