@@ -1,5 +1,6 @@
 CC=$(CROSS_COMPILE)-gcc
 CFLAGS=-DSQLITE_QUERY=1 -DMSG_VERBOSE=1 -O2 -ggdb -I. -I$(PREFIX)/include -I$(PREFIX)/include/asn1c/ --sysroot=$(SYSROOT) -nostdlib -fPIC
+AR=$(CROSS_COMPILE)-ar
 LDFLAGS=-losmocore -losmogsm -lasn1c -lm -losmo-asn1-rrc -lcompat --sysroot $(SYSROOT) -L $(PREFIX)/lib -L .
 OBJ =	address.o assignment.o bit_func.o ccch.o cch.o chan_detect.o crc.o \
 	umts_rrc.o diag_input.o gprs.o gsm_interleave.o cell_info.o \
@@ -16,7 +17,7 @@ install: diag_import libcompat.so
 	install $^ $(DESTDIR)
 
 libmetagsm.a: $(OBJ)
-	ar rcs $@ $^
+	$(AR) rcs $@ $^
 #	$(CC) -o $@.so $^ -shared -fPIC $(LDFLAGS)
 
 libcompat.so: compat.o
