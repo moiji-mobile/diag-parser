@@ -13,7 +13,7 @@
 #define APPEND(log, msg) strncat(log, msg, sizeof(log))
 
 #ifndef MSG_VERBOSE
-#defined MSG_VERBOSE 0
+#define MSG_VERBOSE 0
 #endif /* !MSG_VERBOSE */
 
 unsigned privacy = 0;
