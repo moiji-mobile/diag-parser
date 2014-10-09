@@ -170,6 +170,7 @@ int session_enumerate();
 
 extern unsigned privacy;
 extern unsigned msg_verbose;
+extern unsigned auto_reset;
 extern struct session_info _s[2];
 
 #endif

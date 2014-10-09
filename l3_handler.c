@@ -1036,14 +1036,22 @@ void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, 
 		break;
 	case GSM48_PDISC_MM_GPRS:
 		s->last_msg->domain = DOMAIN_PS;
-		handle_gmm(&s[1], dtap, len);
+		if (auto_reset) {
+			handle_gmm(&s[1], dtap, len);
+		} else {
+			handle_gmm(s, dtap, len);
+		}
 		break;
 	case GSM411_PDISC_SMS:
 		handle_sms(s, dtap, len);
 		break;
 	case GSM48_PDISC_SM_GPRS:
 		s->last_msg->domain = DOMAIN_PS;
-		handle_sm(&s[1], dtap, len);
+		if (auto_reset) {
+			handle_sm(&s[1], dtap, len);
+		} else {
+			handle_sm(s, dtap, len);
+		}
 		break;
 	case GSM48_PDISC_NC_SS:
 		handle_ss(s, dtap, len);
