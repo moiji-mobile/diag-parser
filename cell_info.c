@@ -767,7 +767,7 @@ void append_arfcn_list(struct cell_info *ci, enum si_index index, char *query, u
 
 	assert(offset > 0);
 
-	snprintf(&query[offset-1], len-offset+1, ";\n");
+	snprintf(&query[offset-1], len-offset+1, ";");
 }
 
 void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
@@ -818,7 +818,7 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 		"%u,%u,%u,"
 		"%s,%s,%s,%s,"
 		"%s,%s,%s,%s,"
-		"%s,%s,%s,%s);\n",
+		"%s,%s,%s,%s);",
 		ci->id, first_ts, last_ts, ci->mcc, ci->mnc, ci->lac, ci->cid,
 		ci->msc_ver, ci->combined, ci->agch_blocks, ci->pag_mframes, ci->t3212, ci->dtx,
 		ci->cro, ci->temp_offset, ci->pen_time, ci->pwr_offset, ci->gprs,
