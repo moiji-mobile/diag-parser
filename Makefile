@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-O2 -ggdb -I. -I/usr/share/asn1c -fPIC
+CFLAGS=-O2 -ggdb -I. -I/usr/include/asn1c -fPIC
 LDFLAGS=-losmocore -losmogsm -lasn1c -lm -losmo-asn1-rrc
 OBJ =	address.o assignment.o bit_func.o ccch.o cch.o chan_detect.o crc.o \
 	umts_rrc.o diag_input.o gprs.o gsm_interleave.o cell_info.o \

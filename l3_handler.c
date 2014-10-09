@@ -1261,7 +1261,8 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 		s->last_msg->next = m;
 	m->prev = s->last_msg;
 	s[0].last_msg = m;
-	s[1].last_msg = m;
+	if (auto_reset)
+		s[1].last_msg = m;
 
 	switch (m->rat) {
 	case RAT_GSM:
