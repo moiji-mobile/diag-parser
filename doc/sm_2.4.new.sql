@@ -437,11 +437,23 @@ insert into attack_component
 
         sum(CASE
                WHEN cipher=3 THEN
-                  (1.0 / 2 + realtime_crack / 2)
+                  1.0 / 2 * avg_of_2(call_perc,sms_perc) +
+                  CASE
+                     WHEN avg_of_2(call_perc,sms_perc) = 1.0 THEN
+                        realtime_crack / 2
+                     ELSE
+                        realtime_crack / 4 * avg_of_2(call_perc,sms_perc)
+                  END
                WHEN cipher=2 THEN
                   0.2 / 2
                WHEN cipher=1 THEN
-                  (0.5 / 2 + realtime_crack / 2)
+                  0.5 / 2 * avg_of_2(call_perc,sms_perc) +
+                  CASE
+                     WHEN avg_of_2(call_perc,sms_perc) = 1.0 THEN
+                        realtime_crack / 2
+                     ELSE
+                        realtime_crack / 4 * avg_of_2(call_perc,sms_perc)
+                  END
                ELSE
                   0
             END * avg_of_2(call_perc,sms_perc)) as realtime_crack,
