@@ -172,6 +172,21 @@ inline int bcd2str(uint8_t *bcd, char *s, unsigned len, unsigned off)
 	return i;
 }
 
+inline int is_printable(const char *str, unsigned len)
+{
+	int i = 0;
+
+	while (i < len && str[0]) {
+		if (str[i] < 0x20)
+			return 0;
+		if (str[i] >= 0x7f)
+			return 0;
+		i++;
+	}
+
+	return 1;
+}
+
 inline unsigned hamming_distance(uint8_t *v1, uint8_t *v2, unsigned len)
 {
 	unsigned i, diff = 0;

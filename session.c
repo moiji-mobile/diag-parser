@@ -174,12 +174,9 @@ int session_enumerate(int output)
 	return count;
 }
 
-void session_free(struct session_info *s)
+void session_free_msg_list(struct session_info *s)
 {
 	struct radio_message *m;
-	struct sms_meta *sm;
-
-	assert(s != NULL);
 
 	while (s->first_msg) {
 		m = s->first_msg;
@@ -188,6 +185,25 @@ void session_free(struct session_info *s)
 
 		free(m);
 	}
+}
+
+void session_free_sms_list(struct session_info *s)
+{
+	struct sms_meta *sm;
+
+	while (s->sms_list) {
+		sm = s->sms_list;
+
+		s->sms_list = sm->next;
+
+		free(sm);
+	}
+}
+
+void session_free(struct session_info *s)
+{
+
+	assert(s != NULL);
 
 	if (s->prev) {
 		s->prev->next = s->next;
@@ -199,14 +215,8 @@ void session_free(struct session_info *s)
 		s_pointer = s->next;
 	}
 
-	while (s->sms_list) {
-		sm = s->sms_list;
-
-		s->sms_list = sm->next;
-
-		free(sm);
-	}
-
+	session_free_msg_list(s);
+	session_free_sms_list(s);
 	free(s);
 }
 
@@ -639,6 +649,9 @@ void session_reset(struct session_info *s)
 		memcpy(s->last_dtap, old_s.last_dtap, old_s.last_dtap_len); 
 		s->last_dtap_rat = old_s.last_dtap_rat;
 	}
+
+	session_free_msg_list(&old_s);
+	session_free_sms_list(&old_s);
 
 	memcpy(s->chan_sdcch, old_s.chan_sdcch, sizeof(s->chan_sdcch));
 	memcpy(s->chan_sacch, old_s.chan_sacch, sizeof(s->chan_sdcch));

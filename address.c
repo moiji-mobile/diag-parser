@@ -50,7 +50,12 @@ void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 
 	assert(data != NULL);
 	assert(dest != NULL);
-	assert(len > 0);
+
+	/* Special case */
+	if (len == 0) {
+		snprintf(dest, 32, "<NO ADDRESS>");
+		return;
+	}
 
 	/* Decode basic info */
 	ext = (data[0] & 0x80);
@@ -105,7 +110,10 @@ void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 		} 
 		break;
 	case 5: /* Alphanumeric - GSM 7bit */
-		ret = gsm_7bit_decode_n(dest, GSM48_MI_SIZE, data, (len*8)/7);
+		ret = gsm_7bit_decode_n(dest, GSM48_MI_SIZE, data, (len*7)/8);
+		if (!dest[0] || !is_printable(dest, ret)) {
+			snprintf(dest, GSM48_MI_SIZE, "<NON-PRINTABLE>");
+		}
 		break;
 	case 0: /* Unknown */
 	case 3: /* Network specific */

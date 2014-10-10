@@ -488,7 +488,9 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 
 	assert(s != NULL);
 	assert(dtap != NULL);
-	assert(len > 3);
+
+	if (len < 4)
+		return;
 
 	/* close pending session */
 #if 0

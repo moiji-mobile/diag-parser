@@ -6,6 +6,16 @@
 
 #include "mysql_api.h"
 
+#ifndef MYSQL_USER
+#define MYSQL_USER "root"
+#endif
+#ifndef MYSQL_PASS
+#define MYSQL_PASS ""
+#endif
+#ifndef MYSQL_DBNAME
+#define MYSQL_DBNAME "celldb"
+#endif
+
 static MYSQL *meta_db;
 
 void mysql_api_query_cb(const char *input)
@@ -44,7 +54,7 @@ void mysql_api_init(struct session_info *s)
 		exit(1);
 	}
 
-	conn_check = mysql_real_connect(meta_db, "localhost", "root", "", "celldb", 3306, 0, 0);
+	conn_check = mysql_real_connect(meta_db, "localhost", MYSQL_USER, MYSQL_PASS, MYSQL_DBNAME, 3306, 0, 0);
 	if (!conn_check) {
 		printf("Cannot open database\n");
 		exit(1);
