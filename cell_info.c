@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <arpa/inet.h>
 
@@ -489,6 +490,13 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	assert(dtap != NULL);
 	assert(len > 3);
 
+	/* close pending session */
+#if 0
+	if (s->started && !s->closed && (s->last_msg->flags & MSG_BCCH)) {
+		session_close(s);
+	}
+#endif
+
 	index = si_index(dtap->msg_type);
 	if (index < 0) {
 		/* Not to be parsed */
@@ -767,7 +775,7 @@ void append_arfcn_list(struct cell_info *ci, enum si_index index, char *query, u
 
 	assert(offset > 0);
 
-	snprintf(&query[offset-1], len-offset+1, ";");
+	snprintf(&query[offset-1], len-offset+1, ";\n");
 }
 
 void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
@@ -818,7 +826,7 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 		"%u,%u,%u,"
 		"%s,%s,%s,%s,"
 		"%s,%s,%s,%s,"
-		"%s,%s,%s,%s);",
+		"%s,%s,%s,%s);\n",
 		ci->id, first_ts, last_ts, ci->mcc, ci->mnc, ci->lac, ci->cid,
 		ci->msc_ver, ci->combined, ci->agch_blocks, ci->pag_mframes, ci->t3212, ci->dtx,
 		ci->cro, ci->temp_offset, ci->pen_time, ci->pwr_offset, ci->gprs,
