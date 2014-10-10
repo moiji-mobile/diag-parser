@@ -522,6 +522,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 	free(imsi);
 	free(imei);
 	free(msisdn);
+	free(pdpip);
 }
 
 void session_close(struct session_info *s)

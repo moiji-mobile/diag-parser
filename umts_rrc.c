@@ -192,6 +192,12 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 			goto dl_end;
 		}
 		break;
+	/* Buggy structures that cannot be freed */
+	case DL_DCCH_MessageType_PR_measurementControl:
+	case DL_DCCH_MessageType_PR_radioBearerRelease:
+	case DL_DCCH_MessageType_PR_utranMobilityInformation:
+	case DL_DCCH_MessageType_PR_radioBearerReconfiguration:
+		goto dl_no_free;
 	default:
 		SET_MSG_INFO(s, "DL-DCCH type=%d", dcch->message.present);
 		s->last_msg->flags &= ~MSG_DECODED;
@@ -210,7 +216,7 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 #endif
 
 dl_end:
-	//ASN_STRUCT_FREE(asn_DEF_DL_DCCH_Message, dcch);
-
+	ASN_STRUCT_FREE(asn_DEF_DL_DCCH_Message, dcch);
+dl_no_free:
 	return error;
 }
