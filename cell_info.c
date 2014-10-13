@@ -134,7 +134,12 @@ void cell_and_paging_dump(int force)
 			ci->stored = 1;
 		}
 		llist_del(&ci->entry);
-		free(ci);
+                /*
+                 * FIXME: Elements should be deallocated on deletion. However,
+                 * the code below causes heap corruption an needs to be
+                 * investigated further.
+                 */
+		// free(ci);
 	}
 
 	/* dump paging info */
