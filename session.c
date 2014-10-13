@@ -32,7 +32,7 @@ static void console_callback(const char *sql)
 {
 	assert(sql != NULL);
 
-	printf("SQL: %s", sql);
+	printf("SQL: %s\n", sql);
 	fflush(stdout);
 }
 
