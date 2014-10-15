@@ -855,7 +855,7 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		// ACTIVATE PDP CTX ACCEPT
 		sapi = dtap->data[0];
 		qos_len = dtap->data[1];
-		assert(qos_len < (len-3));
+		//assert(qos_len < (len-3));
 
 		//TLV @ data[3+qos_len+1]
 		
@@ -1185,7 +1185,7 @@ hdr_parse:
 
 	/* check sequence */
 	if (mb->len && (ns != ((mb->ns + 1) % 8))) {
-		SET_MSG_INFO(s, "<RETRANS>"); 
+		SET_MSG_INFO(s, "<OUT OF SEQUENCE> recv %d want %d", ns, (mb->ns + 1)%8);
 		return;
 	} 
 
@@ -1257,6 +1257,8 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 	m->flags |= MSG_DECODED;
 
 	// Link to last message
+	if (s->first_msg == NULL)
+		s->first_msg = m;
 	if (s->last_msg)
 		s->last_msg->next = m;
 	m->prev = s->last_msg;
