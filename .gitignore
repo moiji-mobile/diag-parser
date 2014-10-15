@@ -1,5 +1,6 @@
 *.o
 *.so
+db_import
 diag_import
 gsmtap_import
 libmetagsm.*

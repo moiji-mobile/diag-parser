@@ -11,10 +11,13 @@ CFLAGS+=-DUSE_MYSQL -DUSE_SQLITE $(shell mysql_config --cflags)
 LDFLAGS+=$(shell mysql_config --libs) -lsqlite3
 OBJ+=mysql_api.o sqlite_api.o
 
+# Database config for r2
+#CFLAGS+=-DMYSQL_USER=\"root\" -DMYSQL_PASS=\"moth*echo5Sigma\" -DMYSQL_DBNAME=\"session_meta_test\"
+
 %.o: %.c %.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-all: libmetagsm diag_import gsmtap_import
+all: libmetagsm diag_import gsmtap_import db_import
 
 libmetagsm: $(OBJ)
 	ar rcs $@.a $^
@@ -26,9 +29,14 @@ diag_import: diag_import.o libmetagsm.a
 gsmtap_import: gsmtap_import.o libmetagsm.a
 	gcc -o $@ $^ $(LDFLAGS) -lpcap
 
+db_import: db_import.o libmetagsm.a
+	$(CC) -o $@ $^ $(LDFLAGS)
+
 clean:
 	@rm -f *.o diag_import libmetagsm*
 
 database:
 	@rm metadata.db
 	@sqlite3 metadata.db < si.sql
+	@sqlite3 metadata.db < sms.sql
+	@sqlite3 metadata.db < cell_info.sql
