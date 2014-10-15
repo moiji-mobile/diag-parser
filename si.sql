@@ -1,6 +1,8 @@
+/*!40101 SET storage_engine=MyISAM */;
+
 DROP TABLE IF EXISTS session_info;
 CREATE TABLE session_info (
-  id integer PRIMARY KEY AUTO_INCREMENT,		-- Transaction ID, incremental and unique in the db
+  id integer PRIMARY KEY,		-- Transaction ID, incremental and unique in the db
   timestamp datetime NOT NULL,		-- Timestamp
   rat tinyint NOT NULL,			-- Radio access technology (GSM=0, UMTS=1, LTE=2)
   domain tinyint NOT NULL,		-- Communication domain (Circuit Switched=0, Packet Switched=1)

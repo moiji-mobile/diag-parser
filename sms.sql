@@ -1,3 +1,5 @@
+/*!40101 SET storage_engine=MyISAM */;
+
 DROP TABLE IF EXISTS sms_meta;
 CREATE TABLE sms_meta (
   id integer NOT NULL,			-- Transaction ID where this message was found

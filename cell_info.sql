@@ -1,3 +1,5 @@
+/*!40101 SET storage_engine=MyISAM */;
+
 DROP TABLE IF EXISTS cell_info;
 CREATE TABLE cell_info (
   id integer PRIMARY KEY,		-- Unique cell index
