@@ -18,60 +18,6 @@
 #include "sms.h"
 #include "cell_info.h"
 
-unsigned encapsulate_lapdm(uint8_t *data, unsigned len, uint8_t ul, uint8_t sacch, uint8_t **output)
-{
-	uint8_t *lapdm;
-	unsigned alloc_len;
-	unsigned offset = 0;
-
-	if (!len)
-		return 0;
-
-	/* Prevent LAPDm length overflow */
-	if (len > 63) {
-		len = 63;
-	}
-
-	/* Select final message length */
-	if (sacch) {
-		alloc_len = 5 + (len < 18 ? 18 : len);
-	} else {
-		alloc_len = 3 + (len < 20 ? 20 : len);
-	}
-
-	/* Allocate message buffer */
-	lapdm = malloc(alloc_len);
-	if (lapdm == NULL) {
-		*output = NULL;
-		return 0;
-	} else {
-		*output = lapdm;
-	}
-
-	/* Fake SACCH L1 header */
-	if (sacch) {
-		lapdm[0] = 0x00;
-		lapdm[1] = 0x00;
-		offset = 2;
-	}
-
-	/* Fake LAPDm header */
-	lapdm[offset+0] = (ul ? 0x01 : 0x03);
-	lapdm[offset+1] = 0x03;
-	lapdm[offset+2] = len << 2 | 0x01;
-	offset += 3;
-
-	/* Append actual payload */
-	memcpy(&lapdm[offset], data, len);
-
-	/* Add default padding */
-	if (len + offset < alloc_len) {
-		memset(&lapdm[len + offset], 0x2b, alloc_len - (len + offset)); 
-	}
-
-	return alloc_len;
-}
-
 void handle_classmark(struct session_info *s, uint8_t *data, uint8_t type)
 {
 	struct gsm48_classmark2 *cm2 = (struct gsm48_classmark2 *)data;
@@ -1313,4 +1259,120 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 	}
 
 	net_send_msg(m);
+}
+
+unsigned encapsulate_lapdm(uint8_t *data, unsigned len, uint8_t ul, uint8_t sacch, uint8_t **output)
+{
+	uint8_t *lapdm;
+	unsigned alloc_len;
+	unsigned offset = 0;
+
+	if (!len)
+		return 0;
+
+	/* Prevent LAPDm length overflow */
+	if (len > 63) {
+		len = 63;
+	}
+
+	/* Select final message length */
+	if (sacch) {
+		alloc_len = 5 + (len < 18 ? 18 : len);
+	} else {
+		alloc_len = 3 + (len < 20 ? 20 : len);
+	}
+
+	/* Allocate message buffer */
+	lapdm = malloc(alloc_len);
+	if (lapdm == NULL) {
+		*output = NULL;
+		return 0;
+	} else {
+		*output = lapdm;
+	}
+
+	/* Fake SACCH L1 header */
+	if (sacch) {
+		lapdm[0] = 0x00;
+		lapdm[1] = 0x00;
+		offset = 2;
+	}
+
+	/* Fake LAPDm header */
+	lapdm[offset+0] = (ul ? 0x01 : 0x03);
+	lapdm[offset+1] = 0x03;
+	lapdm[offset+2] = len << 2 | 0x01;
+	offset += 3;
+
+	/* Append actual payload */
+	memcpy(&lapdm[offset], data, len);
+
+	/* Add default padding */
+	if (len + offset < alloc_len) {
+		memset(&lapdm[len + offset], 0x2b, alloc_len - (len + offset)); 
+	}
+
+	return alloc_len;
+}
+
+struct radio_message * new_l2(uint8_t *data, uint8_t len, uint8_t rat, uint8_t domain, uint32_t fn, uint8_t ul, uint8_t flags)
+{
+	struct radio_message *m;
+
+	assert(data != 0);
+	assert(len < sizeof(m->msg));
+
+	m = (struct radio_message *) malloc(sizeof(struct radio_message));
+
+	if (m == 0)
+		return 0;
+
+	memset(m, 0, sizeof(struct radio_message));
+
+	m->rat = rat;
+	m->domain = domain;
+	switch (flags & 0x0f) {
+	case MSG_SDCCH:
+	case MSG_SACCH:
+		m->chan_nr = 0x41;
+		break;
+	case MSG_FACCH:
+		m->chan_nr = 0x08;
+		break;
+	case MSG_BCCH:
+		m->chan_nr = 0x80;
+	}
+	m->flags = flags | MSG_DECODED;
+	m->msg_len = len;
+	m->bb.fn[0] = fn;
+	m->bb.arfcn[0] = (ul ? ARFCN_UPLINK : 0);
+	memcpy(m->msg, data, len);
+
+	return m;
+}
+
+struct radio_message * new_l3(uint8_t *data, uint8_t len, uint8_t rat, uint8_t domain, uint32_t fn, uint8_t ul, uint8_t flags)
+{
+	uint8_t *lapdm;
+	unsigned lapdm_len;
+	struct radio_message *m;
+
+	assert(data != 0);
+
+	if (len == 0)
+		return 0;
+
+	if (flags & MSG_SACCH) {
+		lapdm_len = encapsulate_lapdm(data, len, ul, 1, &lapdm);
+	} else {
+		lapdm_len = encapsulate_lapdm(data, len, ul, 0, &lapdm);
+	}
+
+	if (lapdm_len) {
+		m = new_l2(lapdm, lapdm_len, rat, domain, fn, ul, flags);
+		free(lapdm);
+		return m;
+	} else {
+		return 0;
+	}
 }

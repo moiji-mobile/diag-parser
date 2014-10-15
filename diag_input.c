@@ -115,68 +115,6 @@ struct radio_message * handle_4G(struct diag_packet *dp, unsigned len)
 	return 0;
 }
 
-struct radio_message * new_l2(uint8_t *data, uint8_t len, uint8_t rat, uint8_t domain, uint32_t fn, uint8_t ul, uint8_t flags)
-{
-	struct radio_message *m;
-
-	assert(data != 0);
-	assert(len < sizeof(m->msg));
-
-	m = (struct radio_message *) malloc(sizeof(struct radio_message));
-
-	if (m == 0)
-		return 0;
-
-	memset(m, 0, sizeof(struct radio_message));
-
-	m->rat = rat;
-	m->domain = domain;
-	switch (flags & 0x0f) {
-	case MSG_SDCCH:
-	case MSG_SACCH:
-		m->chan_nr = 0x41;
-		break;
-	case MSG_FACCH:
-		m->chan_nr = 0x08;
-		break;
-	case MSG_BCCH:
-		m->chan_nr = 0x80;
-	}
-	m->flags = flags | MSG_DECODED;
-	m->msg_len = len;
-	m->bb.fn[0] = fn;
-	m->bb.arfcn[0] = (ul ? ARFCN_UPLINK : 0);
-	memcpy(m->msg, data, len);
-
-	return m;
-}
-
-struct radio_message * new_l3(uint8_t *data, uint8_t len, uint8_t rat, uint8_t domain, uint32_t fn, uint8_t ul, uint8_t flags)
-{
-	uint8_t *lapdm;
-	unsigned lapdm_len;
-	struct radio_message *m;
-
-	assert(data != 0);
-
-	if (len == 0)
-		return 0;
-
-	if (flags & MSG_SACCH) {
-		lapdm_len = encapsulate_lapdm(data, len, ul, 1, &lapdm);
-	} else {
-		lapdm_len = encapsulate_lapdm(data, len, ul, 0, &lapdm);
-	}
-
-	if (lapdm_len) {
-		m = new_l2(lapdm, lapdm_len, rat, domain, fn, ul, flags);
-		free(lapdm);
-		return m;
-	} else {
-		return 0;
-	}
-}
-
 struct radio_message * handle_nas(struct diag_packet *dp, unsigned len)
 {
 	/* sanity checks */
