@@ -33,6 +33,9 @@ int handle_addr_e164(uint8_t *data, unsigned digit_len, char *dest)
 
 	/* remove leading 00, if present */
 	if (data[0] == 0x00) {
+		if (digit_len < 2) {
+			return 0;
+		}
 		digit_len -= 2;
 		data++;
 	}
@@ -75,7 +78,7 @@ void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 		/* Present */
 		if (data[1] & 0x60) {
 			/* Restricted number */
-			strcpy(dest, "<hidden>");
+			strncpy(dest, "<hidden>", 32);
 			return;
 		}
 		if (len == 2) {
@@ -86,9 +89,14 @@ void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 		data += 2;
 	}
 	if (digit_only)
-		digit_len = len*2;
+		digit_len = len;
 
 	assert(digit_len > 0);
+	assert(digit_len < 32);
+
+	if (digit_len > 31) {
+		digit_len = 31;
+	}
 
 	switch (ton) {
 	case 2: /* National */
@@ -110,10 +118,8 @@ void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 		} 
 		break;
 	case 5: /* Alphanumeric - GSM 7bit */
-		ret = gsm_7bit_decode_n(dest, GSM48_MI_SIZE, data, (len*7)/8);
-		if (!dest[0] || !is_printable(dest, ret)) {
-			snprintf(dest, GSM48_MI_SIZE, "<NON-PRINTABLE>");
-		}
+		ret = gsm_7bit_decode_n(dest, GSM48_MI_SIZE, data, (digit_len+1)/2);
+		//printf("digit_len=%d string=%s\n", digit_len, dest);
 		break;
 	case 0: /* Unknown */
 	case 3: /* Network specific */
@@ -139,5 +145,9 @@ void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 			ret = bcd2str(data, dest, digit_len, 0);
 		} 
 		break;
+	}
+
+	if (!dest[0] || !is_printable(dest, ret)) {
+		snprintf(dest, GSM48_MI_SIZE, "<NON-PRINTABLE>");
 	}
 }

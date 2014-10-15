@@ -41,11 +41,46 @@ struct sec_header_rp {
 	uint8_t sw[0];
 };
 
+enum sms_alphabet get_sms_alphabet(uint8_t dcs)
+{
+	uint8_t cgbits = dcs >> 4;
+	enum sms_alphabet alpha = DCS_NONE;
+
+	if ((cgbits & 0xc) == 0) {
+		if (cgbits & 2) {
+			return 0xffffffff;
+		}
+
+		switch ((dcs >> 2)&0x03) {
+		case 0:
+			alpha = DCS_7BIT_DEFAULT;
+			break;
+		case 1:
+			alpha = DCS_8BIT_DATA;
+			break;
+		case 2:
+			alpha = DCS_UCS2;
+			break;
+		}
+	} else if (cgbits == 0xc || cgbits == 0xd)
+		alpha = DCS_7BIT_DEFAULT;
+	else if (cgbits == 0xe)
+		alpha = DCS_UCS2;
+	else if (cgbits == 0xf) {
+		if (dcs & 4)
+			alpha = DCS_8BIT_DATA;
+		else
+			alpha = DCS_7BIT_DEFAULT;
+	}
+
+	return alpha;
+}
+
 void handle_text(struct sms_meta *sm, uint8_t *msg, unsigned len)
 {
 	uint8_t text[256];
 
-	switch (gsm338_get_sms_alphabet(sm->dcs)) {
+	switch (get_sms_alphabet(sm->dcs)) {
 	case DCS_7BIT_DEFAULT:
 		//gsm_7bit_decode_n(text, sizeof(text), msg, len);
 		//APPEND_INFO(sm, "7BIT \"%s\"", text);
@@ -54,20 +89,26 @@ void handle_text(struct sms_meta *sm, uint8_t *msg, unsigned len)
 	case DCS_NONE:
 	case DCS_UCS2:
 	case DCS_8BIT_DATA:
-		if (sm->pid == 124 || sm->pid == 127) {
-			sm->ota = 1;
-		}
-		if (sm->dcs == 246 || sm->dcs == 22) {
+		if (sm->pid == 124 ||
+		    sm->pid == 127 ||
+		    sm->dcs == 246 ||
+		    sm->dcs == 22) {
+			APPEND_INFO(sm, "OTA ");
 			sm->ota = 1;
 		}
 		APPEND_INFO(sm, "8BIT %s", osmo_hexdump_nospc(msg, len));
 		break;
+	default:
+		APPEND_INFO(sm, "UNKN %s", osmo_hexdump_nospc(msg, len));
 	}
 }
 
 void handle_sec_cp(struct sms_meta *sm, uint8_t *msg, unsigned len)
 {
 	struct sec_header *sh = (struct sec_header *) msg;
+
+	assert(sm != NULL);
+	assert(msg != NULL);
 
 	switch ((sh->spi1 >> 3) & 0x03) {
 	case 0:
@@ -115,12 +156,12 @@ void handle_sec_cp(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			break;
 		}
 	} else {
-		APPEND_INFO(sm, "-- ");
+		APPEND_INFO(sm, "NOENC ");
 	}
 
 	switch (sh->spi1 & 0x03) {
 	case 0:
-		APPEND_INFO(sm, "-- ");
+		APPEND_INFO(sm, "NOCC ");
 		break;
 	case 1:
 		APPEND_INFO(sm, "RC ");
@@ -161,8 +202,15 @@ void handle_sec_cp(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			APPEND_INFO(sm, "PROPRIET ");
 			break;
 		}
-	} else {
-		APPEND_INFO(sm, "-- ");
+	}
+
+	APPEND_INFO(sm, "TAR %02X%02X%02X ", sh->tar[0], sh->tar[1], sh->tar[2]);
+
+	if ((sh->spi1 & 0x04 == 0)) {
+		APPEND_INFO(sm, "CNTR %02X%02X%02X%02X%02X ",
+				sh->cntr[0], sh->cntr[1],
+				sh->cntr[2], sh->cntr[3],
+				sh->cntr[4]);
 	}
 }
 
@@ -191,6 +239,9 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 	unsigned user_data_len;
 	uint8_t offset = 1;
 	uint8_t ota_cmd = 0;
+	uint8_t ref;
+	uint8_t total_frags;
+	uint8_t this_frag;
 
 	assert(sm != NULL);
 	assert(msg != NULL);
@@ -202,23 +253,32 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 	header_len = msg[0];
 
 	/* Sanity check */
-	if (header_len > (len-1))
+	if (header_len > (len-1)) {
+		APPEND_INFO(sm, "SANITY CHECK FAILED");	
 		return;
+	}
 
 	/* Data offset */
 	user_data = msg + header_len + 1;
 	user_data_len = len - header_len - 1;
 
 	/* Parse header elements (TLV) */
-	while (offset + 1 < header_len) {
-		switch (msg[offset]) {
+	while (offset <= header_len) {
+		uint8_t type = msg[offset++];
+		uint8_t len = msg[offset++];
+
+		switch (type) {
 		case 0x00:
-			/* Concatenated header */
-			APPEND_INFO(sm, "FRAG(%d/%d) ", msg[5], msg[4]);	
+			/* Concatenated header, 8bit */
+			ref = msg[offset+0];
+			total_frags = msg[offset+1];
+			this_frag = msg[offset+2];
+			assert(this_frag <= total_frags);
+			APPEND_INFO(sm, "[%d/%d] ", this_frag, total_frags);	
 			sm->concat = 1;
 			break;
 		case 0x05:
-			/* Application port 16bit */
+			/* Application address port, 16bit */
 			break;
 		case 0x70:
 			/* OTA Command */
@@ -232,10 +292,7 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			break;
 		}
 
-		if (msg[offset + 1] == 0)
-			break;
-
-		offset += msg[offset + 1];
+		offset += len;
 	}
 
 	/* Parse message content */
@@ -270,22 +327,27 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, unsigned len, uint8_t fro
 	memset(sm, 0, sizeof(*sm));
 
 	/* Store SMSC */
-	strncpy(sm->smsc, smsc, sizeof(sm->smsc));
+	if (smsc[0]) {
+		strncpy(sm->smsc, smsc, sizeof(sm->smsc));
+	} else {
+		strncpy(sm->smsc, "<NO ADDRESS>", sizeof(sm->smsc));
+	}
 
 	/* UDH presence */
 	sm->udhi = !!(msg[0] & 0x40);
 
 	/* Validity period */
-	vp = !!(msg[0] & 0x18);
+	vp = (msg[0] >> 3) & 0x03;
 
 	/* Skip flags [+mr] */
-	if (from_network)
+	if (from_network) {
 		off = 1;
-	else
+	} else {
 		off = 2;
+	}
 
 	/* Decode from/to address */
-	f_len = (msg[off++]+1)/2;
+	f_len = msg[off++] + 1;
 	handle_address(&msg[off], f_len, sm->msisdn, 1);
 	if (from_network) {
 		sm->from_network = 1;
@@ -294,24 +356,45 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, unsigned len, uint8_t fro
 		sm->from_network = 0;
 		APPEND_MSG_INFO(s, ", TO %s", sm->msisdn);
 	}
-	off += 1 + f_len;
+	off += f_len/2 + 1;
 
 	/* TP-PID and TP-DCS */
 	sm->pid = msg[off++];
 	sm->dcs = msg[off++];
 
 	/* Validity period */
-	if (vp)
-		off += 1;
+	if (!from_network) {
+		switch (vp) {
+		case 0:
+			break;
+		case 2:
+			off += 1;
+			break;
+		case 1:
+		case 3:
+			off += 7;
+			break;
+		}
+	}
 
+	/* Timestamp */
 	if (from_network) {
-		/* Timestamp */
 		off += 7;
 	}
 
 	/* User data length */
 	sm->length = msg[off++];
-	assert(sm->length*7/8 <= len - off);
+
+	/* Data length sanity check */
+	if ((sm->dcs & 0xe0) != 0x20) {
+		if (sm->length*7/8 > len - off) {
+			printf("len %d off %d sm->len %d\n", len, off, sm->length);
+			free(sm);
+			return;
+		}
+	} else {
+		//FIXME: estimate compressed length
+	}
 
 	/* Store unparsed bytes */
 	memcpy(sm->data, &msg[off], len - off);
@@ -322,6 +405,8 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, unsigned len, uint8_t fro
 	} else {
 		handle_text(sm, &msg[off], sm->length);
 	}
+
+	//FIXME: discard normal sms, store only dcs = 192, 22, 246
 
 	/* Append SMS to list */
 	if (s->sms_list) {
@@ -347,7 +432,11 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 	/* originating (SMSC) address length */
 	f_len = data[off++];
 	if (f_len) {
-		assert(from_network == 1);
+		/* Sanity check */
+		if (!from_network) {
+			strcat(s->last_msg->info, " FAILED SANITY CHECK");
+			return;
+		}
 		handle_address(&data[off], f_len, smsc, 0);
 	}
 	off += f_len;
@@ -355,7 +444,11 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 	/* destination (SMSC) address length */
 	f_len = data[off++];
 	if (f_len) {
-		assert(from_network == 0);
+		/* Sanity check */
+		if (from_network) {
+			strcat(s->last_msg->info, " FAILED SANITY CHECK");
+			return;
+		}
 		handle_address(&data[off], f_len, smsc, 0);
 	}
 	off += f_len;
