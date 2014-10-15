@@ -17,11 +17,13 @@ OBJ+=mysql_api.o sqlite_api.o
 %.o: %.c %.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-all: libmetagsm diag_import gsmtap_import db_import
+all: diag_import gsmtap_import db_import
 
-libmetagsm: $(OBJ)
-	ar rcs $@.a $^
-	$(CC) -o $@.so $^ -shared -fPIC $(LDFLAGS)
+libmetagsm.so: $(OBJ)
+	$(CC) -o $@ $^ -shared -fPIC $(LDFLAGS)
+
+libmetagsm.a: $(OBJ)
+	ar rcs $@ $^
 
 diag_import: diag_import.o libmetagsm.a
 	$(CC) -o $@ $^ $(LDFLAGS)
