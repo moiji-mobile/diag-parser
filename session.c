@@ -23,6 +23,7 @@ static unsigned output_console = 1;
 static unsigned output_gsmtap = 1;
 static unsigned output_sqlite = 1;
 
+static unsigned s_id = 0;
 static struct session_info *s_pointer = 0;
 pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -65,8 +66,11 @@ void session_init(unsigned start_sid, unsigned start_cid, int console, int gsmta
 		_s[1].sql_callback = console_callback;
 		break;
 	}
-	_s[0].id = start_sid;
-	_s[1].id = start_sid;
+
+	s_id = start_sid;
+
+	_s[0].id = s_id++;
+	_s[1].id = s_id++;
 	_s[1].domain = DOMAIN_PS;
 
 	cell_init(start_cid, callback);
@@ -99,7 +103,6 @@ void session_destroy()
 struct session_info *session_create(int id, char* name, uint8_t *key, int mcc, int mnc, int lac, int cid, struct gsm_sysinfo_freq *ca)
 {
 	struct session_info *ns;
-	static unsigned s_id = 0;
 
 	ns = (struct session_info *) malloc(sizeof(struct session_info));
 	memset(ns, 0, sizeof(struct session_info));
@@ -178,6 +181,8 @@ void session_free_msg_list(struct session_info *s)
 {
 	struct radio_message *m;
 
+	assert(s != NULL);
+
 	while (s->first_msg) {
 		m = s->first_msg;
 
@@ -190,6 +195,8 @@ void session_free_msg_list(struct session_info *s)
 void session_free_sms_list(struct session_info *s)
 {
 	struct sms_meta *sm;
+
+	assert(s != NULL);
 
 	while (s->sms_list) {
 		sm = s->sms_list;
@@ -437,7 +444,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 		return;
 
 	/* Prepare strings */
-	if (0 && s->id >= 0) {
+	if (s->id >= 0) {
 		strncpy(id_field, "id,", sizeof(id_field));
 		snprintf(id_value, sizeof(id_value), "%d,", s->id);
 	} else {
@@ -628,7 +635,7 @@ void session_reset(struct session_info *s)
 
 	if (old_s.started) {
 		if (old_s.closed) {
-			s->id = old_s.id + 1;
+			s->id = ++s_id;
 		} else {
 			s->id = old_s.id;
 		}
@@ -644,7 +651,10 @@ void session_reset(struct session_info *s)
 	s->lac = old_s.lac;
 	//s->cid = old_s.cid;
 	s->sql_callback = old_s.sql_callback;
-	s->last_msg = old_s.last_msg;
+	if (old_s.last_msg) {
+		s->last_msg = (struct radio_message *) malloc(sizeof(struct radio_message));
+		memcpy(s->last_msg, old_s.last_msg, sizeof(struct radio_message));
+	}
 	if (old_s.last_dtap_len) {
 		s->last_dtap_len = old_s.last_dtap_len;
 		memcpy(s->last_dtap, old_s.last_dtap, old_s.last_dtap_len); 

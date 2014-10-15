@@ -34,7 +34,7 @@ void diag_init(unsigned start_sid, unsigned start_cid)
 #ifdef USE_SQLITE
 	session_init(start_sid, start_cid, 0, 1, CALLBACK_SQLITE);
 #else
-	session_init(start_sid, start_cid, 0, 1, CALLBACK_CONSOLE);
+	session_init(start_sid, start_cid, 0, 0, CALLBACK_CONSOLE);
 #endif
 #endif
 }
