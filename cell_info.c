@@ -127,12 +127,10 @@ void cell_and_paging_dump(int force)
 
 	/* dump & delete cell_info */
 	llist_for_each_entry_safe(ci, ci2, &cell_list, entry) {
-		if (!ci->stored) {
-			cell_make_sql(ci, query, sizeof(query), output_sqlite);
-			if (s.sql_callback && strlen(query))
-				(*s.sql_callback)(query);
-			ci->stored = 1;
-		}
+		cell_make_sql(ci, query, sizeof(query), output_sqlite);
+		if (s.sql_callback && strlen(query))
+			(*s.sql_callback)(query);
+		ci->stored = 1;
 		//llist_del(&ci->entry);
                 /*
                  * FIXME: Elements should be deallocated on deletion. However,
@@ -146,6 +144,14 @@ void cell_and_paging_dump(int force)
 	paging_make_sql(ts_now.tv_sec, query, sizeof(query), output_sqlite);
 	if (s.sql_callback && strlen(query)) {
 		(*s.sql_callback)(query);
+	}
+
+	/* Destroy event */
+	if (force) {
+		llist_for_each_entry_safe(ci, ci2, &cell_list, entry) {
+			llist_del(&ci->entry);
+			free(ci);
+		}
 	}
 
 	/* reset counters */
@@ -522,7 +528,6 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	if (ci) {
 		/* Found reference */
 		append = 0;
-		ci->stored = 0;
 	} else {
 		/* Allocate new cell */
 		ci = (struct cell_info *) malloc(sizeof(struct cell_info));
@@ -748,7 +753,7 @@ void handle_paging3(struct gsm48_hdr *dtap, unsigned len)
 	paging_inc(0, GSM_MI_TYPE_TMSI);
 }
 
-void append_arfcn_list(struct cell_info *ci, enum si_index index, char *query, unsigned len)
+void append_arfcn_list(struct cell_info *ci, enum si_index index, char *query, unsigned len, int sqlite)
 {
 	unsigned offset;
 	uint8_t mask;
@@ -772,7 +777,7 @@ void append_arfcn_list(struct cell_info *ci, enum si_index index, char *query, u
 		return;
 	}
 
-	snprintf(query, len, "INSERT INTO arfcn_list (id, source, arfcn) VALUES ");
+	snprintf(query, len, "INSERT %sIGNORE INTO arfcn_list (id, source, arfcn) VALUES ", sqlite ? "OR " : "");
 
 	for (i = 0; i < 1024; i++) {
 		if (ci->arfcn_list[i].mask & mask) {
@@ -818,42 +823,71 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 		}
 	}
 
-	snprintf(query, len, "INSERT INTO cell_info ("
-		"id,first_seen,last_seen,mcc,mnc,lac,cid,"
-		"msc_ver,combined,agch_blocks,pag_mframes,t3212,dtx,"
-		"cro,temp_offset,pen_time,pwr_offset,gprs,"
-		"ba_len,neigh_2,neigh_2b,neigh_2t,"
-		"neigh_2q,neigh_5,neigh_5b,neigh_5t,"
-		"count_si1,count_si2,count_si2b,"
-		"count_si2t,count_si2q,count_si3,"
-		"count_si4,count_si5,count_si5b,"
-		"count_si5t,count_si6,count_si13,"
-		"si1,si2,si2b,si2t,si2q,si3,si4,si5,si5b,si5t,si6,si13) VALUES ("
-		"%d,%s,%s,%d,%d,%d,%d,"
-		"%d,%d,%d,%d,%d,%d,"
-		"%d,%d,%d,%d,%d,"
-		"%u,%u,%u,%u,"
-		"%u,%u,%u,%u,"
-		"%u,%u,%u,"
-		"%u,%u,%u,"
-		"%u,%u,%u,"
-		"%u,%u,%u,"
-		"%s,%s,%s,%s,"
-		"%s,%s,%s,%s,"
-		"%s,%s,%s,%s);\n",
-		ci->id, first_ts, last_ts, ci->mcc, ci->mnc, ci->lac, ci->cid,
-		ci->msc_ver, ci->combined, ci->agch_blocks, ci->pag_mframes, ci->t3212, ci->dtx,
-		ci->cro, ci->temp_offset, ci->pen_time, ci->pwr_offset, ci->gprs,
-		ci->a_count[SI1], ci->a_count[SI2], ci->a_count[SI2b], ci->a_count[SI2t],
-		ci->a_count[SI2q], ci->a_count[SI5], ci->a_count[SI5b], ci->a_count[SI5t],
-		ci->si_counter[SI1], ci->si_counter[SI2], ci->si_counter[SI2b],
-		ci->si_counter[SI2t], ci->si_counter[SI2q], ci->si_counter[SI3],
-		ci->si_counter[SI4], ci->si_counter[SI5], ci->si_counter[SI5b],
-		ci->si_counter[SI5t], ci->si_counter[SI6], ci->si_counter[SI13],
-		si_hex[SI1], si_hex[SI2], si_hex[SI2b], si_hex[SI2t],
-		si_hex[SI2q], si_hex[SI3], si_hex[SI4], si_hex[SI5],
-		si_hex[SI5b], si_hex[SI5t], si_hex[SI6], si_hex[SI13]
-		);
+	if (ci->stored == 0) {
+		snprintf(query, len, "INSERT INTO cell_info ("
+			"id,first_seen,last_seen,mcc,mnc,lac,cid,"
+			"msc_ver,combined,agch_blocks,pag_mframes,t3212,dtx,"
+			"cro,temp_offset,pen_time,pwr_offset,gprs,"
+			"ba_len,neigh_2,neigh_2b,neigh_2t,"
+			"neigh_2q,neigh_5,neigh_5b,neigh_5t,"
+			"count_si1,count_si2,count_si2b,"
+			"count_si2t,count_si2q,count_si3,"
+			"count_si4,count_si5,count_si5b,"
+			"count_si5t,count_si6,count_si13,"
+			"si1,si2,si2b,si2t,si2q,si3,si4,si5,si5b,si5t,si6,si13) VALUES ("
+			"%d,%s,%s,%d,%d,%d,%d,"
+			"%d,%d,%d,%d,%d,%d,"
+			"%d,%d,%d,%d,%d,"
+			"%u,%u,%u,%u,"
+			"%u,%u,%u,%u,"
+			"%u,%u,%u,"
+			"%u,%u,%u,"
+			"%u,%u,%u,"
+			"%u,%u,%u,"
+			"%s,%s,%s,%s,"
+			"%s,%s,%s,%s,"
+			"%s,%s,%s,%s);\n",
+			ci->id, first_ts, last_ts, ci->mcc, ci->mnc, ci->lac, ci->cid,
+			ci->msc_ver, ci->combined, ci->agch_blocks, ci->pag_mframes, ci->t3212, ci->dtx,
+			ci->cro, ci->temp_offset, ci->pen_time, ci->pwr_offset, ci->gprs,
+			ci->a_count[SI1], ci->a_count[SI2], ci->a_count[SI2b], ci->a_count[SI2t],
+			ci->a_count[SI2q], ci->a_count[SI5], ci->a_count[SI5b], ci->a_count[SI5t],
+			ci->si_counter[SI1], ci->si_counter[SI2], ci->si_counter[SI2b],
+			ci->si_counter[SI2t], ci->si_counter[SI2q], ci->si_counter[SI3],
+			ci->si_counter[SI4], ci->si_counter[SI5], ci->si_counter[SI5b],
+			ci->si_counter[SI5t], ci->si_counter[SI6], ci->si_counter[SI13],
+			si_hex[SI1], si_hex[SI2], si_hex[SI2b], si_hex[SI2t],
+			si_hex[SI2q], si_hex[SI3], si_hex[SI4], si_hex[SI5],
+			si_hex[SI5b], si_hex[SI5t], si_hex[SI6], si_hex[SI13]
+			);
+	} else {
+		snprintf(query, len, "UPDATE cell_info SET "
+			"first_seen=%s,last_seen=%s,mcc=%d,mnc=%d,lac=%d,cid=%d,"
+			"msc_ver=%d,combined=%d,agch_blocks=%d,pag_mframes=%d,t3212=%d,dtx=%d,"
+			"cro=%d,temp_offset=%d,pen_time=%d,pwr_offset=%d,gprs=%d,"
+			"ba_len=%u,neigh_2=%u,neigh_2b=%u,neigh_2t=%u,"
+			"neigh_2q=%u,neigh_5=%u,neigh_5b=%u,neigh_5t=%u,"
+			"count_si1=%u,count_si2=%u,count_si2b=%u,"
+			"count_si2t=%u,count_si2q=%u,count_si3=%u,"
+			"count_si4=%u,count_si5=%u,count_si5b=%u,"
+			"count_si5t=%u,count_si6=%u,count_si13=%u,"
+			"si1=%s,si2=%s,si2b=%s,si2t=%s,si2q=%s,si3=%s,"
+			"si4=%s,si5=%s,si5b=%s,si5t=%s,si6=%s,si13=%s "
+			"WHERE id = %d;\n",
+			first_ts, last_ts, ci->mcc, ci->mnc, ci->lac, ci->cid,
+			ci->msc_ver, ci->combined, ci->agch_blocks, ci->pag_mframes, ci->t3212, ci->dtx,
+			ci->cro, ci->temp_offset, ci->pen_time, ci->pwr_offset, ci->gprs,
+			ci->a_count[SI1], ci->a_count[SI2], ci->a_count[SI2b], ci->a_count[SI2t],
+			ci->a_count[SI2q], ci->a_count[SI5], ci->a_count[SI5b], ci->a_count[SI5t],
+			ci->si_counter[SI1], ci->si_counter[SI2], ci->si_counter[SI2b],
+			ci->si_counter[SI2t], ci->si_counter[SI2q], ci->si_counter[SI3],
+			ci->si_counter[SI4], ci->si_counter[SI5], ci->si_counter[SI5b],
+			ci->si_counter[SI5t], ci->si_counter[SI6], ci->si_counter[SI13],
+			si_hex[SI1], si_hex[SI2], si_hex[SI2b], si_hex[SI2t],
+			si_hex[SI2q], si_hex[SI3], si_hex[SI4], si_hex[SI5],
+			si_hex[SI5b], si_hex[SI5t], si_hex[SI6], si_hex[SI13],
+			ci->id);
+	}
 
 	/* Free hex strings */
 	for (i = 0; i < SI_MAX; i++) {
@@ -868,7 +902,7 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 		if (offset >= len) {
 			break;
 		}
-		append_arfcn_list(ci, i, &query[offset], len-offset);
+		append_arfcn_list(ci, i, &query[offset], len-offset, sqlite);
 	}
 }
 

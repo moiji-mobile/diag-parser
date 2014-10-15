@@ -12,6 +12,7 @@
 #include "diag_input.h"
 #include "process.h"
 #include "session.h"
+#include "qc_structs.h"
 
 struct diag_packet {
 	uint16_t msg_class;
@@ -28,8 +29,8 @@ struct diag_packet {
 void diag_init(unsigned start_sid, unsigned start_cid)
 {
 #ifdef USE_MYSQL
-	session_init(start_sid, start_cid, 1, 1, CALLBACK_MYSQL);
-	msg_verbose = 1;
+	session_init(start_sid, start_cid, 0, 0, CALLBACK_MYSQL);
+	//msg_verbose = 1;
 #else
 #ifdef USE_SQLITE
 	session_init(start_sid, start_cid, 0, 1, CALLBACK_SQLITE);
@@ -236,6 +237,25 @@ void handle_periodic_task()
 	cell_and_paging_dump(0);
 }
 
+void handle_measurements(struct diag_packet *dp, unsigned len)
+{
+	int i;
+	struct gsm_l1_surround_cell_ba_list *cl;
+	struct surrounding_cell *sc;
+
+	cl = &dp->msg_type;
+	sc = cl->surr_cells;
+
+	printf("Cell data: %s\n", osmo_hexdump_nospc(cl, 8));
+
+	for (i = 0; i < cl->cell_count; i++) {
+		printf("Surrounding cell %d: arfcn %u rxlev %d\n",
+			i,
+			get_arfcn_from_arfcn_and_band(sc[i].bcch_arfcn_and_band),
+			ntohs(sc[i].rx_power));
+	}
+}
+
 void handle_diag(uint8_t *msg, unsigned len)
 {
 	struct diag_packet *dp = (struct diag_packet *) msg;
@@ -249,6 +269,9 @@ void handle_diag(uint8_t *msg, unsigned len)
 	switch(dp->msg_protocol) {
 	case 0x412f: // 3G RRC
 		m = handle_3G(dp, len);
+		break;
+	case 0x5071: // Surrounding cell measurements
+		handle_measurements(dp, len);
 		break;
 	case 0x512f: // GSM RR
 		m = handle_bcch_and_rr(dp, len);
