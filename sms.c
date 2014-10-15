@@ -254,7 +254,7 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 
 	/* Sanity check */
 	if (header_len > (len-1)) {
-		APPEND_INFO(sm, "SANITY CHECK FAILED");	
+		APPEND_INFO(sm, "SANITY CHECK FAILED");
 		return;
 	}
 
@@ -273,7 +273,10 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			ref = msg[offset+0];
 			total_frags = msg[offset+1];
 			this_frag = msg[offset+2];
-			assert(this_frag <= total_frags);
+			if (this_frag > total_frags) {
+				APPEND_INFO(sm, "SANITY CHECK FAILED");
+				return;
+			}
 			APPEND_INFO(sm, "[%d/%d] ", this_frag, total_frags);	
 			sm->concat = 1;
 			break;

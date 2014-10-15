@@ -92,7 +92,6 @@ void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 		digit_len = len;
 
 	assert(digit_len > 0);
-	assert(digit_len < 32);
 
 	if (digit_len > 31) {
 		digit_len = 31;
