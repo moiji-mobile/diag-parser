@@ -133,7 +133,7 @@ void cell_and_paging_dump(int force)
 				(*s.sql_callback)(query);
 			ci->stored = 1;
 		}
-		llist_del(&ci->entry);
+		//llist_del(&ci->entry);
                 /*
                  * FIXME: Elements should be deallocated on deletion. However,
                  * the code below causes heap corruption an needs to be
@@ -158,7 +158,7 @@ static void console_callback(const char *sql)
 {
 	assert(sql != NULL);
 
-	printf("SQL: %s\n", sql);
+	printf("SQL: %s", sql);
 	fflush(stdout);
 }
 
@@ -494,7 +494,10 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	assert(s != NULL);
 	assert(dtap != NULL);
 
+	/* sanity checks */
 	if (len < 4)
+		return;
+	if (s->last_msg->flags & MSG_SDCCH)
 		return;
 
 	/* close pending session */
@@ -782,7 +785,7 @@ void append_arfcn_list(struct cell_info *ci, enum si_index index, char *query, u
 
 	assert(offset > 0);
 
-	snprintf(&query[offset-1], len-offset+1, ";");
+	snprintf(&query[offset-1], len-offset+1, ";\n");
 }
 
 void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
@@ -792,6 +795,10 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 	char *si_hex[SI_MAX];
 	unsigned offset;
 	int i;
+
+	assert(ci != NULL);
+	assert(query != NULL);
+	assert(len > 0);
 
 	/* Format timestamps according to db */
 	if (sqlite) {
@@ -833,7 +840,7 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 		"%u,%u,%u,"
 		"%s,%s,%s,%s,"
 		"%s,%s,%s,%s,"
-		"%s,%s,%s,%s);",
+		"%s,%s,%s,%s);\n",
 		ci->id, first_ts, last_ts, ci->mcc, ci->mnc, ci->lac, ci->cid,
 		ci->msc_ver, ci->combined, ci->agch_blocks, ci->pag_mframes, ci->t3212, ci->dtx,
 		ci->cro, ci->temp_offset, ci->pen_time, ci->pwr_offset, ci->gprs,
@@ -870,6 +877,9 @@ void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite)
 	char paging_ts[40];
 	float time_delta;
 
+	assert(query != NULL);
+	assert(len > 0);
+
 	/* Format timestamp according to db */
 	if (sqlite) {
 		snprintf(paging_ts, sizeof(paging_ts), "datetime(%lu, 'unixepoch')", epoch_now);
@@ -880,7 +890,7 @@ void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite)
 	time_delta = (float) (epoch_now-periodic_ts.tv_sec);
 
 	if (time_delta > 0.0) {
-		snprintf(query, len, "INSERT INTO paging_info VALUES (%s, %f, %f, %f, %f, %f);",
+		snprintf(query, len, "INSERT INTO paging_info VALUES (%s, %f, %f, %f, %f, %f);\n",
 				paging_ts,
 				(float)paging_count[0]/time_delta,
 				(float)paging_count[1]/time_delta,
