@@ -12,7 +12,7 @@
 #include "diag_input.h"
 #include "process.h"
 #include "session.h"
-#include "qc_structs.h"
+#include "diag_structs.h"
 
 struct diag_packet {
 	uint16_t msg_class;
