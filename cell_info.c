@@ -176,7 +176,7 @@ static void console_callback(const char *sql)
 {
 	assert(sql != NULL);
 
-	printf("SQL: %s", sql);
+	printf("SQL: %s\n", sql);
 	fflush(stdout);
 }
 
@@ -802,7 +802,7 @@ void arfcn_list_make_sql(struct cell_info *ci, enum si_index index, char *query,
 
 	assert(offset > 0);
 
-	snprintf(&query[offset-1], len-offset+1, ";\n");
+	snprintf(&query[offset-1], len-offset+1, ";");
 }
 
 void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
@@ -858,7 +858,7 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 			"%u,%u,%u,"
 			"%s,%s,%s,%s,"
 			"%s,%s,%s,%s,"
-			"%s,%s,%s,%s);\n",
+			"%s,%s,%s,%s);",
 			ci->id, first_ts, last_ts, ci->mcc, ci->mnc, ci->lac, ci->cid,
 			ci->msc_ver, ci->combined, ci->agch_blocks, ci->pag_mframes, ci->t3212, ci->dtx,
 			ci->cro, ci->temp_offset, ci->pen_time, ci->pwr_offset, ci->gprs,
@@ -885,7 +885,7 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 			"count_si5t=%u,count_si6=%u,count_si13=%u,"
 			"si1=%s,si2=%s,si2b=%s,si2t=%s,si2q=%s,si3=%s,"
 			"si4=%s,si5=%s,si5b=%s,si5t=%s,si6=%s,si13=%s "
-			"WHERE id = %d;\n",
+			"WHERE id = %d;",
 			first_ts, last_ts, ci->mcc, ci->mnc, ci->lac, ci->cid,
 			ci->msc_ver, ci->combined, ci->agch_blocks, ci->pag_mframes, ci->t3212, ci->dtx,
 			ci->cro, ci->temp_offset, ci->pen_time, ci->pwr_offset, ci->gprs,
@@ -927,7 +927,7 @@ void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite)
 	time_delta = (float) (epoch_now-periodic_ts.tv_sec);
 
 	if (time_delta > 0.0) {
-		snprintf(query, len, "INSERT INTO paging_info VALUES (%s, %f, %f, %f, %f, %f);\n",
+		snprintf(query, len, "INSERT INTO paging_info VALUES (%s, %f, %f, %f, %f, %f);",
 				paging_ts,
 				(float)paging_count[0]/time_delta,
 				(float)paging_count[1]/time_delta,
