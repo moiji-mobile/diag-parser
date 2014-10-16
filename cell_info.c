@@ -99,6 +99,7 @@ struct cell_info {
 };
 
 void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite);
+void arfcn_list_make_sql(struct cell_info *ci, enum si_index index, char *query, unsigned len, int sqlite);
 void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite);
 
 static void paging_reset()
@@ -116,6 +117,7 @@ void cell_and_paging_dump(int force)
 	struct cell_info *ci, *ci2;
 	struct timeval ts_now;
 	unsigned time_delta;
+	int i;
 
 	gettimeofday(&ts_now, NULL);
 
@@ -125,11 +127,21 @@ void cell_and_paging_dump(int force)
 	if (!force && time_delta < 10)
 		return;
 
-	/* dump & delete cell_info */
+	/* Dump cell_info and arfcn_list */
 	llist_for_each_entry_safe(ci, ci2, &cell_list, entry) {
+		/* Store main cell_info */
 		cell_make_sql(ci, query, sizeof(query), output_sqlite);
 		if (s.sql_callback && strlen(query))
 			(*s.sql_callback)(query);
+
+		/* Append queries for ARFCN storage */
+		for (i = 0; i < SI_MAX; i++) {
+			arfcn_list_make_sql(ci, i, query, sizeof(query), output_sqlite);
+			if (s.sql_callback && strlen(query)) {
+				(*s.sql_callback)(query);
+			}
+		}
+
 		ci->stored = 1;
 		//llist_del(&ci->entry);
                 /*
@@ -753,7 +765,7 @@ void handle_paging3(struct gsm48_hdr *dtap, unsigned len)
 	paging_inc(0, GSM_MI_TYPE_TMSI);
 }
 
-void append_arfcn_list(struct cell_info *ci, enum si_index index, char *query, unsigned len, int sqlite)
+void arfcn_list_make_sql(struct cell_info *ci, enum si_index index, char *query, unsigned len, int sqlite)
 {
 	unsigned offset;
 	uint8_t mask;
@@ -764,6 +776,8 @@ void append_arfcn_list(struct cell_info *ci, enum si_index index, char *query, u
 	assert(index >= 0);
 	assert(index < SI_MAX);
 	assert(len > 0);
+
+	query[0] = 0;
 
 	/* Sanity checks */
 	mask = si_mask(index);
@@ -894,15 +908,6 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 		if (si_hex[i]) {
 			free(si_hex[i]);
 		}
-	}
-
-	/* Append queries for ARFCN storage */
-	for (i = 0; i < SI_MAX; i++) {
-		offset = strlen(query);
-		if (offset >= len) {
-			break;
-		}
-		append_arfcn_list(ci, i, &query[offset], len-offset, sqlite);
 	}
 }
 
