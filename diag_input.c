@@ -8,6 +8,7 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <assert.h>
+#include <arpa/inet.h>
 
 #include "diag_input.h"
 #include "process.h"

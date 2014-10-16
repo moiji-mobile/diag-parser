@@ -4,9 +4,13 @@ OBJ =	address.o assignment.o bit_func.o ccch.o cch.o chan_detect.o crc.o \
 	umts_rrc.o diag_input.o gprs.o gsm_interleave.o cell_info.o \
 	l3_handler.o output.o process.o punct.o rand_check.o rlcmac.o \
 	sch.o session.o sms.o tch.o viterbi.o
+CC = gcc
 
 %.o: %.c %.h
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CROSS_COMPILE)-$(CC) -c -o $@ $< $(CFLAGS)
+
+%.o: %.c
+	$(CROSS_COMPILE)-$(CC) -c -o $@ $< $(CFLAGS)
 
 all: diag_import
 
@@ -15,15 +19,14 @@ install: diag_import libcompat.so
 	install $^ $(DESTDIR)
 
 libmetagsm.a: $(OBJ)
-	$(AR) rcs $@ $^
-#	$(CC) -o $@.so $^ -shared -fPIC $(LDFLAGS)
+	$(CROSS_COMPILE)-$(AR) rcs $@ $^
 
 libcompat.so: compat.o
-	      $(CC) -o $@ $^ -shared -fPIC --sysroot $(SYSROOT) -lc
+	$(CROSS_COMPILE)-$(CC) -o $@ $^ -shared -fPIC --sysroot $(SYSROOT) -lc
 
 
 diag_import: diag_import.o libmetagsm.a libcompat.so
-	$(CC) -o $@ diag_import.o libmetagsm.a $(LDFLAGS)
+	$(CROSS_COMPILE)-$(CC) -o $@ diag_import.o libmetagsm.a $(LDFLAGS)
 
 clean:
 	@rm -f *.o diag_import libmetagsm* *.so
