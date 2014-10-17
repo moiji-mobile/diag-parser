@@ -81,8 +81,8 @@ void session_init(unsigned start_sid, unsigned start_cid, int console, int gsmta
 
 void session_destroy()
 {
-	session_reset(&_s[0]);
-	session_reset(&_s[1]);
+	session_reset(&_s[0], 0);
+	session_reset(&_s[1], 0);
 
 	cell_destroy();
 
@@ -534,11 +534,18 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 
 void session_close(struct session_info *s)
 {
+	struct timeval t_now;
 	int i;
 
 	assert(s != NULL);
 
 	s->processing = 0;
+
+	/* Attach or update timestamp */
+	gettimeofday(&t_now, NULL);
+	if (!s->timestamp.tv_sec || (auto_reset && t_now.tv_sec > s->timestamp.tv_sec)) {
+		s->timestamp = t_now;
+	}
 
 	/* Estimate transaction duration */
 	if (s->first_fn <= s->last_fn)
@@ -606,9 +613,10 @@ void session_close(struct session_info *s)
 	s->closed = 1;
 }
 
-void session_reset(struct session_info *s)
+void session_reset(struct session_info *s, int forced_release)
 {
 	struct session_info old_s;
+	struct radio_message *m = NULL;
 
 	if (auto_reset == 0) {
 		return;
@@ -616,15 +624,22 @@ void session_reset(struct session_info *s)
 
 	assert(s != NULL);
 
-	/* Attach a timestamp if not present */
-	if (s->timestamp.tv_sec == 0) {
-		gettimeofday(&s->timestamp, NULL);
+	if (forced_release && s->last_msg) {
+		m = s->last_msg;
+		if (s->first_msg == m) {
+			s->first_msg = 0;
+		}
+		if (m->prev) {
+			s->last_msg = m->prev;
+			m->prev->next = 0;
+		} else {
+			s->last_msg = 0;
+		}
+		m->next = 0;
+		m->prev = 0;
 	}
 
 	if (s->started && !s->closed) {
-		if ((s->mt || s->locupd || s->serv_req) && !s->release) {
-			return;
-		}
 		s->cracked = 1;
 		session_close(s);
 	}
@@ -633,39 +648,43 @@ void session_reset(struct session_info *s)
 
 	memset(s, 0, sizeof(struct session_info));
 
-	if (old_s.started) {
-		if (old_s.closed) {
-			s->id = ++s_id;
-		} else {
-			s->id = old_s.id;
-		}
+	if (old_s.started && old_s.closed) {
+		s->id = ++s_id;
 	} else {
 		s->id = old_s.id;
 	}
 
 	strncpy(s->name, old_s.name, sizeof(s->name));
 	s->domain = old_s.domain;
-	//s->timestamp = old_s.timestamp;
+	s->timestamp = old_s.timestamp;
 	s->mcc = old_s.mcc;
 	s->mnc = old_s.mnc;
 	s->lac = old_s.lac;
-	//s->cid = old_s.cid;
-	s->sql_callback = old_s.sql_callback;
-	if (old_s.last_msg) {
-		s->last_msg = (struct radio_message *) malloc(sizeof(struct radio_message));
-		memcpy(s->last_msg, old_s.last_msg, sizeof(struct radio_message));
+	if (old_s.rat != RAT_GSM) {
+		s->cid = old_s.cid;
 	}
+	s->sql_callback = old_s.sql_callback;
+
+	if (m) {
+		s->first_msg = m;
+		s->last_msg = m;
+	}
+
+	/* Copy information for repeated message detection */
 	if (old_s.last_dtap_len) {
 		s->last_dtap_len = old_s.last_dtap_len;
 		memcpy(s->last_dtap, old_s.last_dtap, old_s.last_dtap_len); 
 		s->last_dtap_rat = old_s.last_dtap_rat;
 	}
 
-	session_free_msg_list(&old_s);
-	session_free_sms_list(&old_s);
-
+	/* Copy temporary message buffers for GSM */
 	memcpy(s->chan_sdcch, old_s.chan_sdcch, sizeof(s->chan_sdcch));
 	memcpy(s->chan_sacch, old_s.chan_sacch, sizeof(s->chan_sdcch));
 	memcpy(s->chan_facch, old_s.chan_facch, sizeof(s->chan_sdcch));
-}
 
+	/* Free allocated memory */
+	if (old_s.domain == 0) {
+		session_free_msg_list(&old_s);
+		session_free_sms_list(&old_s);
+	}
+}

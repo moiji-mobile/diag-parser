@@ -21,7 +21,7 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 
         rv = uper_decode(NULL, &asn_DEF_UL_DCCH_Message, (void **) &dcch, msg, len, 0, 0);
         if ((rv.code != RC_OK) || !dcch) {
-                //SET_MSG_INFO(s, "UL: error during UPER_decode() RC=%d consumed=%lu\n", rv.code, rv.consumed);
+                SET_MSG_INFO(s, "ASN.1 PARSING ERROR");
 		return 1;
         }
 
@@ -30,14 +30,14 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 
 	switch(dcch->message.present) {
 	case UL_DCCH_MessageType_PR_rrcConnectionSetupComplete:
-		session_reset(&s[0]);
-		session_reset(&s[1]);
 		SET_MSG_INFO(s, "RRC Setup Complete");
+		session_reset(&s[0], 1);
+		session_reset(&s[1], 1);
 		break;
 	case UL_DCCH_MessageType_PR_rrcConnectionReleaseComplete:
 		SET_MSG_INFO(s, "RRC Release Complete");
-		session_reset(&s[0]);
-		session_reset(&s[1]);
+		session_reset(&s[0], 0);
+		session_reset(&s[1], 0);
 		break;
 	case UL_DCCH_MessageType_PR_securityModeComplete:
 		SET_MSG_INFO(s, "RRC Security Mode Complete");
@@ -49,11 +49,13 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 		}
 		break;
 	case UL_DCCH_MessageType_PR_initialDirectTransfer:
+		SET_MSG_INFO(s, "RRC InitialDirectTransfer");
 		domain = dcch->message.choice.initialDirectTransfer.cn_DomainIdentity;
 		nas = dcch->message.choice.initialDirectTransfer.nas_Message.buf;
 		nas_len = dcch->message.choice.initialDirectTransfer.nas_Message.size;
 		break;
 	case UL_DCCH_MessageType_PR_uplinkDirectTransfer:
+		SET_MSG_INFO(s, "RRC UplinkDirectTransfer");
 		domain = dcch->message.choice.initialDirectTransfer.cn_DomainIdentity;
 		nas = dcch->message.choice.uplinkDirectTransfer.nas_Message.buf;
 		nas_len = dcch->message.choice.uplinkDirectTransfer.nas_Message.size;
@@ -61,6 +63,10 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 	default:
 		SET_MSG_INFO(s, "UL-DCCH type=%d", dcch->message.present);
 		s->last_msg->flags &= ~MSG_DECODED;
+	}
+
+	if (domain >= 0) {
+		s->last_msg->domain = domain;
 	}
 
 	if (nas) {
@@ -109,7 +115,7 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 
         rv = uper_decode(NULL, &asn_DEF_DL_DCCH_Message, (void **) &dcch, msg, len, 0, 0);
         if ((rv.code != RC_OK) || !dcch) {
-                //SET_MSG_INFO(s, "DL: error during UPER_decode() RC=%d consumed=%lu\n", rv.code, rv.consumed);
+                SET_MSG_INFO(s, "ASN.1 PARSING ERROR");
 		return 1;
         }
 
@@ -125,8 +131,8 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 		break;
 	case DL_DCCH_MessageType_PR_rrcConnectionRelease:
 		SET_MSG_INFO(s, "RRC Connection Release");
-		session_reset(&s[0]);
-		session_reset(&s[1]);
+		session_reset(&s[0], 0);
+		session_reset(&s[1], 0);
 		break;
 	case DL_DCCH_MessageType_PR_securityModeCommand:
 		switch(dcch->message.choice.securityModeCommand.present) {
@@ -168,6 +174,7 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 			goto dl_end;
 		}
 		if (s[domain].cipher) {
+			printf("Transaction was already ciphered!\n");
 			error = 1;
 			goto dl_end;
 		}
@@ -177,6 +184,7 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 		s[domain].cipher_missing = -1;
 		break;
 	case DL_DCCH_MessageType_PR_downlinkDirectTransfer:
+		SET_MSG_INFO(s, "RRC DownlinkDirectTransfer");
 		switch(dcch->message.choice.downlinkDirectTransfer.present) {
 		case DownlinkDirectTransfer_PR_r3:
 			domain = dcch->message.choice.downlinkDirectTransfer.choice.r3.downlinkDirectTransfer_r3.cn_DomainIdentity;
@@ -194,9 +202,16 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 		break;
 	/* Buggy structures that cannot be freed */
 	case DL_DCCH_MessageType_PR_measurementControl:
+		SET_MSG_INFO(s, "RRC MeasurementControl");
+		goto dl_no_free;
 	case DL_DCCH_MessageType_PR_radioBearerRelease:
+		SET_MSG_INFO(s, "RRC RadioBearerRelease");
+		goto dl_no_free;
 	case DL_DCCH_MessageType_PR_utranMobilityInformation:
+		SET_MSG_INFO(s, "RRC utranMobilityInformation");
+		goto dl_no_free;
 	case DL_DCCH_MessageType_PR_radioBearerReconfiguration:
+		SET_MSG_INFO(s, "RRC RadioBearerReconfig");
 		goto dl_no_free;
 	default:
 		SET_MSG_INFO(s, "DL-DCCH type=%d", dcch->message.present);
@@ -216,7 +231,7 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 #endif
 
 dl_end:
-	ASN_STRUCT_FREE(asn_DEF_DL_DCCH_Message, dcch);
+	//ASN_STRUCT_FREE(asn_DEF_DL_DCCH_Message, dcch);
 dl_no_free:
 	return error;
 }

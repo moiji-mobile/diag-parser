@@ -273,7 +273,7 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 	switch (dtap->msg_type & 0x3f) {
 	case 0x01:
 		// IMSI DETACH
-		session_reset(s);
+		session_reset(s, 1);
 		s->started = 1;
 		SET_MSG_INFO(s, "IMSI DETACH");
 		s->detach = 1;
@@ -294,7 +294,7 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		break;
 	case 0x08:
 		// LOC UPD REQ
-		session_reset(s);
+		session_reset(s, 1);
 		SET_MSG_INFO(s, "LOC UPD REQUEST");
 		handle_loc_upd_req(s, dtap->data);
 		break;
@@ -401,10 +401,11 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		break;
 	case 0x24:
 		// CM SERV REQ
-		session_reset(s);
-		s->started = 1;
-		s->serv_req = 1;
 		SET_MSG_INFO(s, "CM SERVICE REQUEST");
+		session_reset(s, 1);
+		s->started = 1;
+		s->closed = 0;
+		s->serv_req = 1;
 		s->mo = 1;
 		handle_cmreq(s, dtap->data);
 		break;
@@ -488,7 +489,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		s->rr_cause = dtap->data[0];
 		if ((len > 3) && ((dtap->data[1] & 0xf0) == 0xc0))
 			s->have_gprs = 1;
-		session_reset(s);
+		session_reset(s, 0);
 		break;
 	case GSM48_MT_RR_CLSM_ENQ:
 		SET_MSG_INFO(s, "CLASSMARK ENQUIRY");
@@ -519,7 +520,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		SET_MSG_INFO(s, "IMM ASSIGNMENT REJECT");
 		break;
 	case GSM48_MT_RR_PAG_RESP:
-		session_reset(s);
+		session_reset(s, 1);
 		SET_MSG_INFO(s, "PAGING RESPONSE");
 		handle_pag_resp(s, dtap->data);
 		break;
@@ -677,6 +678,7 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		SET_MSG_INFO(s, "ATTACH REQUEST");
 		s->attach = 1;
 		s->started = 1;
+		s->closed = 0;
 		// get MS cap
 		// get key seq
 		// RAI
@@ -709,8 +711,11 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 	case 0x08:
 		// ROUTING AREA UPDATE REQUEST
 		SET_MSG_INFO(s, "RA UPDATE REQUEST");
+		session_reset(s, 1);
 		s->raupd = 1;
+		s->mo = 1;
 		s->started = 1;
+		s->closed = 0;
 		s->initial_seq = (dtap->data[0] >> 4) & 7;
 		break;
 	case 0x09:
@@ -730,7 +735,9 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 	case 0x0c:
 		// SERVICE REQUEST
 		SET_MSG_INFO(s, "SERVICE REQUEST");
+		session_reset(s, 1);
 		s->started = 1;
+		s->closed = 0;
 		s->serv_req = 1;
 		handle_serv_req(s, dtap->data);
 		break;
@@ -799,13 +806,11 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		break;
 	case 0x02:
 		// ACTIVATE PDP CTX ACCEPT
+		SET_MSG_INFO(s, "ACTIVATE PDP ACCEPT");
 		sapi = dtap->data[0];
 		qos_len = dtap->data[1];
 		//assert(qos_len < (len-3));
-
 		//TLV @ data[3+qos_len+1]
-		
-		SET_MSG_INFO(s, "ACTIVATE PDP ACCEPT");
 		break;
 	case 0x06:
 		// DEACTIVATE PDP CTX REQUEST
@@ -963,10 +968,12 @@ void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, 
 	s->last_msg->info[0] = 0;
 
 	if (len == 0) {
+		SET_MSG_INFO(s, "<ZERO LENGTH>");
 		return;
 	}
 
 	if (is_double(s, msg, len)) {
+		SET_MSG_INFO(s, "<DOUBLE MSG>");
 		return;
 	}
 
@@ -1202,15 +1209,17 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 	m->info[0] = 0;
 	m->flags |= MSG_DECODED;
 
-	// Link to last message
+	/* Update message linked list */
 	if (s->first_msg == NULL)
 		s->first_msg = m;
 	if (s->last_msg)
 		s->last_msg->next = m;
 	m->prev = s->last_msg;
+	m->next = 0;
 	s[0].last_msg = m;
-	if (auto_reset)
+	if (auto_reset) {
 		s[1].last_msg = m;
+	}
 
 	switch (m->rat) {
 	case RAT_GSM:

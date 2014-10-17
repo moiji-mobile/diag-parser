@@ -519,11 +519,9 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		return;
 
 	/* close pending session */
-#if 0
-	if (s->started && !s->closed && (s->last_msg->flags & MSG_BCCH)) {
-		session_close(s);
+	if (s->started && (s->mt || s->mo) && !s->closed && (s->last_msg->flags & MSG_BCCH)) {
+		session_reset(s, 1);
 	}
-#endif
 
 	index = si_index(dtap->msg_type);
 	if (index < 0) {

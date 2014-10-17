@@ -164,7 +164,7 @@ void session_destroy();
 struct session_info *session_create(int id, char* name, uint8_t *key, int mcc, int mnc, int lac, int cid, struct gsm_sysinfo_freq *ca);
 void session_close(struct session_info *s);
 void session_store(struct session_info *s);
-void session_reset(struct session_info *s);
+void session_reset(struct session_info *s, int forced_release);
 void session_free(struct session_info *s);
 int session_enumerate();
 
