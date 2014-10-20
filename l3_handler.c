@@ -1366,10 +1366,10 @@ struct radio_message * new_l2(uint8_t *data, uint8_t len, uint8_t rat, uint8_t d
 
 struct radio_message * new_l3(uint8_t *data, uint8_t len, uint8_t rat, uint8_t domain, uint32_t fn, uint8_t ul, uint8_t flags)
 {
+	assert(data != 0);
+
 	unsigned lapdm_len;
 	struct radio_message *m;
-
-	assert(data != 0);
 
 	if (len == 0)
 		return 0;
