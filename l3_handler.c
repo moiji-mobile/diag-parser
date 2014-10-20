@@ -1272,7 +1272,9 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 			printf("Wrong MSG flags %02x\n", m->flags);
 			abort();
 		}
-		if (msg_verbose && m->flags & MSG_DECODED) {
+
+		//if s->last_msg is not m, then we have freed it.
+		if (msg_verbose && s->last_msg == m && m->flags & MSG_DECODED) {
 			printf("GSM %s %s %u : %s\n", m->domain ? "PS" : "CS", ul ? "UL" : "DL",
 				m->bb.fn[0], m->info[0] ? m->info : osmo_hexdump_nospc(m->msg, m->msg_len));
 		}
