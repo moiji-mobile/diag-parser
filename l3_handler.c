@@ -1217,9 +1217,9 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 
 	m->prev = s->last_msg;
 	m->next = 0;
-	s[0].last_msg = m;
+	s[0].last_msg = m; //s0 = CS (circuit switched) related transation
 	if (auto_reset) {
-		s[1].last_msg = m;
+		s[1].last_msg = m; //s[1] == PS (packet switched) related transactions
 	}
 
 	switch (m->rat) {
