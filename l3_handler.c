@@ -490,6 +490,10 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		s->rr_cause = dtap->data[0];
 		if ((len > 3) && ((dtap->data[1] & 0xf0) == 0xc0))
 			s->have_gprs = 1;
+
+		if (auto_reset) {
+			session_reset(&s[1], 0);
+		}
 		session_reset(s, 0);
 		break;
 	case GSM48_MT_RR_CLSM_ENQ:
