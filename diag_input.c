@@ -14,6 +14,7 @@
 #include "process.h"
 #include "session.h"
 #include "diag_structs.h"
+#include "l3_handler.h"
 
 struct diag_packet {
 	uint16_t msg_class;
