@@ -697,6 +697,12 @@ void session_reset(struct session_info *s, int forced_release)
 
 	/* Free allocated memory */
 	if (old_s.domain == 0) {
+		struct radio_message *tmp = old_s.first_msg;
+		while (tmp) {
+			assert(tmp != m);
+			tmp = tmp->next;
+		}
+
 		session_free_msg_list(&old_s);
 		session_free_sms_list(&old_s);
 	} else {
