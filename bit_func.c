@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #ifdef USE_SQLITE
 #include <sqlite3.h>
