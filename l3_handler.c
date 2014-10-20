@@ -65,6 +65,8 @@ void handle_mi(struct session_info *s, uint8_t *data, uint8_t len, uint8_t new_t
 	case GSM_MI_TYPE_TMSI:
 		hex_bin2str(&data[1], tmsi_str, 4);
 		tmsi_str[8] = 0;
+		assert(s->last_msg);
+
 		APPEND_MSG_INFO(s, ", TMSI %s", tmsi_str); 
 		if (new_tmsi) {
 			if (!not_zero(s->new_tmsi, 4)) {
@@ -77,7 +79,10 @@ void handle_mi(struct session_info *s, uint8_t *data, uint8_t len, uint8_t new_t
 			}
 		}
 		break;
-	} 
+
+	default:
+		assert(0);
+	}
 }
 
 void handle_cmreq(struct session_info *s, uint8_t *data)
@@ -429,6 +434,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 	struct tlv_parsed tp;
 
 	s->rat = RAT_GSM;
+	assert(s->last_msg);
 
 	switch (dtap->msg_type) {
 	case GSM48_MT_RR_SYSINFO_1:
@@ -529,7 +535,11 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		SET_MSG_INFO(s, "IMM ASSIGNMENT REJECT");
 		break;
 	case GSM48_MT_RR_PAG_RESP:
+
+		assert(s->last_msg);
 		session_reset(s, 1);
+		assert(s->last_msg);
+
 		SET_MSG_INFO(s, "PAGING RESPONSE");
 		handle_pag_resp(s, dtap->data);
 		break;

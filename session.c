@@ -209,7 +209,7 @@ void session_free_sms_list(struct session_info *s)
 
 void session_free(struct session_info *s)
 {
-
+	assert(auto_reset == 0);
 	assert(s != NULL);
 
 	if (s->prev) {
