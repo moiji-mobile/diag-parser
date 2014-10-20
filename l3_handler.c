@@ -157,7 +157,7 @@ void handle_loc_upd_req(struct session_info *s, uint8_t *data)
 	s->started = 1;
 	s->closed = 0;
 
-	s->lu_type = lu->type;
+	s->lu_type = lu->type & 3;
 	s->initial_seq = lu->key_seq;
 	s->lu_mcc = get_mcc(lu->lai.digits);
 	s->lu_mnc = get_mnc(lu->lai.digits);
@@ -287,8 +287,9 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		break;
 	case 0x04:
 		// LOC UPD REJ
-		SET_MSG_INFO(s, "LOC UPD REJECT");
+		SET_MSG_INFO(s, "LOC UPD REJECT cause=%d", dtap->data[0]);
 		s->locupd = 1;
+		s->lu_reject = 1;
 		s->lu_rej_cause = dtap->data[0];
 		s->mo = 1;
 		break;

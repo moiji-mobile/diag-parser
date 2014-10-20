@@ -75,9 +75,10 @@ struct session_info {
 	int unknown;
 	int detach;
 	int locupd;
-	int lu_acc;
-	int lu_rej_cause;
 	int lu_type;
+	int lu_acc;
+	int lu_reject;
+	int lu_rej_cause;
 	int lu_mcc;
 	int lu_mnc;
 	int lu_lac;

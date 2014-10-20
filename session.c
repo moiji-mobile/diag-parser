@@ -485,7 +485,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 		"avg_power,uplink_avail,initial_seq,cipher_seq,auth,auth_req_fn,auth_resp_fn,auth_delta,"
 		"cipher_missing,cipher_comp_first,cipher_comp_last,cipher_comp_count,cipher_delta,cipher,"
 		"integrity,cmc_imeisv,first_fn,last_fn,duration,mobile_orig,mobile_term,paging_mi,"
-		"t_unknown,t_detach,t_locupd,lu_acc,lu_rej_cause,lu_type,lu_mcc,lu_mnc,lu_lac,"
+		"t_unknown,t_detach,t_locupd,lu_type,lu_acc,lu_reject,lu_rej_cause,lu_mcc,lu_mnc,lu_lac,"
 		"t_raupd,t_attach,att_acc,t_pdp,pdp_ip,t_call,t_sms,t_ss,"
 		"t_tmsi_realloc,t_release,rr_cause,t_gprs,iden_imsi_ac,iden_imsi_bc,iden_imei_ac,iden_imei_bc,"
 		"assign,assign_cmpl,handover,forced_ho,a_timeslot,a_chan_type,a_tsc,"
@@ -498,7 +498,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 		"%d,%d,%d,%d,%d,%d,%d,%d,"
 		"%d,%d,%d,%d,%d,%d,"
 		"%d,%d,%d,%d,%d,%d,%d,%d,"
-		"%d,%d,%d,%d,%d,%d,%d,%d,%d,"
+		"%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,"
 		"%d,%d,%d,%d,%s,%d,%d,%d,"
 		"%d,%d,%d,%d,%d,%d,%d,%d,"
 		"%d,%d,%d,%d,%d,%d,%d,"
@@ -512,7 +512,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 		s->avg_power, s->uplink, s->initial_seq, s->cipher_seq, s->auth, s->auth_req_fn, s->auth_resp_fn, s->auth_delta,
 		s->cipher_missing, s->cm_comp_first_fn, s->cm_comp_last_fn, s->cm_comp_count, s->cipher_delta, s->cipher,
 		s->integrity, s->cmc_imeisv, s->first_fn, s->last_fn, s->duration, s->mo, s->mt, s->pag_mi,
-		s->unknown, s->detach, s->locupd, s->lu_acc, s->lu_type, s->lu_rej_cause, s->lu_mcc, s->lu_mnc, s->lac,
+		s->unknown, s->detach, s->locupd, s->lu_type, s->lu_acc, s->lu_reject, s->lu_rej_cause, s->lu_mcc, s->lu_mnc, s->lac,
 	 	s->raupd, s->attach, s->att_acc, s->pdp_activate, pdpip, s->call, s->sms, s->ssa,
 		s->tmsi_realloc, s->release, s->rr_cause, s->have_gprs, s->iden_imsi_ac, s->iden_imsi_bc, s->iden_imei_ac, s->iden_imei_bc,
 		s->assignment, s->assign_complete, s->handover, s->forced_ho, s->ga.chan_nr&7, s->ga.chan_nr>>3, s->ga.tsc,
