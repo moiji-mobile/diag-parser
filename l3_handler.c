@@ -1114,8 +1114,6 @@ hdr_parse:
 		return;
 	}
 
-	update_counters(s, &msg[3], len - 3, data_len, fn, ul);
-
 	/* get SAPI state */
 	mb = &mb_sapi[!!sapi];
 
@@ -1125,44 +1123,27 @@ hdr_parse:
 		/* I frame */
 		nr = msg[1] >> 5;
 		ns = (msg[1] >> 1) & 0x07;
+
+		/* check sequence */
+		if (mb->len && (ns != ((mb->ns + 1) % 8))) {
+			SET_MSG_INFO(s, "<OUT OF SEQUENCE> recv %d want %d", ns, (mb->ns + 1)%8);
+			update_counters(s, &msg[3], len - 3, data_len, fn, ul);
+			return;
+		}
+
+		mb->nr = nr;
+		mb->ns = ns;
 		break;
 	case 1:
 		/* S frame */
-		nr = msg[1] >> 5;
-		ns = (msg[1] >> 2) & 0x03;
+		data_len = 0;
 		break;
 	case 3:
 		/* U frame */
-		nr = msg[1] >> 5;
-		ns = (msg[1] >> 2) & 0x03;
-		/* not allowed configurations */
-		if (ns == 0 && (nr == 1 || nr >= 4)) {
-			SET_MSG_INFO(s, "INVALID LAPDm"); 
-			return;
-		}
-		if (ns == 1 || ns == 2) {
-			SET_MSG_INFO(s, "INVALID LAPDm"); 
-			return;
-		}
-		if (ns == 3 && nr > 1) {
-			SET_MSG_INFO(s, "INVALID LAPDm"); 
-			return;
-		}
 		break;
 	}
 
-	/* store current state */
-	old_auth = s->auth;
-	old_cipher = s->cipher;
-
-	/* check sequence */
-	if (mb->len && (ns != ((mb->ns + 1) % 8))) {
-		SET_MSG_INFO(s, "<OUT OF SEQUENCE> recv %d want %d", ns, (mb->ns + 1)%8);
-		return;
-	} 
-
-	mb->nr = nr;
-	mb->ns = ns;
+	update_counters(s, &msg[3], len - 3, data_len, fn, ul);
 
 	/* discard null frames */
 	if (!data_len) {
@@ -1178,6 +1159,10 @@ hdr_parse:
 		memcpy(&mb->data[mb->len], &msg[3], data_len);
 		mb->len += data_len;
 	}
+
+	/* store current state */
+	old_auth = s->auth;
+	old_cipher = s->cipher;
 
 	/* more fragments? */
 	if (more_frag) {
