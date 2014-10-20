@@ -1366,7 +1366,6 @@ struct radio_message * new_l2(uint8_t *data, uint8_t len, uint8_t rat, uint8_t d
 
 struct radio_message * new_l3(uint8_t *data, uint8_t len, uint8_t rat, uint8_t domain, uint32_t fn, uint8_t ul, uint8_t flags)
 {
-	uint8_t *lapdm;
 	unsigned lapdm_len;
 	struct radio_message *m;
 
@@ -1375,6 +1374,7 @@ struct radio_message * new_l3(uint8_t *data, uint8_t len, uint8_t rat, uint8_t d
 	if (len == 0)
 		return 0;
 
+	uint8_t *lapdm;
 	if (flags & MSG_SACCH) {
 		lapdm_len = encapsulate_lapdm(data, len, ul, 1, &lapdm);
 	} else {
