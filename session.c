@@ -624,19 +624,30 @@ void session_reset(struct session_info *s, int forced_release)
 
 	assert(s != NULL);
 
+	//Detaching the last attached message to the session.
+	if (forced_release) {
+		assert(s->last_msg);
+	}
+
 	if (forced_release && s->last_msg) {
+		//fprintf(stderr, "forced reset id %d domain %d\n", s->id, s->domain);
+		assert(s->first_msg);
+
 		m = s->last_msg;
 		if (s->first_msg == m) {
-			s->first_msg = 0;
-		}
-		if (m->prev) {
-			s->last_msg = m->prev;
-			m->prev->next = 0;
+			s->first_msg = NULL;
+			s->last_msg = NULL;
 		} else {
-			s->last_msg = 0;
+			assert(m->prev);
+			assert(m->prev->next == m);
+
+			s->last_msg = s->last_msg->prev;
+			s->last_msg->next = NULL;
 		}
-		m->next = 0;
-		m->prev = 0;
+		m->next = NULL;
+		m->prev = NULL;
+	} else {
+		//fprintf(stderr, "non-forced reset id %d domain %d\n", s->id, s->domain);
 	}
 
 	if (s->started && !s->closed) {
@@ -665,10 +676,12 @@ void session_reset(struct session_info *s, int forced_release)
 	}
 	s->sql_callback = old_s.sql_callback;
 
-	if (m) {
-		s->first_msg = m;
-		s->last_msg = m;
+	if (forced_release) {
+		assert(m);
 	}
+
+	s->first_msg = m;
+	s->last_msg = m;
 
 	/* Copy information for repeated message detection */
 	if (old_s.last_dtap_len) {
@@ -686,5 +699,8 @@ void session_reset(struct session_info *s, int forced_release)
 	if (old_s.domain == 0) {
 		session_free_msg_list(&old_s);
 		session_free_sms_list(&old_s);
+	} else {
+		old_s.first_msg = NULL;
+		old_s.last_msg = NULL;
 	}
 }
