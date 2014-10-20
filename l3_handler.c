@@ -1249,6 +1249,7 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 				m->bb.fn[0], m->info[0] ? m->info : osmo_hexdump_nospc(m->msg, m->msg_len));
 		}
 		break;
+
 	case RAT_UMTS:
 		if (ul) {
 			handle_dcch_ul(s, m->bb.data, m->msg_len);
@@ -1260,9 +1261,11 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 				m->bb.fn[0], m->info[0] ? m->info : osmo_hexdump_nospc(m->bb.data, m->msg_len));
 		}
 		break;
+
 	case RAT_LTE:
 		strcpy(m->info, "LTE");
 		break;
+
 	default:
 		return;
 	}

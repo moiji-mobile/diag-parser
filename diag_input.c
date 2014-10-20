@@ -121,6 +121,7 @@ struct radio_message * handle_nas(struct diag_packet *dp, unsigned len)
 	/* sanity checks */
 	if (dp->msg_subtype + sizeof(struct diag_packet) + 2 > len)
 		return 0;
+
 	if (!dp->msg_subtype)
 		return 0;
 
