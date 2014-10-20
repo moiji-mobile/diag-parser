@@ -3,6 +3,7 @@
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/gsm/gsm48_ie.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
+#include <assert.h>
 
 #include "assignment.h"
 
@@ -49,6 +50,7 @@ void parse_assignment(struct gsm48_hdr *hdr, unsigned len, struct gsm_sysinfo_fr
 	ma_len = 0;
 	ma = NULL;
 	mask = 0;
+	memset(ga, 0, sizeof(*ga));
 
 	/* Cell channel description */
 	if (TLVP_PRESENT(&tp, GSM48_IE_CELL_CH_DESC)) {
@@ -119,6 +121,7 @@ void parse_assignment(struct gsm48_hdr *hdr, unsigned len, struct gsm_sysinfo_fr
 
 		/* decode mobile allocation */
 		if (ma) {
+			assert(ma_len > 0);
 			for (i=1, j=0; i<=1024; i++) {
 				arfcn = i & 1023;
 				if (cell_arfcns[arfcn].mask & mask) {
