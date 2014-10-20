@@ -1164,14 +1164,13 @@ hdr_parse:
 	if (more_frag) {
 		SET_MSG_INFO(s, "<FRAGMENT>"); 
 		goto ts_update;
+	} else {
+		/* call L3 handler */
+		handle_dtap(s, mb->data, mb->len, fn, ul);
+
+		mb->len = 0;
 	}
 
-	/* call L3 handler */
-	handle_dtap(s, mb->data, mb->len, fn, ul);
-
-	mb->len = 0;
-
-ts_update:
 	/* hack: update auth and cipher timestamps, when ul is not available  */
 	if (s->auth && old_auth && !s->auth_resp_fn && (len > 21)
 		 && ((sapi != 0) || (mb->data[0] != 5))) {
