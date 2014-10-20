@@ -1110,26 +1110,13 @@ hdr_parse:
 		break;
 	case 1:
 		/* S frame */
+		assert(data_len == 0);
 		nr = msg[1] >> 5;
-		ns = (msg[1] >> 2) & 0x03;
+		goto no_seq_check;
 		break;
 	case 3:
 		/* U frame */
-		nr = msg[1] >> 5;
-		ns = (msg[1] >> 2) & 0x03;
-		/* not allowed configurations */
-		if (ns == 0 && (nr == 1 || nr >= 4)) {
-			SET_MSG_INFO(s, "INVALID LAPDm"); 
-			return;
-		}
-		if (ns == 1 || ns == 2) {
-			SET_MSG_INFO(s, "INVALID LAPDm"); 
-			return;
-		}
-		if (ns == 3 && nr > 1) {
-			SET_MSG_INFO(s, "INVALID LAPDm"); 
-			return;
-		}
+		goto no_seq_check;
 		break;
 	}
 
@@ -1146,6 +1133,7 @@ hdr_parse:
 	mb->nr = nr;
 	mb->ns = ns;
 
+no_seq_check:
 	/* discard null frames */
 	if (!data_len) {
 		SET_MSG_INFO(s, "<NULL>"); 
