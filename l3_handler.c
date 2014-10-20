@@ -55,11 +55,13 @@ void handle_mi(struct session_info *s, uint8_t *data, uint8_t len, uint8_t new_t
 		APPEND_MSG_INFO(s, ", IMSI %s", s->imsi); 
 		s->use_imsi = 1;
 		break;
+
 	case GSM_MI_TYPE_IMEI:
 	case GSM_MI_TYPE_IMEISV:
 		bcd2str(data, s->imei, 15, 1);
 		APPEND_MSG_INFO(s, ", IMEI %s", s->imei); 
 		break;
+
 	case GSM_MI_TYPE_TMSI:
 		hex_bin2str(&data[1], tmsi_str, 4);
 		tmsi_str[8] = 0;
@@ -487,6 +489,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		SET_MSG_INFO(s, "CHANNEL RELEASE");
 		if (s->cipher && !s->fc.enc_rand)
 			s->fc.predict++;
+
 		s->release = 1;
 		s->rr_cause = dtap->data[0];
 		if ((len > 3) && ((dtap->data[1] & 0xf0) == 0xc0))
