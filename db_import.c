@@ -12,7 +12,7 @@
 #include "session.h"
 #include "process.h"
 
-#define START_ID 585179
+#define START_ID 0
 
 int explore_session(int id)
 {

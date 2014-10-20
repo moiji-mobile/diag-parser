@@ -1100,8 +1100,6 @@ hdr_parse:
 		return;
 	}
 
-	update_counters(s, &msg[3], len - 3, data_len, fn, ul);
-
 	/* get SAPI state */
 	mb = &mb_sapi[!!sapi];
 
@@ -1111,33 +1109,28 @@ hdr_parse:
 		/* I frame */
 		nr = msg[1] >> 5;
 		ns = (msg[1] >> 1) & 0x07;
+
+		/* check sequence */
+		if (mb->len && (ns != ((mb->ns + 1) % 8))) {
+			SET_MSG_INFO(s, "<OUT OF SEQUENCE> recv %d want %d", ns, (mb->ns + 1)%8);
+			update_counters(s, &msg[3], len - 3, data_len, fn, ul);
+			return;
+		}
+
+		mb->nr = nr;
+		mb->ns = ns;
 		break;
 	case 1:
 		/* S frame */
-		assert(data_len == 0);
-		nr = msg[1] >> 5;
-		goto no_seq_check;
+		data_len = 0;
 		break;
 	case 3:
 		/* U frame */
-		goto no_seq_check;
 		break;
 	}
 
-	/* store current state */
-	old_auth = s->auth;
-	old_cipher = s->cipher;
+	update_counters(s, &msg[3], len - 3, data_len, fn, ul);
 
-	/* check sequence */
-	if (mb->len && (ns != ((mb->ns + 1) % 8))) {
-		SET_MSG_INFO(s, "<OUT OF SEQUENCE> recv %d want %d", ns, (mb->ns + 1)%8);
-		return;
-	} 
-
-	mb->nr = nr;
-	mb->ns = ns;
-
-no_seq_check:
 	/* discard null frames */
 	if (!data_len) {
 		SET_MSG_INFO(s, "<NULL>"); 
@@ -1152,6 +1145,10 @@ no_seq_check:
 		memcpy(&mb->data[mb->len], &msg[3], data_len);
 		mb->len += data_len;
 	}
+
+	/* store current state */
+	old_auth = s->auth;
+	old_cipher = s->cipher;
 
 	/* more fragments? */
 	if (more_frag) {
