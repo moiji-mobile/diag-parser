@@ -105,6 +105,7 @@ void process_gsmtap(const struct pcap_pkthdr* pkt_hdr, const u_char* pkt_data, u
 		memcpy(m->bb.data, &pkt_data[offset], m->msg_len);
 		break;
 	default:
+		free(m);
 		return;
 	}
 
