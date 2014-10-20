@@ -1276,7 +1276,6 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 
 unsigned encapsulate_lapdm(uint8_t *data, unsigned len, uint8_t ul, uint8_t sacch, uint8_t **output)
 {
-	uint8_t *lapdm;
 	unsigned alloc_len;
 	unsigned offset = 0;
 
@@ -1296,7 +1295,7 @@ unsigned encapsulate_lapdm(uint8_t *data, unsigned len, uint8_t ul, uint8_t sacc
 	}
 
 	/* Allocate message buffer */
-	lapdm = malloc(alloc_len);
+	uint8_t *lapdm = malloc(alloc_len);
 	if (lapdm == NULL) {
 		*output = NULL;
 		return 0;
