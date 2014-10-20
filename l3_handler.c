@@ -47,6 +47,7 @@ void handle_lai(struct session_info *s, uint8_t *data, int cid)
 void handle_mi(struct session_info *s, uint8_t *data, uint8_t len, uint8_t new_tmsi)
 {
 	char tmsi_str[9];
+	assert(len <= GSM48_MI_SIZE);
 
 	switch (data[0] & GSM_MI_TYPE_MASK) {
 	case GSM_MI_TYPE_IMSI:
