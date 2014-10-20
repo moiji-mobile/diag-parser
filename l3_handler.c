@@ -1277,9 +1277,6 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 
 unsigned encapsulate_lapdm(uint8_t *data, unsigned len, uint8_t ul, uint8_t sacch, uint8_t **output)
 {
-	unsigned alloc_len;
-	unsigned offset = 0;
-
 	if (!len)
 		return 0;
 
@@ -1289,6 +1286,7 @@ unsigned encapsulate_lapdm(uint8_t *data, unsigned len, uint8_t ul, uint8_t sacc
 	}
 
 	/* Select final message length */
+	unsigned alloc_len;
 	if (sacch) {
 		alloc_len = 5 + (len < 18 ? 18 : len);
 	} else {
@@ -1305,6 +1303,7 @@ unsigned encapsulate_lapdm(uint8_t *data, unsigned len, uint8_t ul, uint8_t sacc
 	}
 
 	/* Fake SACCH L1 header */
+	unsigned offset = 0;
 	if (sacch) {
 		lapdm[0] = 0x00;
 		lapdm[1] = 0x00;
