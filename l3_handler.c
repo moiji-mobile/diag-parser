@@ -1211,8 +1211,10 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 	/* Update message linked list */
 	if (s->first_msg == NULL)
 		s->first_msg = m;
+
 	if (s->last_msg)
 		s->last_msg->next = m;
+
 	m->prev = s->last_msg;
 	m->next = 0;
 	s[0].last_msg = m;
