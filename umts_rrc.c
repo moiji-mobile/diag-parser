@@ -108,7 +108,7 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 	assert(len > 0);
 
 	/* sanity check */
-	if (len > 100) {
+	if (len > 90) {
                 SET_MSG_INFO(s, "RRC Message too long: %d", len);
 		return 1;
 	}
