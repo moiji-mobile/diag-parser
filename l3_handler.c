@@ -1164,7 +1164,6 @@ hdr_parse:
 	/* more fragments? */
 	if (more_frag) {
 		SET_MSG_INFO(s, "<FRAGMENT>"); 
-		goto ts_update;
 	} else {
 		/* call L3 handler */
 		handle_dtap(s, mb->data, mb->len, fn, ul);
