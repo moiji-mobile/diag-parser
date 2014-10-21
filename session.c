@@ -81,6 +81,9 @@ void session_init(unsigned start_sid, unsigned start_cid, int console, int gsmta
 
 void session_destroy()
 {
+	if (msg_verbose) {
+		printf("session_destroy!\n");
+	}
 	session_reset(&_s[0], 0);
 	_s[1].new_msg = NULL;
 	session_reset(&_s[1], 0);
