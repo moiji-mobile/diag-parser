@@ -211,24 +211,31 @@ void handle_diag(uint8_t *msg, unsigned len)
 	case 0x412f: // 3G RRC
 		m = handle_3G(dp, len);
 		break;
+
 	case 0x5071: // Surrounding cell measurements
 		handle_measurements(dp, len);
 		break;
+
 	case 0x512f: // GSM RR
 		m = handle_bcch_and_rr(dp, len);
 		break;
+
 	case 0x5230: // GPRS GMM (doubled msg)
 		break;
+
 	case 0x713a: // DTAP (2G, 3G)
 		m = handle_nas(dp, len);
 		break;
+
 	case 0xb0c0: // LTE RRC
 	case 0xb0ec: // LTE NAS EMM DL
 	case 0xb0ed: // LTE NAS EMM UL
 		m = handle_4G(dp, len);
 		break;
+
 	default:
 		print_common(dp, len);
+		break;
 	}
 
 	if (m) {
