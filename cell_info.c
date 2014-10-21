@@ -515,11 +515,11 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	/* sanity checks */
 	if (len < 4)
 		return;
-	if (s->last_msg->flags & MSG_SDCCH)
+	if (s->new_msg->flags & MSG_SDCCH)
 		return;
 
 	/* close pending session */
-	if (s->started && (s->mt || s->mo) && !s->closed && (s->last_msg->flags & MSG_BCCH)) {
+	if (s->started && (s->mt || s->mo) && !s->closed && (s->new_msg->flags & MSG_BCCH)) {
 		session_reset(s, 1);
 	}
 
@@ -671,15 +671,15 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	}
 
 	/* Fill or update structure fields */
-	ci->last_seen = s->last_msg->timestamp;
-	ci->bcch_arfcn = s->last_msg->bb.arfcn[0];
+	ci->last_seen = s->new_msg->timestamp;
+	ci->bcch_arfcn = s->new_msg->bb.arfcn[0];
 	ci->si_counter[index]++;
 	ci->a_count[index] = arfcn_count(ci, index);
 	memcpy(ci->si_data[index], dtap->data, data_len);
 
 	/* Append to cell list */
 	if (append) {
-		ci->first_seen = s->last_msg->timestamp;
+		ci->first_seen = s->new_msg->timestamp;
 		ci->id = cell_info_id++;
 		llist_add(&ci->entry, &cell_list);
 	}

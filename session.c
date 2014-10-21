@@ -82,6 +82,7 @@ void session_init(unsigned start_sid, unsigned start_cid, int console, int gsmta
 void session_destroy()
 {
 	session_reset(&_s[0], 0);
+	_s[1].new_msg = NULL;
 	session_reset(&_s[1], 0);
 
 	cell_destroy();
@@ -185,7 +186,9 @@ void session_free_msg_list(struct session_info *s)
 
 	while (s->first_msg) {
 		m = s->first_msg;
-
+		if (msg_verbose) {
+			printf("Freeing pointer %p\n", m);
+		}
 		s->first_msg = m->next;
 
 		free(m);
@@ -615,12 +618,16 @@ void session_close(struct session_info *s)
 
 inline void link_to_msg_list(struct session_info* s, struct radio_message *m)
 {
+	if (msg_verbose) {
+		printf("linking to domain %d message ptr %p\n", s->domain, m);
+	}
+
 	if (s->first_msg == NULL) {
 		s->first_msg = m;
 	}
 
 	if (s->last_msg) {
-		//assert(s->last_msg->next == NULL);
+		assert(s->last_msg->next == NULL);
 		s->last_msg->next = m;
 	}
 	m->next = NULL;
@@ -636,33 +643,21 @@ void session_reset(struct session_info *s, int forced_release)
 	if (auto_reset == 0) {
 		return;
 	}
+	if (msg_verbose) {
+		printf("Session RESET! domain: %d, forced release: %d\n", s->domain, forced_release);
+	}
 
 	assert(s != NULL);
 
 	//Detaching the last attached message to the session.
 	if (forced_release) {
-		assert(s->last_msg);
-	}
-
-	if (forced_release && s->last_msg) {
-		//fprintf(stderr, "forced reset id %d domain %d\n", s->id, s->domain);
-		assert(s->first_msg);
-
-		m = s->last_msg;
-		if (s->first_msg == m) {
-			s->first_msg = NULL;
-			s->last_msg = NULL;
-		} else {
-			assert(m->prev);
-			assert(m->prev->next == m);
-
-			s->last_msg = s->last_msg->prev;
-			s->last_msg->next = NULL;
-		}
-		m->next = NULL;
-		m->prev = NULL;
+		assert(s->new_msg);
+		m = s->new_msg;
 	} else {
-		//fprintf(stderr, "non-forced reset id %d domain %d\n", s->id, s->domain);
+		if (s->new_msg) { //&& (s->new_msg->flags & MSG_DECODED)
+			link_to_msg_list(s, s->new_msg);
+		}
+		s->new_msg = NULL;
 	}
 
 	if (s->started && !s->closed) {
@@ -672,14 +667,13 @@ void session_reset(struct session_info *s, int forced_release)
 
 	memcpy(&old_s, s, sizeof(struct session_info));
 
+	//Set up 's'
 	memset(s, 0, sizeof(struct session_info));
-
 	if (old_s.started && old_s.closed) {
 		s->id = ++s_id;
 	} else {
 		s->id = old_s.id;
 	}
-
 	strncpy(s->name, old_s.name, sizeof(s->name));
 	s->domain = old_s.domain;
 	s->timestamp = old_s.timestamp;
@@ -692,11 +686,8 @@ void session_reset(struct session_info *s, int forced_release)
 	s->sql_callback = old_s.sql_callback;
 
 	if (forced_release) {
-		assert(m);
+		s->new_msg = m;
 	}
-
-	s->first_msg = m;
-	s->last_msg = m;
 
 	/* Copy information for repeated message detection */
 	if (old_s.last_dtap_len) {
@@ -711,18 +702,19 @@ void session_reset(struct session_info *s, int forced_release)
 	memcpy(s->chan_facch, old_s.chan_facch, sizeof(s->chan_sdcch));
 
 	/* Free allocated memory */
-	if (old_s.domain == 0) {
-		//TODO remove the check below, it's *expensive*
-		struct radio_message *tmp = old_s.first_msg;
-		while (tmp) {
-			assert(tmp != m);
-			tmp = tmp->next;
-		}
 
-		session_free_msg_list(&old_s);
-		session_free_sms_list(&old_s);
-	} else {
-		old_s.first_msg = NULL;
-		old_s.last_msg = NULL;
+	//TODO remove the check below, it's *expensive*
+	if (msg_verbose) {
+		printf("session reset (at the end of the function), domain: %d\n", old_s.domain);
 	}
+	struct radio_message *tmp = old_s.first_msg;
+	while (tmp) {
+		assert(tmp != m);
+		tmp = tmp->next;
+	}
+
+	session_free_msg_list(&old_s);
+	session_free_sms_list(&old_s);
+	old_s.first_msg = NULL;
+	old_s.last_msg = NULL;
 }

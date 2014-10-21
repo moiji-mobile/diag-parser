@@ -137,6 +137,7 @@ struct session_info {
 	uint8_t last_dtap_rat;
 	struct radio_message *first_msg;
 	struct radio_message *last_msg;
+	struct radio_message *new_msg;
 	struct sms_meta *sms_list;
 	struct session_info *next;
 	struct session_info *prev;
@@ -159,8 +160,8 @@ inline void link_to_msg_list(struct session_info* s, struct radio_message *m);
 #define CALLBACK_SQLITE 2
 #define CALLBACK_CONSOLE 3
 
-#define SET_MSG_INFO(s, ... )  snprintf((s)->last_msg->info, sizeof((s)->last_msg->info), ##__VA_ARGS__);
-#define APPEND_MSG_INFO(s, ...) snprintf((s)->last_msg->info+strlen((s)->last_msg->info), sizeof((s)->last_msg->info)-strlen((s)->last_msg->info), ##__VA_ARGS__);
+#define SET_MSG_INFO(s, ... )  snprintf((s)->new_msg->info, sizeof((s)->new_msg->info), ##__VA_ARGS__);
+#define APPEND_MSG_INFO(s, ...) snprintf((s)->new_msg->info+strlen((s)->new_msg->info), sizeof((s)->new_msg->info)-strlen((s)->new_msg->info), ##__VA_ARGS__);
 
 void session_init(unsigned start_sid, unsigned start_cid, int console, int gsmtap, int callback);
 void session_destroy();

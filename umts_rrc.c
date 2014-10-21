@@ -32,11 +32,13 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 	case UL_DCCH_MessageType_PR_rrcConnectionSetupComplete:
 		SET_MSG_INFO(s, "RRC Setup Complete");
 		session_reset(&s[0], 1);
+		s[1].new_msg = NULL;
 		session_reset(&s[1], 1);
 		break;
 	case UL_DCCH_MessageType_PR_rrcConnectionReleaseComplete:
 		SET_MSG_INFO(s, "RRC Release Complete");
 		session_reset(&s[0], 0);
+		s[1].new_msg = NULL;
 		session_reset(&s[1], 0);
 		break;
 	case UL_DCCH_MessageType_PR_securityModeComplete:
@@ -62,11 +64,11 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 		break;
 	default:
 		SET_MSG_INFO(s, "UL-DCCH type=%d", dcch->message.present);
-		s->last_msg->flags &= ~MSG_DECODED;
+		s->new_msg->flags &= ~MSG_DECODED;
 	}
 
 	if (domain >= 0) {
-		s->last_msg->domain = domain;
+		s->new_msg->domain = domain;
 	}
 
 	if (nas) {
@@ -215,7 +217,7 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 		goto dl_no_free;
 	default:
 		SET_MSG_INFO(s, "DL-DCCH type=%d", dcch->message.present);
-		s->last_msg->flags &= ~MSG_DECODED;
+		s->new_msg->flags &= ~MSG_DECODED;
 	}
 
 	if (nas) {

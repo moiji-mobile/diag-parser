@@ -437,7 +437,7 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 	if (f_len) {
 		/* Sanity check */
 		if (!from_network) {
-			strcat(s->last_msg->info, " FAILED SANITY CHECK");
+			SET_MSG_INFO(s, " FAILED SANITY CHECK");
 			return;
 		}
 		handle_address(&data[off], f_len, smsc, 0);
@@ -449,7 +449,7 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 	if (f_len) {
 		/* Sanity check */
 		if (from_network) {
-			strcat(s->last_msg->info, " FAILED SANITY CHECK");
+			SET_MSG_INFO(s, " FAILED SANITY CHECK");
 			return;
 		}
 		handle_address(&data[off], f_len, smsc, 0);
@@ -466,40 +466,40 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 		switch (type) {
 		case 0:
 			/* SMS-DELIVER */
-			strcat(s->last_msg->info, "-DELIVER");
+			APPEND_MSG_INFO(s, "-DELIVER");
 			handle_tpdu(s, &data[off], f_len, from_network, smsc);
 			break;
 		case 1:
 			/* SMS-SUBMIT REPORT */
-			strcat(s->last_msg->info, "-SUBMIT-REPORT");
+			APPEND_MSG_INFO(s, "-SUBMIT-REPORT");
 			break;
 		case 2:
 			/* SMS-STATUS REPORT */
-			strcat(s->last_msg->info, "-STATUS-REPORT");
+			APPEND_MSG_INFO(s, "-STATUS-REPORT");
 			break;
 		case 3:
 			/* RESERVED */
-			strcat(s->last_msg->info, "-RESERVED");
+			APPEND_MSG_INFO(s, "-RESERVED");
 			break;
 		}
 	} else {
 		switch (type) {
 		case 0:
 			/* SMS-DELIVER REPORT */
-			strcat(s->last_msg->info, "-DELIVER-REPORT");
+			APPEND_MSG_INFO(s, "-DELIVER-REPORT");
 			break;
 		case 1:
 			/* SMS-SUBMIT */
-			strcat(s->last_msg->info, "-SUBMIT");
+			APPEND_MSG_INFO(s, "-SUBMIT");
 			handle_tpdu(s, &data[off], f_len, from_network, smsc);
 			break;
 		case 2:
 			/* SMS-COMMAND */
-			strcat(s->last_msg->info, "-COMMAND");
+			APPEND_MSG_INFO(s, "-COMMAND");
 			break;
 		case 3:
 			/* RESERVED */
-			strcat(s->last_msg->info, "-RESERVED");
+			APPEND_MSG_INFO(s, "-RESERVED");
 			break;
 		}
 	}
@@ -511,33 +511,33 @@ void handle_cpdata(struct session_info *s, uint8_t *data, unsigned len)
 
 	switch (rp->msg_type & 0x0f) {
 	case GSM411_MT_RP_DATA_MO:
-		strcpy(s->last_msg->info, "SMS RP-DATA");
+		SET_MSG_INFO(s, "SMS RP-DATA");
 		handle_rpdata(s, rp->data, len-sizeof(struct gsm411_rp_hdr), 0);
 		s->mo = 1;
 		break;
 	case GSM411_MT_RP_DATA_MT:
-		strcpy(s->last_msg->info, "SMS RP-DATA");
+		SET_MSG_INFO(s, "SMS RP-DATA");
 		handle_rpdata(s, rp->data, len-sizeof(struct gsm411_rp_hdr), 1);
 		s->mt = 1;
 		break;
 	case GSM411_MT_RP_ACK_MO:
-		strcpy(s->last_msg->info, "SMS RP-ACK");
+		SET_MSG_INFO(s, "SMS RP-ACK");
 		s->mt = 1;
 		break;
 	case GSM411_MT_RP_ACK_MT:
-		strcpy(s->last_msg->info, "SMS RP-ACK");
+		SET_MSG_INFO(s, "SMS RP-ACK");
 		s->mo = 1;
 		break;
 	case GSM411_MT_RP_ERROR_MO:
-		strcpy(s->last_msg->info, "SMS RP-ERROR");
+		SET_MSG_INFO(s, "SMS RP-ERROR");
 		s->mt = 1;
 		break;
 	case GSM411_MT_RP_ERROR_MT:
-		strcpy(s->last_msg->info, "SMS RP-ACK");
+		SET_MSG_INFO(s, "SMS RP-ACK");
 		s->mo = 1;
 		break;
 	case GSM411_MT_RP_SMMA_MO:
-		strcpy(s->last_msg->info, "SMS RP-SMMA");
+		SET_MSG_INFO(s, "SMS RP-SMMA");
 		s->mo = 1;
 		break;
 	default:
@@ -555,10 +555,10 @@ void handle_sms(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		handle_cpdata(s, dtap->data, len-sizeof(struct gsm48_hdr));
 		break;
 	case GSM411_MT_CP_ACK:
-		strcpy(s->last_msg->info, "SMS CP-ACK");
+		SET_MSG_INFO(s, "SMS CP-ACK");
 		break;
 	case GSM411_MT_CP_ERROR:
-		strcpy(s->last_msg->info, "SMS CP-ERROR");
+		SET_MSG_INFO(s, "SMS CP-ERROR");
 		break;
 	default:
 		s->unknown = 1;

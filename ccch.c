@@ -160,7 +160,7 @@ void process_ccch(struct session_info *s, struct burst_buf *bb, struct l1ctl_bur
 
 	m->info[0] = 0;
 
-	link_to_msg_list(s, m);
+	s->new_msg = m;
 
 	/* ready for decoding */
 	try_decode(s, m);

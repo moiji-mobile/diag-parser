@@ -66,7 +66,7 @@ void handle_mi(struct session_info *s, uint8_t *data, uint8_t len, uint8_t new_t
 	case GSM_MI_TYPE_TMSI:
 		hex_bin2str(&data[1], tmsi_str, 4);
 		tmsi_str[8] = 0;
-		assert(s->last_msg);
+		assert(s->new_msg);
 
 		APPEND_MSG_INFO(s, ", TMSI %s", tmsi_str); 
 		if (new_tmsi) {
@@ -435,7 +435,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 	struct tlv_parsed tp;
 
 	s->rat = RAT_GSM;
-	assert(s->last_msg);
+	assert(s->new_msg);
 
 	switch (dtap->msg_type) {
 	case GSM48_MT_RR_SYSINFO_1:
@@ -502,10 +502,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		if ((len > 3) && ((dtap->data[1] & 0xf0) == 0xc0))
 			s->have_gprs = 1;
 
-		if (auto_reset) {
-			session_reset(&s[1], 0);
-		}
-		session_reset(s, 0);
+		session_reset(&s[0], 0);
 		break;
 	case GSM48_MT_RR_CLSM_ENQ:
 		SET_MSG_INFO(s, "CLASSMARK ENQUIRY");
@@ -537,10 +534,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		break;
 	case GSM48_MT_RR_PAG_RESP:
 
-		assert(s->last_msg);
 		session_reset(s, 1);
-		assert(s->last_msg);
-
 		SET_MSG_INFO(s, "PAGING RESPONSE");
 		handle_pag_resp(s, dtap->data);
 		break;
@@ -949,20 +943,20 @@ int is_double(struct session_info *s, uint8_t *msg, size_t len)
 
 	/* Match with previous msg, if available */
 	if (min_len && !memcmp(msg, s->last_dtap, min_len)) {
-		ul = !!(s->last_msg->bb.arfcn[0] & ARFCN_UPLINK);
+		ul = !!(s->new_msg->bb.arfcn[0] & ARFCN_UPLINK);
 		if (ul) {
 			if ((s->last_dtap_rat == RAT_GSM) &&
-			    (s->last_msg->rat != RAT_GSM)) {
+			    (s->new_msg->rat != RAT_GSM)) {
 				// set real rat and discard
-				s->rat = s->last_msg->rat;
-				s->last_msg->flags &= ~MSG_DECODED;
+				s->rat = s->new_msg->rat;
+				s->new_msg->flags &= ~MSG_DECODED;
 				return;
 			}
 		} else {
 			if ((s->last_dtap_rat != RAT_GSM) &&
-			    (s->last_msg->rat == RAT_GSM)) {
+			    (s->new_msg->rat == RAT_GSM)) {
 				// discard as we already processed the 3G one
-				s->last_msg->flags &= ~MSG_DECODED;
+				s->new_msg->flags &= ~MSG_DECODED;
 				return;
 			}
 		}
@@ -971,7 +965,7 @@ int is_double(struct session_info *s, uint8_t *msg, size_t len)
 	/* store current */
 	memcpy(s->last_dtap, msg, len);
 	s->last_dtap_len = len;
-	s->last_dtap_rat = s->last_msg->rat;
+	s->last_dtap_rat = s->new_msg->rat;
 
 	return 0;
 }
@@ -981,11 +975,11 @@ void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, 
 	struct gsm48_hdr *dtap;
 
 	assert(s != NULL);
-	assert(s->last_msg != NULL);
+	assert(s->new_msg != NULL);
 	assert(msg != NULL);
 
 	dtap = (struct gsm48_hdr *) msg;
-	s->last_msg->info[0] = 0;
+	s->new_msg->info[0] = 0;
 
 	if (len == 0) {
 		SET_MSG_INFO(s, "<ZERO LENGTH>");
@@ -1008,7 +1002,7 @@ void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, 
 		handle_rr(s, dtap, len, fn);
 		break;
 	case GSM48_PDISC_MM_GPRS:
-		s->last_msg->domain = DOMAIN_PS;
+		s->new_msg->domain = DOMAIN_PS;
 		if (auto_reset) {
 			handle_gmm(&s[1], dtap, len);
 		} else {
@@ -1019,7 +1013,7 @@ void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, 
 		handle_sms(s, dtap, len);
 		break;
 	case GSM48_PDISC_SM_GPRS:
-		s->last_msg->domain = DOMAIN_PS;
+		s->new_msg->domain = DOMAIN_PS;
 		if (auto_reset) {
 			handle_sm(&s[1], dtap, len);
 		} else {
@@ -1081,7 +1075,7 @@ hdr_parse:
 	more_frag = (msg[2] >> 1) & 0x1;
 	fo = msg[2] & 0x1;
 
-	s->last_msg->info[0] = 0;
+	s->new_msg->info[0] = 0;
 
 	/* discard non-GSM */
 	if (lpd_type) {
@@ -1215,7 +1209,7 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 	int i;
 	for(i = 0; i < 1 + !!auto_reset; i++) {
 		assert(s[i].domain == i);
-		link_to_msg_list(&s[i], m);
+		s[i].new_msg = m;
 	}
 
 	switch (m->rat) {
@@ -1242,8 +1236,8 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 			abort();
 		}
 
-		//if s->last_msg is not m, then we have freed it.
-		if (msg_verbose && s->last_msg == m && m->flags & MSG_DECODED) {
+		//if s->new_msg is not m, then we have freed it.
+		if (msg_verbose && s->new_msg == m && m->flags & MSG_DECODED) {
 			printf("GSM %s %s %u : %s\n", m->domain ? "PS" : "CS", ul ? "UL" : "DL",
 				m->bb.fn[0], m->info[0] ? m->info : osmo_hexdump_nospc(m->msg, m->msg_len));
 		}
@@ -1269,7 +1263,17 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 		return;
 	}
 
-	net_send_msg(m);
+	if (s->new_msg) {
+		if (s->new_msg->flags & MSG_DECODED) {
+			assert(s->new_msg == m);
+			link_to_msg_list(&s[m->domain], m);
+			s->new_msg = NULL;
+			net_send_msg(m);
+		} else {
+			free(m);
+			s->new_msg = NULL;
+		}
+	}
 }
 
 unsigned encapsulate_lapdm(uint8_t *data, unsigned len, uint8_t ul, uint8_t sacch, uint8_t **output)
