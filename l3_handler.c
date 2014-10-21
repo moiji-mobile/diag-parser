@@ -1211,7 +1211,7 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 	m->flags |= MSG_DECODED;
 
 	int i;
-	for(i=0; i < 1 + !!auto_reset; i++) {
+	for(i = 0; i < 1 + !!auto_reset; i++) {
 		assert(s[i].domain == i);
 		//fprintf(stderr, "handle_radio_msg domain %d, i %d\n", s[i].domain, i);
 
