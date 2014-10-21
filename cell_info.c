@@ -530,8 +530,9 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	}
 
 	data_len = len - sizeof(struct gsm48_hdr);
-
-	assert(data_len <= 20);
+	if (data_len > 20) {
+		data_len = 20;
+	}
 
 	/* Find cell in list */
 	ci = get_from_si(dtap->msg_type, dtap->data, data_len);

@@ -1096,7 +1096,7 @@ hdr_parse:
 		if (retry)
 			goto hdr_reparse;
 
-		SET_MSG_INFO(s, "FAILED SANITY CHECKS");
+		SET_MSG_INFO(s, "FAILED SANITY CHECKS (LAPDm)");
 		return;
 	}
 

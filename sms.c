@@ -254,7 +254,7 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 
 	/* Sanity check */
 	if (header_len > (len-1)) {
-		APPEND_INFO(sm, "SANITY CHECK FAILED");
+		APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_UDH_LEN)");
 		return;
 	}
 
@@ -274,7 +274,7 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			total_frags = msg[offset+1];
 			this_frag = msg[offset+2];
 			if (this_frag > total_frags) {
-				APPEND_INFO(sm, "SANITY CHECK FAILED");
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_FRAG)");
 				return;
 			}
 			APPEND_INFO(sm, "[%d/%d] ", this_frag, total_frags);	
@@ -437,7 +437,7 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 	if (f_len) {
 		/* Sanity check */
 		if (!from_network) {
-			strcat(s->last_msg->info, " FAILED SANITY CHECK");
+			strcat(s->last_msg->info, " FAILED SANITY CHECK (SMS_SMSC_MO)");
 			return;
 		}
 		handle_address(&data[off], f_len, smsc, 0);
@@ -449,7 +449,7 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 	if (f_len) {
 		/* Sanity check */
 		if (from_network) {
-			strcat(s->last_msg->info, " FAILED SANITY CHECK");
+			strcat(s->last_msg->info, " FAILED SANITY CHECK (SMS_SMSC_MT)");
 			return;
 		}
 		handle_address(&data[off], f_len, smsc, 0);
