@@ -134,6 +134,7 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 	case DL_DCCH_MessageType_PR_rrcConnectionRelease:
 		SET_MSG_INFO(s, "RRC Connection Release");
 		session_reset(&s[0], 0);
+		s[1].new_msg = NULL;
 		session_reset(&s[1], 0);
 		break;
 	case DL_DCCH_MessageType_PR_securityModeCommand:
