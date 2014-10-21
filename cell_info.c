@@ -60,34 +60,34 @@ const char * si_name[] = {
 };
 
 struct cell_info {
-	int id;
-	int stored;
+	uint32_t id;
+	uint8_t stored;
 	struct timeval first_seen;
 	struct timeval last_seen;
 	/* DIAG or Android */
-	int mcc;
-	int mnc;
-	int lac;
-	int cid;
-	int rat;
-	int bcch_arfcn;
+	uint16_t mcc;
+	uint16_t mnc;
+	uint16_t lac;
+	uint32_t cid;
+	uint16_t rat;
+	uint16_t bcch_arfcn;
 	int c1;
 	int c2;
-	int power_sum;
-	int power_count;
+	uint32_t power_sum;
+	uint32_t power_count;
 	/* SI3 */
-	int msc_ver;
-	int combined;
-	int agch_blocks;
-	int pag_mframes;
-	int t3212;
-	int dtx;
+	uint8_t msc_ver;
+	uint8_t combined;
+	uint8_t agch_blocks;
+	uint8_t pag_mframes;
+	uint8_t t3212;
+	uint8_t dtx;
 	/* SI3 & SI4 */
-	int cro;
-	int temp_offset;
-	int pen_time;
-	int pwr_offset;
-	int gprs;
+	uint8_t cro;
+	uint8_t temp_offset;
+	uint8_t pen_time;
+	uint8_t pwr_offset;
+	uint8_t gprs;
 
 	struct gsm_sysinfo_freq arfcn_list[1024];
 
@@ -96,7 +96,7 @@ struct cell_info {
 	uint16_t a_count[SI_MAX];
 
 	struct llist_head entry;
-};
+} __attribute__((packed));
 
 void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite);
 void arfcn_list_make_sql(struct cell_info *ci, enum si_index index, char *query, unsigned len, int sqlite);
@@ -215,9 +215,9 @@ void cell_destroy()
 	cell_and_paging_dump(1);
 }
 
-int get_mcc(uint8_t *digits)
+uint16_t get_mcc(uint8_t *digits)
 {
-	int mcc;
+	uint16_t mcc;
 
 	mcc = (digits[0] & 0xf) * 100;
 	mcc += (digits[0] >> 4) * 10;
@@ -226,9 +226,9 @@ int get_mcc(uint8_t *digits)
 	return mcc;
 }
 
-int get_mnc(uint8_t *digits)
+uint16_t get_mnc(uint8_t *digits)
 {
-	int mnc;
+	uint16_t mnc;
 
         if ((digits[1] >> 4) == 0xf) {
                 mnc = (digits[2] & 0xf) * 10;
@@ -275,7 +275,7 @@ int si_index(uint8_t msg_type)
 	return -1;
 }
 
-int si_mask(enum si_index index)
+uint8_t si_mask(enum si_index index)
 {
 	switch (index) {
 	case SI1:

@@ -29,10 +29,10 @@ struct burst_buf {
 	uint16_t arfcn[2*4];
 	uint8_t data[2*4*114];
 	uint8_t sbit[2*4*2];
-};
+} __attribute__((packed));
 
 struct radio_message {
-	unsigned id;
+	uint32_t id;
 	uint8_t rat;
 	uint8_t domain;
 	uint8_t flags;	/* MSG_* */
@@ -40,11 +40,11 @@ struct radio_message {
 	char info[128];
 	uint8_t chan_nr;
 	uint8_t msg[256];
-	unsigned msg_len;
+	uint32_t msg_len;
 	struct burst_buf bb;
 	struct radio_message *next;
 	struct radio_message *prev;
-};
+} __attribute__((packed));
 
 void process_init();
 //int process_handle_burst(struct session_info *s, struct l1ctl_burst_ind *bi);
