@@ -919,9 +919,9 @@ void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite)
 
 	/* Format timestamp according to db */
 	if (sqlite) {
-		snprintf(paging_ts, sizeof(paging_ts), "datetime(%lu, 'unixepoch')", epoch_now);
+		snprintf(paging_ts, sizeof(paging_ts), "datetime(%u, 'unixepoch')", epoch_now);
 	} else {
-		snprintf(paging_ts, sizeof(paging_ts), "FROM_UNIXTIME(%lu)", epoch_now);
+		snprintf(paging_ts, sizeof(paging_ts), "FROM_UNIXTIME(%u)", epoch_now);
 	}
 
 	time_delta = (float) (epoch_now-periodic_ts.tv_sec);
