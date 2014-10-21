@@ -62,19 +62,21 @@ void net_send_llc(uint8_t *data, int len, uint8_t ul)
 
 void net_send_msg(struct radio_message *m)
 {
-	uint8_t ts, type, subch;
 	struct msgb *msgb = 0;
 
 	if (!(gti && (m->flags & MSG_DECODED)))
 		return;
 
 	switch (m->rat) {
-	case RAT_GSM:
+	case RAT_GSM: {
+		uint8_t ts, type, subch;
 		rsl_dec_chan_nr(m->chan_nr, &type, &subch, &ts);
 		msgb = gsmtap_makemsg(m->bb.arfcn[0], ts,
 				      chantype_rsl2gsmtap(type, (m->flags & MSG_SACCH) ? 0x40 : 0),
 				      subch, m->bb.fn[0], m->bb.rxl[0], m->bb.snr[0], m->msg, m->msg_len);
 		break;
+	}
+
 	case RAT_UMTS:
 		msgb = gsmtap_makemsg_ex(GSMTAP_TYPE_UMTS_RRC, m->bb.arfcn[0], 0,
 					 m->bb.arfcn[0] & ARFCN_UPLINK ? GSMTAP_RRC_SUB_UL_DCCH_Message : GSMTAP_RRC_SUB_DL_DCCH_Message,
