@@ -234,7 +234,9 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 #endif
 
 dl_end:
-	//ASN_STRUCT_FREE(asn_DEF_DL_DCCH_Message, dcch);
 dl_no_free:
+	asn_DEF_DL_DCCH_Message.free_struct(&asn_DEF_DL_DCCH_Message, dcch, 0);
+	//ASN_STRUCT_FREE(asn_DEF_DL_DCCH_Message, dcch);
+
 	return error;
 }
