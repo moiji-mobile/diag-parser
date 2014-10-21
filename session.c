@@ -697,6 +697,7 @@ void session_reset(struct session_info *s, int forced_release)
 
 	/* Free allocated memory */
 	if (old_s.domain == 0) {
+		//TODO remove the check below, it's *expensive*
 		struct radio_message *tmp = old_s.first_msg;
 		while (tmp) {
 			assert(tmp != m);
