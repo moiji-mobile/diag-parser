@@ -503,6 +503,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 			s->have_gprs = 1;
 
 		session_reset(&s[0], 0);
+		s[1].new_msg = NULL;
 		break;
 	case GSM48_MT_RR_CLSM_ENQ:
 		SET_MSG_INFO(s, "CLASSMARK ENQUIRY");
@@ -1249,7 +1250,7 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 		} else {
 			handle_dcch_dl(s, m->bb.data, m->msg_len);
 		}
-		if (msg_verbose && m->flags & MSG_DECODED) {
+		if (msg_verbose && s->new_msg == m && m->flags & MSG_DECODED) {
 			printf("RRC %s %s %u : %s\n", m->domain ? "PS" : "CS", ul ? "UL" : "DL",
 				m->bb.fn[0], m->info[0] ? m->info : osmo_hexdump_nospc(m->bb.data, m->msg_len));
 		}
