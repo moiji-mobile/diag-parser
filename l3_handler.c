@@ -48,9 +48,18 @@ void handle_lai(struct session_info *s, uint8_t *data, int cid)
 void handle_mi(struct session_info *s, uint8_t *data, uint8_t len, uint8_t new_tmsi)
 {
 	char tmsi_str[9];
-	assert(len <= GSM48_MI_SIZE);
+	uint8_t mi_type;
 
-	switch (data[0] & GSM_MI_TYPE_MASK) {
+	if (len > GSM48_MI_SIZE) {
+		SET_MSG_INFO(s, "FAILED SANITY CHECKS (MI_LEN)");
+		return;
+	}
+
+	mi_type = data[0] & GSM_MI_TYPE_MASK;
+	switch (mi_type) {
+	case GSM_MI_TYPE_NONE:
+		break;
+
 	case GSM_MI_TYPE_IMSI:
 		bcd2str(data, s->imsi, len*2, 1);
 		APPEND_MSG_INFO(s, ", IMSI %s", s->imsi); 
@@ -686,6 +695,13 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 	assert(dtap != NULL);
 	assert(len > 0);
 
+	if (s->domain != DOMAIN_PS) {
+		SET_MSG_INFO(s, "FAILED SANITY CHECKS (GMM_IN_CS)");
+		return;
+	}
+
+	s->new_msg->domain = DOMAIN_PS;
+
 	switch (dtap->msg_type & 0x3f) {
 	case 0x01:
 		// ATTACH REQUEST
@@ -811,6 +827,17 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 {
 	uint8_t sapi;
 	uint8_t qos_len;
+
+	assert(s != NULL);
+	assert(dtap != NULL);
+	assert(len > 0);
+
+	if (s->domain != DOMAIN_PS) {
+		SET_MSG_INFO(s, "FAILED SANITY CHECKS (SM_IN_CS)");
+		return;
+	}
+
+	s->new_msg->domain = DOMAIN_PS;
 
 	switch (dtap->msg_type & 0x3f) {
 	case 0x01:
@@ -1002,7 +1029,6 @@ void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, 
 		handle_rr(s, dtap, len, fn);
 		break;
 	case GSM48_PDISC_MM_GPRS:
-		s->new_msg->domain = DOMAIN_PS;
 		if (auto_reset) {
 			handle_gmm(&s[1], dtap, len);
 		} else {
@@ -1013,7 +1039,6 @@ void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, 
 		handle_sms(s, dtap, len);
 		break;
 	case GSM48_PDISC_SM_GPRS:
-		s->new_msg->domain = DOMAIN_PS;
 		if (auto_reset) {
 			handle_sm(&s[1], dtap, len);
 		} else {
@@ -1054,14 +1079,6 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 	struct lapdm_buf *mb;
 	uint8_t retry = 1;
 
-	goto hdr_parse;
-
-hdr_reparse:
-	retry = 0;
-	msg += 2;
-	len -= 2;
-
-hdr_parse:
 	/* extract all bit fields */
 	lpd_type = (msg[0] >> 5) & 0x03;
 	sapi = (msg[0] >> 2) & 0x07;
@@ -1079,32 +1096,18 @@ hdr_parse:
 
 	/* discard non-GSM */
 	if (lpd_type) {
-		if (retry)
-			goto hdr_reparse;
-
 		SET_MSG_INFO(s, "non-GSM");
 		return;
 	}
 
 	/* other sanity checks */
 	if (!ea || !fo || ((data_len + 3) > len)) {
-		if (retry)
-			goto hdr_reparse;
-
 		SET_MSG_INFO(s, "FAILED SANITY CHECKS (LAPDm)");
 		return;
 	}
 
 	/* discard unknown SAPIs */
-	switch (sapi) {
-	case 0:	/* RR/MM/CC */
-	case 3: /* SMS */
-		break;
-	default:
-		/* Invalid */
-		if (retry)
-			goto hdr_reparse;
-
+	if ((sapi != 0) && (sapi != 3)) {
 		SET_MSG_INFO(s, "Unknown SAPI"); 
 		return;
 	}
