@@ -1218,9 +1218,6 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 		/* link to the list */
 		if (s[i].first_msg == NULL) {
 			s[i].first_msg = m;
-			//fprintf(stderr, "first msg null\n");
-		} else {
-			//fprintf(stderr, "first msg NOT null: %p\n", s[i].first_msg);
 		}
 
 		//fprintf(stderr, "last_msg msg %p \n", s[i].last_msg);
@@ -1230,7 +1227,6 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 		m->next = NULL;
 		m->prev = s[i].last_msg;
 		s[i].last_msg = m; //s0 = CS (circuit switched) related transation
-		//fprintf(stderr, "---------\n");
 	}
 
 	switch (m->rat) {
