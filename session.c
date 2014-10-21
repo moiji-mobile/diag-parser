@@ -16,14 +16,14 @@
 #define MSG_VERBOSE 0
 #endif /* !MSG_VERBOSE */
 
-unsigned privacy = 0;
-unsigned msg_verbose = MSG_VERBOSE;
-unsigned auto_reset = 1;
-static unsigned output_console = 1;
-static unsigned output_gsmtap = 1;
-static unsigned output_sqlite = 1;
+uint8_t privacy = 0;
+uint8_t msg_verbose = MSG_VERBOSE;
+uint8_t auto_reset = 1;
+static uint8_t output_console = 1;
+static uint8_t output_gsmtap = 1;
+static uint8_t output_sqlite = 1;
 
-static unsigned s_id = 0;
+static uint32_t s_id = 0;
 static struct session_info *s_pointer = 0;
 pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 
