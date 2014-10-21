@@ -1210,23 +1210,12 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 	m->info[0] = 0;
 	m->flags |= MSG_DECODED;
 
+	//s0 = CS (circuit switched) related transation
+	//s1 = PS (packet switched) related transation
 	int i;
 	for(i = 0; i < 1 + !!auto_reset; i++) {
 		assert(s[i].domain == i);
-		//fprintf(stderr, "handle_radio_msg domain %d, i %d\n", s[i].domain, i);
-
-		/* link to the list */
-		if (s[i].first_msg == NULL) {
-			s[i].first_msg = m;
-		}
-
-		//fprintf(stderr, "last_msg msg %p \n", s[i].last_msg);
-		if (s[i].last_msg) {
-			s[i].last_msg->next = m;
-		}
-		m->next = NULL;
-		m->prev = s[i].last_msg;
-		s[i].last_msg = m; //s0 = CS (circuit switched) related transation
+		link_to_msg_list(&s[i], m);
 	}
 
 	switch (m->rat) {

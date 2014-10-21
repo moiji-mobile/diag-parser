@@ -152,6 +152,8 @@ struct session_info {
 	void (*sql_callback)(const char *);
 };
 
+inline void link_to_msg_list(struct session_info* s, struct radio_message *m);
+
 #define CALLBACK_NONE 0
 #define CALLBACK_MYSQL 1
 #define CALLBACK_SQLITE 2

@@ -613,6 +613,21 @@ void session_close(struct session_info *s)
 	s->closed = 1;
 }
 
+inline void link_to_msg_list(struct session_info* s, struct radio_message *m)
+{
+	if (s->first_msg == NULL) {
+		s->first_msg = m;
+	}
+
+	if (s->last_msg) {
+		//assert(s->last_msg->next == NULL);
+		s->last_msg->next = m;
+	}
+	m->next = NULL;
+	m->prev = s->last_msg;
+	s->last_msg = m;
+}
+
 void session_reset(struct session_info *s, int forced_release)
 {
 	struct session_info old_s;

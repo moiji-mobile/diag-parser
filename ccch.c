@@ -160,16 +160,7 @@ void process_ccch(struct session_info *s, struct burst_buf *bb, struct l1ctl_bur
 
 	m->info[0] = 0;
 
-	/* link to the list */
-	if (s->first_msg == NULL) {
-		s->first_msg = m;
-	}
-	if (s->last_msg) {
-		s->last_msg->next = m;
-	}
-	m->next = NULL;
-	m->prev = s->last_msg;
-	s->last_msg = m;
+	link_to_msg_list(s, m);
 
 	/* ready for decoding */
 	try_decode(s, m);
