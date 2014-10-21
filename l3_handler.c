@@ -1202,12 +1202,10 @@ hdr_parse:
 
 void handle_radio_msg(struct session_info *s, struct radio_message *m)
 {
-	uint8_t ul;
+	assert(s != NULL);
+	assert(m != NULL);
 
-	assert(s != 0);
-	assert(m != 0);
-
-	ul = !!(m->bb.arfcn[0] & ARFCN_UPLINK);
+	uint8_t ul = !!(m->bb.arfcn[0] & ARFCN_UPLINK);
 
 	m->info[0] = 0;
 	m->flags |= MSG_DECODED;
