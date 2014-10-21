@@ -161,7 +161,7 @@ inline void link_to_msg_list(struct session_info* s, struct radio_message *m);
 #define CALLBACK_CONSOLE 3
 
 #define SET_MSG_INFO(s, ... )  { \
-	assert(s->new_msg); \
+	assert((s)->new_msg); \
 	snprintf((s)->new_msg->info, sizeof((s)->new_msg->info), ##__VA_ARGS__); \
 };
 #define APPEND_MSG_INFO(s, ...) snprintf((s)->new_msg->info+strlen((s)->new_msg->info), sizeof((s)->new_msg->info)-strlen((s)->new_msg->info), ##__VA_ARGS__);
