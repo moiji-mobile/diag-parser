@@ -654,7 +654,7 @@ void session_reset(struct session_info *s, int forced_release)
 
 	//Detaching the last attached message to the session.
 	if (forced_release) {
-		assert(s->new_msg);
+		//assert(s->new_msg);
 		m = s->new_msg;
 	} else {
 		if (s->new_msg) { //&& (s->new_msg->flags & MSG_DECODED)
