@@ -8,6 +8,8 @@ struct sms_meta {
 	uint8_t from_network;
 	uint8_t pid;
 	uint8_t dcs;
+	uint8_t alphabet;
+	uint8_t class;
 	uint8_t udhi;
 	uint8_t ota;
 	uint8_t concat;
