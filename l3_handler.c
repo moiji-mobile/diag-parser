@@ -91,7 +91,8 @@ void handle_mi(struct session_info *s, uint8_t *data, uint8_t len, uint8_t new_t
 		break;
 
 	default:
-		assert(0);
+		SET_MSG_INFO(s, "FAILED SANITY CHECKS (MI_TYPE)");
+		return;
 	}
 }
 
@@ -512,7 +513,9 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 			s->have_gprs = 1;
 
 		session_reset(&s[0], 0);
-		s[1].new_msg = NULL;
+		if (auto_reset) {
+			s[1].new_msg = NULL;
+		}
 		break;
 	case GSM48_MT_RR_CLSM_ENQ:
 		SET_MSG_INFO(s, "CLASSMARK ENQUIRY");

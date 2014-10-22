@@ -7,6 +7,8 @@ CREATE TABLE sms_meta (
   from_network tinyint NOT NULL,	-- Radio access technology (GSM=0, UMTS=1, LTE=2)
   pid smallint NOT NULL,		-- Protocol identifier
   dcs smallint NOT NULL,		-- Data coding scheme
+  alphabet tinyint NOT NULL,		-- Coding alphabet used for user data
+  class tinyint NOT NULL,		-- Which device receives the message: display, ME, SIM, TE
   udhi tinyint NOT NULL,		-- User data header indicator
   ota tinyint NOT NULL,			-- Message contains an OTA command or response 
   concat tinyint NOT NULL,		-- Message is a fragment of a concatenated message 

@@ -16,6 +16,8 @@
 #include "session.h"
 #include "bit_func.h"
 
+#define DCS_COMPRESSED 0x80
+
 #define APPEND_INFO(sm, ...) snprintf((sm)->info+strlen((sm)->info), sizeof((sm)->info)-strlen((sm)->info), ##__VA_ARGS__);
 
 struct sec_header {
@@ -41,17 +43,45 @@ struct sec_header_rp {
 	uint8_t sw[0];
 };
 
+enum sms_class {
+	CLASS_DISPLAY = 0,
+	CLASS_ME = 1,
+	CLASS_SIM = 2,
+	CLASS_TE = 3,
+	CLASS_NONE = 4
+};
+
+enum sms_class get_sms_class(uint8_t dcs)
+{
+	uint8_t coding_group = dcs >> 4;
+	enum sms_class class = CLASS_NONE;
+
+	if ((coding_group & 0xc) == 0) {
+		if (dcs & 0x10) {
+			class = (dcs & 0x03);
+		}
+	} else if (coding_group == 0xf) {
+		class = (dcs & 0x03);
+	}
+
+	return class;
+}
+
 enum sms_alphabet get_sms_alphabet(uint8_t dcs)
 {
-	uint8_t cgbits = dcs >> 4;
+	uint8_t coding_group = dcs >> 4;
 	enum sms_alphabet alpha = DCS_NONE;
 
-	if ((cgbits & 0xc) == 0) {
-		if (cgbits & 2) {
-			return 0xffffffff;
-		}
+	if (dcs == 0x00) {
+		/* default alphabet, 7bit */
+		alpha = DCS_7BIT_DEFAULT;
+		return alpha;
+	}
 
-		switch ((dcs >> 2)&0x03) {
+	if ((coding_group & 0xc) == 0) {
+		/* DCS 00xx xxxx */
+
+		switch ((dcs >> 2) & 0x03) {
 		case 0:
 			alpha = DCS_7BIT_DEFAULT;
 			break;
@@ -62,15 +92,21 @@ enum sms_alphabet get_sms_alphabet(uint8_t dcs)
 			alpha = DCS_UCS2;
 			break;
 		}
-	} else if (cgbits == 0xc || cgbits == 0xd)
+
+		if (dcs & 0x20) {
+			alpha |= DCS_COMPRESSED;
+		}
+	} else if (coding_group == 0xc || coding_group == 0xd)
 		alpha = DCS_7BIT_DEFAULT;
-	else if (cgbits == 0xe)
+	else if (coding_group == 0xe)
 		alpha = DCS_UCS2;
-	else if (cgbits == 0xf) {
-		if (dcs & 4)
+	else if (coding_group == 0xf) {
+		/* DCS 1111 xxxx */
+		if (dcs & 0x04) {
 			alpha = DCS_8BIT_DATA;
-		else
+		} else {
 			alpha = DCS_7BIT_DEFAULT;
+		}
 	}
 
 	return alpha;
@@ -80,14 +116,23 @@ void handle_text(struct sms_meta *sm, uint8_t *msg, unsigned len)
 {
 	uint8_t text[256];
 
-	switch (get_sms_alphabet(sm->dcs)) {
+	if (sm->alphabet & DCS_COMPRESSED) {
+		APPEND_INFO(sm, "<COMPRESSED DATA>");
+		return;
+	}
+
+	switch (sm->alphabet) {
 	case DCS_7BIT_DEFAULT:
-		//gsm_7bit_decode_n(text, sizeof(text), msg, len);
-		//APPEND_INFO(sm, "7BIT \"%s\"", text);
-		APPEND_INFO(sm, "7BIT %s", osmo_hexdump_nospc(msg, len*7/8));
+		gsm_7bit_decode_n(text, sizeof(text), msg, len);
+		if (strlen(text)) {
+			//FIXME: sanitize string!
+			APPEND_INFO(sm, "\"%s\"", text);
+		} else {
+			APPEND_INFO(sm, "<FAILED TO DECODE TEXT>", text);
+		}
 		break;
-	case DCS_NONE:
 	case DCS_UCS2:
+	case DCS_NONE:
 	case DCS_8BIT_DATA:
 		if (sm->pid == 124 ||
 		    sm->pid == 127 ||
@@ -96,10 +141,10 @@ void handle_text(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			APPEND_INFO(sm, "OTA ");
 			sm->ota = 1;
 		}
-		APPEND_INFO(sm, "8BIT %s", osmo_hexdump_nospc(msg, len));
+		APPEND_INFO(sm, "%s", osmo_hexdump_nospc(msg, len));
 		break;
 	default:
-		APPEND_INFO(sm, "UNKN %s", osmo_hexdump_nospc(msg, len));
+		APPEND_INFO(sm, "<UNKNOWN ALPHABET>");
 	}
 }
 
@@ -401,6 +446,9 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, unsigned len, uint8_t fro
 
 	/* Store unparsed bytes */
 	memcpy(sm->data, &msg[off], len - off);
+
+	sm->alphabet = get_sms_alphabet(sm->dcs);
+	sm->class = get_sms_class(sm->dcs);
 
 	/* Handle UDH if present */
 	if (sm->udhi) {
