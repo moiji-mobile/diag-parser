@@ -116,7 +116,7 @@ void handle_text(struct sms_meta *sm, uint8_t *msg, unsigned len)
 {
 	uint8_t text[256];
 
-	if (dcs & DCS_COMPRESSED) {
+	if (sm->alphabet & DCS_COMPRESSED) {
 		APPEND_INFO(sm, "<COMPRESSED DATA>");
 		return;
 	}
