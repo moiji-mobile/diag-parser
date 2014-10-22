@@ -83,7 +83,7 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 	}
 #endif
 
-	asn_DEF_UL_DCCH_Message.free_struct(&asn_DEF_UL_DCCH_Message, dcch, 0);
+	ASN_STRUCT_FREE(asn_DEF_UL_DCCH_Message, dcch);
 
 	return 0;
 }
@@ -168,18 +168,18 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 			default:
 				SET_MSG_INFO(&s[domain], "RRC Security Mode Command / Not supported");
 				error = 1;
-				break;
+				goto dl_end;
 			}
 			break;
 		default:
 			SET_MSG_INFO(&s[domain], "RRC Security Mode Command / Not supported");
 			error = 1;
-			break;
+			goto dl_end;
 		}
 		if (s[domain].cipher) {
 			printf("Transaction was already ciphered!\n");
 			error = 1;
-			break;
+			goto dl_end;
 		}
 		SET_MSG_INFO(&s[domain], "RRC Security Mode Command (%s), UEA/%d UIA/%d", (domain ? "PS" : "CS"), c_algo, i_algo);
 		s[domain].cipher = c_algo;
@@ -200,9 +200,22 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 		default:
 			SET_MSG_INFO(s, "DDT / Not supported");
 			error = 1;
-			break;
+			goto dl_end;
 		}
 		break;
+	/* Buggy structures that cannot be freed */
+	case DL_DCCH_MessageType_PR_measurementControl:
+		SET_MSG_INFO(s, "RRC MeasurementControl");
+		goto dl_no_free;
+	case DL_DCCH_MessageType_PR_radioBearerRelease:
+		SET_MSG_INFO(s, "RRC RadioBearerRelease");
+		goto dl_no_free;
+	case DL_DCCH_MessageType_PR_utranMobilityInformation:
+		SET_MSG_INFO(s, "RRC utranMobilityInformation");
+		goto dl_no_free;
+	case DL_DCCH_MessageType_PR_radioBearerReconfiguration:
+		SET_MSG_INFO(s, "RRC RadioBearerReconfig");
+		goto dl_no_free;
 	default:
 		SET_MSG_INFO(s, "DL-DCCH type=%d", dcch->message.present);
 		s->new_msg->flags &= ~MSG_DECODED;
@@ -220,7 +233,10 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 	}
 #endif
 
+dl_end:
+dl_no_free:
 	asn_DEF_DL_DCCH_Message.free_struct(&asn_DEF_DL_DCCH_Message, dcch, 0);
+	//ASN_STRUCT_FREE(asn_DEF_DL_DCCH_Message, dcch);
 
 	return error;
 }
