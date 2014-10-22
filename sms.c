@@ -116,15 +116,22 @@ void handle_text(struct sms_meta *sm, uint8_t *msg, unsigned len)
 {
 	uint8_t text[256];
 
-	switch (sm->alphabet)) {
+	if (dcs & DCS_COMPRESSED) {
+		APPEND_INFO(sm, "<COMPRESSED DATA>");
+		return;
+	}
+
+	switch (sm->alphabet) {
 	case DCS_7BIT_DEFAULT:
-		//gsm_7bit_decode_n(text, sizeof(text), msg, len);
-		//APPEND_INFO(sm, "7BIT \"%s\"", text);
-		APPEND_INFO(sm, "7BIT %s", osmo_hexdump_nospc(msg, len*7/8));
+		gsm_7bit_decode_n(text, sizeof(text), msg, len);
+		if (strlen(text)) {
+			//FIXME: sanitize string!
+			APPEND_INFO(sm, "\"%s\"", text);
+		} else {
+			APPEND_INFO(sm, "<FAILED TO DECODE TEXT>", text);
+		}
 		break;
 	case DCS_UCS2:
-		APPEND_INFO(sm, "8BIT %s", osmo_hexdump_nospc(msg, len));
-		break;
 	case DCS_NONE:
 	case DCS_8BIT_DATA:
 		if (sm->pid == 124 ||
@@ -134,16 +141,10 @@ void handle_text(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			APPEND_INFO(sm, "OTA ");
 			sm->ota = 1;
 		}
-		APPEND_INFO(sm, "8BIT %s", osmo_hexdump_nospc(msg, len));
-		break;
-	case DCS_7BIT_DEFAULT|DCS_COMPRESSED:
-		APPEND_INFO(sm, "7BIT COMPRESSED");
-		break;
-	case DCS_8BIT_DATA|DCS_COMPRESSED:
-		APPEND_INFO(sm, "8BIT COMPRESSED");
+		APPEND_INFO(sm, "%s", osmo_hexdump_nospc(msg, len));
 		break;
 	default:
-		APPEND_INFO(sm, "UNKN %s", osmo_hexdump_nospc(msg, len));
+		APPEND_INFO(sm, "<UNKNOWN ALPHABET>");
 	}
 }
 
