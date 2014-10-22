@@ -447,8 +447,8 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, unsigned len, uint8_t fro
 	/* Store unparsed bytes */
 	memcpy(sm->data, &msg[off], len - off);
 
-	sm->alphabet = get_sms_alphabet(dcs);
-	sm->class = get_sms_class(dcs);
+	sm->alphabet = get_sms_alphabet(sm->dcs);
+	sm->class = get_sms_class(sm->dcs);
 
 	/* Handle UDH if present */
 	if (sm->udhi) {
