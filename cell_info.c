@@ -19,6 +19,10 @@
 #define SQLITE_QUERY 0
 #endif
 
+#ifndef RATE_LIMIT
+#define RATE_LIMIT 0
+#endif /* !RATE_LIMIT */
+
 #include <osmocom/core/bitvec.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/linuxlist.h>
@@ -111,7 +115,7 @@ static void paging_reset()
 	paging_tmsi = 0;
 }
 
-void cell_and_paging_dump(int force)
+void cell_and_paging_dump(int rate_limit)
 {
 	char query[8192];
 	struct cell_info *ci, *ci2;
@@ -124,7 +128,7 @@ void cell_and_paging_dump(int force)
 	/* Elapsed time from measurement start */
 	time_delta = ts_now.tv_sec - periodic_ts.tv_sec;
 
-	if (!force && time_delta < 10)
+	if (rate_limit && time_delta < 10)
 		return;
 
 	/* Dump cell_info and arfcn_list */
@@ -159,7 +163,7 @@ void cell_and_paging_dump(int force)
 	}
 
 	/* Destroy event */
-	if (force) {
+	if (!rate_limit) {
 		llist_for_each_entry_safe(ci, ci2, &cell_list, entry) {
 			llist_del(&ci->entry);
 			free(ci);
@@ -212,7 +216,7 @@ void cell_init(unsigned start_id, int callback)
 
 void cell_destroy()
 {
-	cell_and_paging_dump(1);
+	cell_and_paging_dump(RATE_LIMIT);
 }
 
 uint16_t get_mcc(uint8_t *digits)
