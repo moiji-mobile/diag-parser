@@ -137,7 +137,7 @@ struct  gprs_grr_cell_reselection_measurements  {
 	uint8_t   serving_cell_reselection;
 	uint8_t   serving_cell_recent_reselection;
 	uint8_t   neighboring_6_strongest_cells_count;
-	struct neighbor neigbors[0];
+	struct neighbor neigbors[6];
 } __attribute__((packed));
 
 #endif //__DIAG_STRUCTS_H__

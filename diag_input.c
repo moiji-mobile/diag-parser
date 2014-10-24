@@ -178,22 +178,122 @@ void handle_periodic_task()
 	cell_and_paging_dump(0);
 }
 
-void handle_measurements(struct diag_packet *dp, unsigned len)
+void handle_gsm_l1_txlev_timing_advance(struct diag_packet *dp, unsigned len)
 {
+	struct gsm_l1_txlev_timing_advance *decoded = (struct gsm_l1_txlev_timing_advance*) &dp->msg_type;
+
+	decoded->arfcn_and_band = ntohs(decoded->arfcn_and_band);
+
+	assert(len-16-2 == 4);
+	printf("x gsm_l1_txlev_timing_advance\n");
+	//printf("x %s\n", osmo_hexdump_nospc(&dp->msg_type, len-16) );
+	printf("x -> arfcn: %d\n", get_arfcn_from_arfcn_and_band(decoded->arfcn_and_band));
+	printf("x -> band: %d\n", get_band_from_arfcn_and_band(decoded->arfcn_and_band));
+	printf("x -> timing advance: %u\n", decoded->timing_advance);
+	printf("x -> tx_power_level: %u\n", decoded->tx_power_level);
+}
+
+void handle_gsm_l1_surround_cell_ba_list(struct diag_packet *dp, unsigned len)
+{
+	struct gsm_l1_surround_cell_ba_list *cl = (struct gsm_l1_surround_cell_ba_list *)&dp->msg_type;
+	struct surrounding_cell *sc = cl->surr_cells;
+
+	assert(len-16-2 == sizeof(struct surrounding_cell)*cl->cell_count + 1);
+
+	printf("x gsm_l1_surround_cell_ba_list\n");
 	int i;
-	struct gsm_l1_surround_cell_ba_list *cl;
-	struct surrounding_cell *sc;
-
-	cl = &dp->msg_type;
-	sc = cl->surr_cells;
-
-	printf("Cell data: %s\n", osmo_hexdump_nospc(cl, 8));
-
 	for (i = 0; i < cl->cell_count; i++) {
-		printf("Surrounding cell %d: arfcn %u rxlev %d\n",
+		printf("x -> Surrounding cell %d -- arfcn %u band: %u rx_power %d frame_number_offset: %u\n",
 			i,
-			get_arfcn_from_arfcn_and_band(sc[i].bcch_arfcn_and_band),
-			ntohs(sc[i].rx_power));
+			get_arfcn_from_arfcn_and_band(ntohs(sc[i].bcch_arfcn_and_band)),
+			get_band_from_arfcn_and_band(ntohs(sc[i].bcch_arfcn_and_band)),
+			sc[i].rx_power,
+			sc[i].frame_number_offset
+		);
+	}
+}
+
+void handle_gsm_l1_burst_metrics(struct diag_packet *dp, unsigned len)
+{
+	struct gsm_l1_burst_metrics *dat = (struct gsm_l1_burst_metrics *)&dp->msg_type;
+
+	assert(len-16-2 == sizeof(struct gsm_l1_burst_metrics));
+
+	printf("x gsm_l1_burst_metrics\n");
+	printf("x -> channel: %u\n", dat->channel);
+	int i;
+	for (i = 0; i < 4; i++) {
+		printf("x -> Burst metric %d -- arfcn %u band: %u frame_number: %u rssi: %u rx_power: %d\n",
+			i,
+			get_arfcn_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band)),
+			get_band_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band)),
+			dat->metrics[i].frame_number,
+			dat->metrics[i].rssi,
+			dat->metrics[i].rx_power
+			//,ntohl(sc[i].frame_number_offset)
+		);
+	}
+}
+
+void handle_gsm_l1_neighbor_cell_auxiliary_measurments(struct diag_packet *dp, unsigned len)
+{
+	struct gsm_l1_neighbor_cell_auxiliary_measurments *cl = (struct gsm_l1_neighbor_cell_auxiliary_measurments *)&dp->msg_type;
+
+	assert(len-16-2 == sizeof(struct cell)*cl->cell_count + 1);
+
+	printf("x gsm_l1_neighbor_cell_auxiliary_measurments\n");
+	int i;
+	for (i = 0; i < cl->cell_count; i++) {
+		struct cell* c = cl->cells + i;
+		printf("x -> cell %d -- arfcn %u band: %u rx_power %d\n",
+			i,
+			get_arfcn_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
+			get_band_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
+			c[i].rx_power
+		);
+	}
+}
+
+void handle_gsm_monitor_bursts_v2(struct diag_packet *dp, unsigned len)
+{
+	struct gsm_monitor_bursts_v2 *cl = (struct gsm_monitor_bursts_v2 *)&dp->msg_type;
+
+	assert(len-16-2 == sizeof(struct monitor_record)*cl->number_of_records + 4);
+
+	printf("x gsm_monitor_bursts_v2\n");
+	int i;
+	for (i = 0; i < cl->number_of_records; i++) {
+		struct monitor_record* c = cl->records + i;
+		printf("x -> record %d -- arfcn %u band: %u frame no %d rx_power %d\n",
+			i,
+			get_arfcn_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
+			get_band_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
+			c[i].frame_number,
+			c[i].rx_power
+		);
+	}
+}
+
+void handle_gprs_grr_cell_reselection_measurements(struct diag_packet *dp, unsigned len)
+{
+	struct gprs_grr_cell_reselection_measurements *cl = (struct gprs_grr_cell_reselection_measurements *)&dp->msg_type;
+
+	//printf("num %d len: %d, shoudl be %d\n", cl->neighboring_6_strongest_cells_count, len-16-2, sizeof(struct neighbor)*cl->neighboring_6_strongest_cells_count + 26);
+	//assert(len-16-2 == sizeof(struct neighbor)*cl->neighboring_6_strongest_cells_count + 26);
+	assert(len-16-2 == sizeof(struct gprs_grr_cell_reselection_measurements));
+
+	printf("x gprs_grr_cell_reselection_measurements\n");
+	int i;
+	for (i = 0; i < cl->neighboring_6_strongest_cells_count; i++) {
+		struct neighbor* c = cl->neigbors + i;
+		printf("x -> neighbor %d -- BCC arfcn %u band: %u  PBCC arfcn %u band: %u rx_level_avg %u\n",
+			i,
+			get_arfcn_from_arfcn_and_band(ntohs(c[i].neighbor_cell_bcch_arfcn_and_band)),
+			get_band_from_arfcn_and_band(ntohs(c[i].neighbor_cell_bcch_arfcn_and_band)),
+			get_arfcn_from_arfcn_and_band(ntohs(c[i].neighbor_cell_pbcch_arfcn_and_band)),
+			get_band_from_arfcn_and_band(ntohs(c[i].neighbor_cell_pbcch_arfcn_and_band)),
+			c[i].neighbor_cell_rx_level_average
+		);
 	}
 }
 
@@ -208,28 +308,53 @@ void handle_diag(uint8_t *msg, unsigned len)
 	}
 
 	switch(dp->msg_protocol) {
+	case 0x5071:
+		handle_gsm_l1_surround_cell_ba_list(dp, len);
+		break;
+
+	case 0x506C:
+		handle_gsm_l1_burst_metrics(dp, len);
+		break;
+
+	case 0x5076:
+		handle_gsm_l1_txlev_timing_advance(dp, len);
+		break;
+
+	case 0x507B:
+		handle_gsm_l1_neighbor_cell_auxiliary_measurments(dp,len);
+		break;
+
+	case 0x5082:
+		handle_gsm_monitor_bursts_v2(dp, len);
+		break;
+
+	case 0x51FC:
+		handle_gprs_grr_cell_reselection_measurements(dp, len);
+		break;
+
 	case 0x412f: // 3G RRC
+// 		fprintf(stderr, "-> Handling 3G\n");
 		m = handle_3G(dp, len);
 		break;
 
-	case 0x5071: // Surrounding cell measurements
-		handle_measurements(dp, len);
-		break;
-
 	case 0x512f: // GSM RR
+// 		fprintf(stderr, "Handling GSM RR\n");
 		m = handle_bcch_and_rr(dp, len);
 		break;
 
 	case 0x5230: // GPRS GMM (doubled msg)
+// 		fprintf(stderr, "-> Not handling GPRS GMM\n");
 		break;
 
 	case 0x713a: // DTAP (2G, 3G)
+// 		fprintf(stderr, "-> Handling NAS\n");
 		m = handle_nas(dp, len);
 		break;
 
 	case 0xb0c0: // LTE RRC
 	case 0xb0ec: // LTE NAS EMM DL
 	case 0xb0ed: // LTE NAS EMM UL
+// 		fprintf(stderr, "-> Handling 4G\n");
 		m = handle_4G(dp, len);
 		break;
 
