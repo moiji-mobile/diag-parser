@@ -18,6 +18,7 @@
 #include "sms.h"
 #include "cell_info.h"
 #include "output.h"
+#include "umts_rrc.h"
 
 void handle_classmark(struct session_info *s, uint8_t *data, uint8_t type)
 {
