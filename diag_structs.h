@@ -1,3 +1,6 @@
+#ifndef __DIAG_STRUCTS_H__
+#define __DIAG_STRUCTS_H__
+
 uint16_t get_arfcn_from_arfcn_and_band(uint16_t val)
 {
 	//uint16_t  arfcn:12;
@@ -137,5 +140,4 @@ struct  gprs_grr_cell_reselection_measurements  {
 	struct neighbor neigbors[0];
 } __attribute__((packed));
 
-
-
+#endif //__DIAG_STRUCTS_H__
