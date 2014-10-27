@@ -15,5 +15,7 @@ CREATE TABLE sms_meta (
   smsc CHAR(32) NOT NULL,		-- SMSC that handled or will handle the message
   msisdn CHAR(32) NOT NULL,		-- Destination or source number of message
   info CHAR(255) NOT NULL,		-- Decoded information in human readable form
+  length smallint NOT NULL,		-- User data length
+  data BINARY(255) NOT NULL,		-- User data in binary form
   PRIMARY KEY(id, sequence)
 );

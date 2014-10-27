@@ -253,8 +253,12 @@ char * sgets(char *s, unsigned len, const char **input)
 	unsigned count = 0;
 	int eol = 0;
 
+	while ((count + 1 < len) && (*next == '\n')) {
+		next++;
+	}
+
 	while ((count + 1 < len) && *next && !eol) {
-		eol = (*next == '\n');
+		eol = (*next == ';');
 		*s++ = *next++;
 		count++;
 	}
