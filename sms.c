@@ -116,6 +116,11 @@ void handle_text(struct sms_meta *sm, uint8_t *msg, unsigned len)
 {
 	uint8_t text[256];
 
+	if (len == 0) {
+		APPEND_INFO(sm, "<NO DATA>");
+		return;
+	}
+
 	if (sm->alphabet & DCS_COMPRESSED) {
 		APPEND_INFO(sm, "<COMPRESSED DATA>");
 		return;
@@ -126,12 +131,15 @@ void handle_text(struct sms_meta *sm, uint8_t *msg, unsigned len)
 		gsm_7bit_decode_n(text, sizeof(text), msg, len);
 		if (strlen(text)) {
 			//FIXME: sanitize string!
-			APPEND_INFO(sm, "\"%s\"", text);
+			//APPEND_INFO(sm, "%s", text);
+			APPEND_INFO(sm, "TEXT_7BIT");
 		} else {
 			APPEND_INFO(sm, "<FAILED TO DECODE TEXT>", text);
 		}
 		break;
 	case DCS_UCS2:
+		APPEND_INFO(sm, "TEXT_16BIT");
+		break;
 	case DCS_NONE:
 	case DCS_8BIT_DATA:
 		if (sm->pid == 124 ||
@@ -141,7 +149,7 @@ void handle_text(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			APPEND_INFO(sm, "OTA ");
 			sm->ota = 1;
 		}
-		APPEND_INFO(sm, "%s", osmo_hexdump_nospc(msg, len));
+		APPEND_INFO(sm, "DATA_8BIT");
 		break;
 	default:
 		APPEND_INFO(sm, "<UNKNOWN ALPHABET>");
@@ -284,9 +292,10 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 	unsigned user_data_len;
 	uint8_t offset = 1;
 	uint8_t ota_cmd = 0;
-	uint8_t ref;
+	uint16_t ref;
 	uint8_t total_frags;
 	uint8_t this_frag;
+	char alt_dest[32];
 
 	assert(sm != NULL);
 	assert(msg != NULL);
@@ -310,23 +319,78 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 	/* Parse header elements (TLV) */
 	while (offset <= header_len) {
 		uint8_t type = msg[offset++];
-		uint8_t len = msg[offset++];
+		uint8_t vlen = msg[offset++];
+
+		if (offset+vlen > len) {
+			APPEND_INFO(sm, "SANITY CHECK FAILED (UDH_IEI_LEN)");
+			return;
+		}
 
 		switch (type) {
 		case 0x00:
-			/* Concatenated header, 8bit */
+			/* Concatenated header, 8bit reference */
+			assert(vlen == 3);
 			ref = msg[offset+0];
 			total_frags = msg[offset+1];
 			this_frag = msg[offset+2];
 			if (this_frag > total_frags) {
-				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_FRAG)");
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_FRAG_8)");
 				return;
 			}
 			APPEND_INFO(sm, "[%d/%d] ", this_frag, total_frags);	
 			sm->concat = 1;
 			break;
+		case 0x01:
+			/* Special SMS indication */
+			assert(vlen == 2);
+			break;
+		case 0x04:
+			/* Application address port, 8bit */
+			assert(vlen == 2);
+			APPEND_INFO(sm, "PORT8 %d->%d ",
+				 msg[offset+1],
+				 msg[offset+0]);	
+			break;
 		case 0x05:
 			/* Application address port, 16bit */
+			assert(vlen == 4);
+			APPEND_INFO(sm, "PORT16 %d->%d ",
+				 msg[offset+0]<<8|msg[offset+1],
+				 msg[offset+2]<<8|msg[offset+3]);	
+			break;
+		case 0x06:
+			/* Service center control parameters */
+			assert(vlen == 1);
+			break;
+		case 0x07:
+			/* UDH source indicator */
+			assert(vlen == 1);
+			break;
+		case 0x08:
+			/* Concatenated header, 16bit reference */
+			assert(vlen == 4);
+			ref = msg[offset+0]<<8|msg[offset+1];
+			total_frags = msg[offset+2];
+			this_frag = msg[offset+3];
+			if (this_frag > total_frags) {
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_FRAG_16)");
+				return;
+			}
+			sm->concat = 1;
+			break;
+		case 0x0a:
+			/* Text formatting (EMS) */
+			break;
+		case 0x22:
+			/* Alternate reply address */
+			assert(vlen >= (msg[offset]/2 + 1));
+			handle_address(&msg[offset+1], msg[offset], alt_dest, 1);
+			APPEND_INFO(sm, "REPLY_ADDR=%s ", alt_dest);
+			break;
+		case 0x24:
+			/* National language shift */
+			assert(vlen == 1);
+			APPEND_INFO(sm, "LANG_SHIFT=%d ", msg[offset]);
 			break;
 		case 0x70:
 			/* OTA Command */
@@ -338,6 +402,13 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			sm->ota = 1;
 			ota_cmd = 0;
 			break;
+		case 0xda:
+			/* SMSC-specific */
+			assert(vlen <= header_len);
+			printf("SMSC-specific %s\n", osmo_hexdump_nospc(&msg[offset], vlen));
+			break;
+		default:
+			printf("Unhandled UDH-IEI 0x%02x, vlen=%d\n", type, vlen);
 		}
 
 		offset += len;
@@ -618,6 +689,8 @@ void sms_make_sql(int sid, struct sms_meta *sm, char *query, unsigned len)
 	char *smsc;
 	char *msisdn;
 	char *info;
+	char *data;
+	char *data_hex;
 
 	assert(sm != NULL);
 	assert(query != NULL);
@@ -625,14 +698,24 @@ void sms_make_sql(int sid, struct sms_meta *sm, char *query, unsigned len)
 	smsc = strescape_or_null(sm->smsc);
 	msisdn = strescape_or_null(sm->msisdn);
 	info = strescape_or_null(sm->info);
+	if (sm->length) { 
+		data_hex = strescape_or_null(osmo_hexdump_nospc(sm->data,sm->length));
+		data = malloc(strlen(data_hex)+2);
+		snprintf(data, strlen(data_hex)+2, "X%s", data_hex);
+		free(data_hex);
+	} else {
+		data = strdup("'<NO DATA>'"); 
+	}
 
-	snprintf(query, len, "INSERT INTO sms_meta VALUES ("
-		 "%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%s);\n",
-		 sid, sm->sequence, sm->from_network, sm->pid, sm->dcs,
-		 sm->udhi, sm->ota, sm->concat, smsc, msisdn, info);
+	snprintf(query, len, "INSERT INTO sms_meta (id,sequence,from_network,"
+		"pid,dcs,alphabet,class,udhi,ota,concat,smsc,msisdn,info,length,data)"
+		" VALUES (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%s,%d,%s);\n",
+		 sid, sm->sequence, sm->from_network, sm->pid, sm->dcs, sm->alphabet,
+		 sm->class, sm->udhi, sm->ota, sm->concat, smsc, msisdn, info, sm->length, data);
 
 	free(smsc);
 	free(msisdn);
 	free(info);
+	free(data);
 }
 
