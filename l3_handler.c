@@ -1204,6 +1204,11 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 
 void handle_radio_msg(struct session_info *s, struct radio_message *m)
 {
+	static int num_called  = 0;
+	if (msg_verbose) {
+		fprintf(stderr, "handle_radio_msg %d\n", num_called++);
+	}
+
 	assert(s != NULL);
 	assert(m != NULL);
 
@@ -1223,23 +1228,40 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 	switch (m->rat) {
 	case RAT_GSM:
 		switch (m->flags & 0x0f) {
-		case MSG_SACCH:
+		case MSG_SACCH: //slow associated control channel
 			if (s->rat != RAT_GSM)
 				break;
+
+			if (msg_verbose) {
+				fprintf(stderr, "-> MSG_SACCH\n");
+			}
 			handle_lapdm(s, &s->chan_sacch[ul], &m->msg[2], m->msg_len-2, m->bb.fn[0], ul);
 			break;
-		case MSG_SDCCH:
+		case MSG_SDCCH: //standalone dedicated control channel
 			if (s->rat != RAT_GSM)
 				break;
+
+			if (msg_verbose) {
+				fprintf(stderr, "-> MSG_SDCCH\n");
+			}
 			handle_lapdm(s, &s->chan_sdcch[ul], m->msg, m->msg_len, m->bb.fn[0], ul);
 			break;
 		case MSG_FACCH:
+			if (msg_verbose) {
+				fprintf(stderr, "-> MSG_FACCH\n");
+			}
 			handle_lapdm(s, &s->chan_facch[ul], m->msg, m->msg_len, m->bb.fn[0], ul);
 			break;
 		case MSG_BCCH:
+			if (msg_verbose) {
+				fprintf(stderr, "-> MSG_BCCH\n");
+			}
 			handle_dtap(s, &m->msg[1], m->msg_len-1, m->bb.fn[0], ul);
 			break;
 		default:
+			if (msg_verbose) {
+				fprintf(stderr, "Wrong MSG flags %02x\n", m->flags);
+			}
 			printf("Wrong MSG flags %02x\n", m->flags);
 			abort();
 		}

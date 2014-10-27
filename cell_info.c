@@ -541,10 +541,16 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	/* Find cell in list */
 	ci = get_from_si(dtap->msg_type, dtap->data, data_len);
 	if (ci) {
+		if (msg_verbose) {
+			fprintf(stderr, "handle_sysinfo-> Found reference cell\n");
+		}
 		/* Found reference */
 		append = 0;
 	} else {
 		/* Allocate new cell */
+		if (msg_verbose) {
+			fprintf(stderr, "handle_sysinfo-> Allocating a new cell\n");
+		}
 		ci = (struct cell_info *) malloc(sizeof(struct cell_info));
 		memset(ci, 0, sizeof(*ci));
 	}
@@ -614,8 +620,12 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		break;
 	case GSM48_MT_RR_SYSINFO_5:
 		if (s->ci) {
-			if (append)
+			if (msg_verbose) {
+				fprintf(stderr, "session was associated with Cell ID? %p\n", s->ci);
+			}
+			if (append) {
 				free(ci);
+			}
 			ci = s->ci;
 			append = 0;
 		} else {
