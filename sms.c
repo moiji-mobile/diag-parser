@@ -504,14 +504,14 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 
 	/* User data length */
 	sm->length = msg[off++];
-	if (msg_verbose) {
+	if (msg_verbose > 1) {
 		fprintf(stderr, "sm->length: %u\n", sm->length);
 	}
 
 	/* Data length sanity check */
 	if ((sm->dcs & 0xe0) != 0x20) {
 		if ((sm->length*7)/8 > (len - off)) {
-			if (msg_verbose) {
+			if (msg_verbose > 1) {
 				printf("len %d off %d sm->len %d\n", len, off, sm->length);
 			}
 			free(sm);
@@ -519,7 +519,7 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 		}
 	} else {
 		//FIXME: estimate compressed length
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "FIXME: estimate compressed length\n");
 		}
 	}

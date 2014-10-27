@@ -81,7 +81,7 @@ void session_init(unsigned start_sid, unsigned start_cid, int console, int gsmta
 
 void session_destroy()
 {
-	if (msg_verbose) {
+	if (msg_verbose > 1) {
 		printf("session_destroy!\n");
 	}
 	session_reset(&_s[0], 0);
@@ -189,7 +189,7 @@ void session_free_msg_list(struct session_info *s)
 
 	while (s->first_msg) {
 		m = s->first_msg;
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			printf("Freeing pointer %p\n", m);
 		}
 		s->first_msg = m->next;
@@ -621,7 +621,7 @@ void session_close(struct session_info *s)
 
 inline void link_to_msg_list(struct session_info* s, struct radio_message *m)
 {
-	if (msg_verbose) {
+	if (msg_verbose > 1) {
 		printf("linking to domain %d message ptr %p\n", s->domain, m);
 	}
 
@@ -646,7 +646,7 @@ void session_reset(struct session_info *s, int forced_release)
 	if (auto_reset == 0) {
 		return;
 	}
-	if (msg_verbose) {
+	if (msg_verbose > 1) {
 		printf("Session RESET! domain: %d, forced release: %d\n", s->domain, forced_release);
 	}
 
@@ -707,7 +707,7 @@ void session_reset(struct session_info *s, int forced_release)
 	/* Free allocated memory */
 
 	//TODO remove the check below, it's *expensive*
-	if (msg_verbose) {
+	if (msg_verbose > 1) {
 		printf("session reset (at the end of the function), domain: %d\n", old_s.domain);
 	}
 	struct radio_message *tmp = old_s.first_msg;

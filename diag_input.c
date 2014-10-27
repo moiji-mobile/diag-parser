@@ -37,7 +37,8 @@ void diag_init(unsigned start_sid, unsigned start_cid)
 #ifdef USE_SQLITE
 	session_init(start_sid, start_cid, 0, 1, CALLBACK_SQLITE);
 #else
-	session_init(start_sid, start_cid, 0, 0, CALLBACK_CONSOLE);
+	session_init(start_sid, start_cid, 1, 0, CALLBACK_CONSOLE);
+	msg_verbose = 1;
 #endif
 #endif
 }
@@ -303,7 +304,7 @@ void handle_diag(uint8_t *msg, unsigned len)
 	struct radio_message *m = NULL;
 
 	if (dp->msg_class != 0x0010) {
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "Class %04x is not supported\n", dp->msg_class);
 		}
 		return;
@@ -311,69 +312,69 @@ void handle_diag(uint8_t *msg, unsigned len)
 
 	switch(dp->msg_protocol) {
 	case 0x5071:
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "handle_gsm_l1_surround_cell_ba_list\n");
 		}
 		handle_gsm_l1_surround_cell_ba_list(dp, len);
 		break;
 
 	case 0x506C:
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "handle_gsm_l1_burst_metrics\n");
 		}
 		handle_gsm_l1_burst_metrics(dp, len);
 		break;
 
 	case 0x5076:
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "handle_gsm_l1_txlev_timing_advance\n");
 		}
 		handle_gsm_l1_txlev_timing_advance(dp, len);
 		break;
 
 	case 0x507B:
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "handle_gsm_l1_neighbor_cell_auxiliary_measurments\n");
 		}
 		handle_gsm_l1_neighbor_cell_auxiliary_measurments(dp,len);
 		break;
 
 	case 0x5082:
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "handle_gsm_monitor_bursts_v2\n");
 		}
 		handle_gsm_monitor_bursts_v2(dp, len);
 		break;
 
 	case 0x51FC:
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "handle_gprs_grr_cell_reselection_measurements\n");
 		}
 		handle_gprs_grr_cell_reselection_measurements(dp, len);
 		break;
 
 	case 0x412f: // 3G RRC
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "-> Handling 3G\n");
 		}
 		m = handle_3G(dp, len);
 		break;
 
 	case 0x512f: // GSM RR
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "Handling GSM RR\n");
 		}
 		m = handle_bcch_and_rr(dp, len);
 		break;
 
 	case 0x5230: // GPRS GMM (doubled msg)
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "-> Not handling GPRS GMM\n");
 		}
 		break;
 
 	case 0x713a: // DTAP (2G, 3G)
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "-> Handling NAS\n");
 		}
 		m = handle_nas(dp, len);
@@ -382,14 +383,14 @@ void handle_diag(uint8_t *msg, unsigned len)
 	case 0xb0c0: // LTE RRC
 	case 0xb0ec: // LTE NAS EMM DL
 	case 0xb0ed: // LTE NAS EMM UL
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "-> Handling 4G\n");
 		}
 		m = handle_4G(dp, len);
 		break;
 
 	default:
-		if (msg_verbose) {
+		if (msg_verbose > 1) {
 			fprintf(stderr, "-> Handling default case\n");
 		}
 		print_common(dp, len);
