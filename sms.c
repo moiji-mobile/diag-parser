@@ -134,7 +134,7 @@ void handle_text(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			//APPEND_INFO(sm, "%s", text);
 			APPEND_INFO(sm, "TEXT_7BIT");
 		} else {
-			APPEND_INFO(sm, "<FAILED TO DECODE TEXT>", text);
+			APPEND_INFO(sm, "<FAILED TO DECODE TEXT>");
 		}
 		break;
 	case DCS_UCS2:
