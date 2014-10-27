@@ -300,7 +300,7 @@ void handle_gprs_grr_cell_reselection_measurements(struct diag_packet *dp, unsig
 void handle_diag(uint8_t *msg, unsigned len)
 {
 	struct diag_packet *dp = (struct diag_packet *) msg;
-	struct radio_message *m = 0;
+	struct radio_message *m = NULL;
 
 	if (dp->msg_class != 0x0010) {
 		if (msg_verbose) {
