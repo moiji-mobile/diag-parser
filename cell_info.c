@@ -614,8 +614,12 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		break;
 	case GSM48_MT_RR_SYSINFO_5:
 		if (s->ci) {
-			if (append)
+			if (msg_verbose) {
+				fprintf(stderr, "session was associated with Cell ID? %p\n", s->ci);
+			}
+			if (append) {
 				free(ci);
+			}
 			ci = s->ci;
 			append = 0;
 		} else {

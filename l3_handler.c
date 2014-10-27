@@ -1223,12 +1223,12 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 	switch (m->rat) {
 	case RAT_GSM:
 		switch (m->flags & 0x0f) {
-		case MSG_SACCH:
+		case MSG_SACCH: //slow associated control channel
 			if (s->rat != RAT_GSM)
 				break;
 			handle_lapdm(s, &s->chan_sacch[ul], &m->msg[2], m->msg_len-2, m->bb.fn[0], ul);
 			break;
-		case MSG_SDCCH:
+		case MSG_SDCCH: //standalone dedicated control channel
 			if (s->rat != RAT_GSM)
 				break;
 			handle_lapdm(s, &s->chan_sdcch[ul], m->msg, m->msg_len, m->bb.fn[0], ul);
