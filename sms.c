@@ -626,6 +626,7 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 
 void handle_cpdata(struct session_info *s, uint8_t *data, unsigned len)
 {
+	assert(len >= sizeof(struct gsm411_rp_hdr));
 	struct gsm411_rp_hdr *rp = (struct gsm411_rp_hdr *) data;
 
 	switch (rp->msg_type & 0x0f) {
