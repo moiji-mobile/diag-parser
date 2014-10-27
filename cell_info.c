@@ -20,7 +20,7 @@
 #endif
 
 #ifndef RATE_LIMIT
-#define RATE_LIMIT 0
+#define RATE_LIMIT 1
 #endif /* !RATE_LIMIT */
 
 #include <osmocom/core/bitvec.h>
@@ -115,7 +115,7 @@ static void paging_reset()
 	paging_tmsi = 0;
 }
 
-void cell_and_paging_dump(int rate_limit)
+void cell_and_paging_dump(int on_destroy)
 {
 	char query[8192];
 	struct cell_info *ci, *ci2;
@@ -128,7 +128,7 @@ void cell_and_paging_dump(int rate_limit)
 	/* Elapsed time from measurement start */
 	time_delta = ts_now.tv_sec - periodic_ts.tv_sec;
 
-	if (rate_limit && time_delta < 10)
+	if (RATE_LIMIT && time_delta < 10)
 		return;
 
 	/* Dump cell_info and arfcn_list */
@@ -163,7 +163,7 @@ void cell_and_paging_dump(int rate_limit)
 	}
 
 	/* Destroy event */
-	if (!rate_limit) {
+	if (on_destroy) {
 		llist_for_each_entry_safe(ci, ci2, &cell_list, entry) {
 			llist_del(&ci->entry);
 			free(ci);
@@ -216,7 +216,7 @@ void cell_init(unsigned start_id, int callback)
 
 void cell_destroy()
 {
-	cell_and_paging_dump(RATE_LIMIT);
+	cell_and_paging_dump(1);
 }
 
 uint16_t get_mcc(uint8_t *digits)
