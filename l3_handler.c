@@ -288,8 +288,10 @@ void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 	}
 }
 
-void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uint32_t fn)
+void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len, uint32_t fn)
 {
+	assert(dtap_len >= sizeof(struct gsm48_hdr));
+
 	switch (dtap->msg_type & 0x3f) {
 	case 0x01:
 		// IMSI DETACH
@@ -303,7 +305,7 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 	case 0x02:
 		// LOC UPD ACCEPT
 		SET_MSG_INFO(s, "LOC UPD ACCEPT");
-		handle_loc_upd_acc(s, dtap->data, len - 2);
+		handle_loc_upd_acc(s, dtap->data, dtap_len - 2);
 		break;
 	case 0x04:
 		// LOC UPD REJ
@@ -317,11 +319,12 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		// LOC UPD REQ
 		session_reset(s, 1);
 		SET_MSG_INFO(s, "LOC UPD REQUEST");
+		assert(dtap_len >= sizeof(struct gsm48_loc_upd_req));
 		handle_loc_upd_req(s, dtap->data);
 		break;
 	case 0x12:
 		// AUTH REQ
-		if ((len < 19) || (dtap->data[17] == 0x2b)) {
+		if ((dtap_len < 19) || (dtap->data[17] == 0x2b)) {
 			SET_MSG_INFO(s, "AUTH REQUEST (GSM)");
 			s->auth = 1;
 		} else {
@@ -338,7 +341,7 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		break;
 	case 0x14:
 		// AUTH RESP
-		if ((len < 6) || (dtap->data[4] == 0x2b)) {
+		if ((dtap_len < 6) || (dtap->data[4] == 0x2b)) {
 			SET_MSG_INFO(s, "AUTH RESPONSE (GSM)");
 			s->auth = 1;
 		} else {

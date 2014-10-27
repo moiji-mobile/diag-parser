@@ -427,22 +427,21 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 	}
 }
 
-void handle_tpdu(struct session_info *s, uint8_t *msg, unsigned len, uint8_t from_network, char *smsc)
+void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8_t from_network, char *smsc)
 {
 	uint8_t off;
 	uint8_t f_len;
 	uint8_t vp;
 	struct sms_meta *sm;
 
+	assert(len < 256);
 	assert(s != NULL);
 	assert(msg != NULL);
 	assert(len > 2);
 	assert(smsc != NULL);
 
 	sm = (struct sms_meta *) malloc(sizeof(struct sms_meta));
-
 	assert(sm != NULL);
-
 	memset(sm, 0, sizeof(*sm));
 
 	/* Store SMSC */
@@ -476,6 +475,7 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, unsigned len, uint8_t fro
 		APPEND_MSG_INFO(s, ", TO %s", sm->msisdn);
 	}
 	off += f_len/2 + 1;
+	assert(off <= len);
 
 	/* TP-PID and TP-DCS */
 	sm->pid = msg[off++];
@@ -500,22 +500,32 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, unsigned len, uint8_t fro
 	if (from_network) {
 		off += 7;
 	}
+	assert(off <= len);
 
 	/* User data length */
 	sm->length = msg[off++];
+	if (msg_verbose) {
+		fprintf(stderr, "sm->length: %u\n", sm->length);
+	}
 
 	/* Data length sanity check */
 	if ((sm->dcs & 0xe0) != 0x20) {
-		if (sm->length*7/8 > len - off) {
-			printf("len %d off %d sm->len %d\n", len, off, sm->length);
+		if ((sm->length*7)/8 > (len - off)) {
+			if (msg_verbose) {
+				printf("len %d off %d sm->len %d\n", len, off, sm->length);
+			}
 			free(sm);
 			return;
 		}
 	} else {
 		//FIXME: estimate compressed length
+		if (msg_verbose) {
+			fprintf(stderr, "FIXME: estimate compressed length\n");
+		}
 	}
 
 	/* Store unparsed bytes */
+	assert(off <= len);
 	memcpy(sm->data, &msg[off], len - off);
 
 	sm->alphabet = get_sms_alphabet(sm->dcs);
@@ -577,6 +587,7 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 
 	/* user data length */
 	f_len = data[off++];
+	assert(f_len <= len-off);
 
 	/* MTI type */
 	type = data[off] & 0x03;

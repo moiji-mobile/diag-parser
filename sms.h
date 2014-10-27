@@ -16,7 +16,7 @@ struct sms_meta {
 	char smsc[32];
 	char msisdn[32];
 	uint8_t length;
-	uint8_t data[140];
+	uint8_t data[256];
 	uint8_t info[256];
 	struct sms_meta *next;
 };
