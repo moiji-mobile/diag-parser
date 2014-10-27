@@ -541,10 +541,16 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	/* Find cell in list */
 	ci = get_from_si(dtap->msg_type, dtap->data, data_len);
 	if (ci) {
+		if (msg_verbose) {
+			fprintf(stderr, "handle_sysinfo-> Found reference cell\n");
+		}
 		/* Found reference */
 		append = 0;
 	} else {
 		/* Allocate new cell */
+		if (msg_verbose) {
+			fprintf(stderr, "handle_sysinfo-> Allocating a new cell\n");
+		}
 		ci = (struct cell_info *) malloc(sizeof(struct cell_info));
 		memset(ci, 0, sizeof(*ci));
 	}

@@ -1204,6 +1204,11 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 
 void handle_radio_msg(struct session_info *s, struct radio_message *m)
 {
+	static int num_called  = 0;
+	if (msg_verbose) {
+		fprintf(stderr, "handle_radio_msg %d\n", num_called++);
+	}
+
 	assert(s != NULL);
 	assert(m != NULL);
 
