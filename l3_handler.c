@@ -1131,10 +1131,25 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 		ns = (msg[1] >> 1) & 0x07;
 
 		/* check sequence */
-		if (mb->len && (ns != ((mb->ns + 1) % 8))) {
+		if (mb->len && (ns != ((mb->ns + 1) % 8) || mb->no_out_of_seq_sender_msgs > 3)) {
 			mb->no_out_of_seq_sender_msgs++;
-			SET_MSG_INFO(s, "<OUT OF SEQUENCE> recv %d want %d no out-of-seq %u", ns, (mb->ns + 1)%8, mb->no_out_of_seq_sender_msgs);
+			SET_MSG_INFO(s
+				, "<OUT OF SEQUENCE> recv %d want %d no out-of-seq %u", ns
+				, (mb->ns + 1)%8, mb->no_out_of_seq_sender_msgs
+			);
 			update_counters(s, &msg[3], len - 3, data_len, fn, ul);
+
+			//Fragments end, reset everything
+			if (!more_frag) {
+				SET_MSG_INFO(s
+					, "<OUT OF SEQUENCE END> no out-of-seq %u, reset seq to %u"
+					, mb->no_out_of_seq_sender_msgs, ns
+				);
+
+				mb->no_out_of_seq_sender_msgs = 0;
+				mb->len = 0;
+				mb->ns = ns;
+			}
 			return;
 		}
 
