@@ -24,12 +24,14 @@ struct frame_count {
 	uint32_t power_sum;
 } __attribute__((packed));
 
+//Holds the state of one lapdm (lapd = a layer 2 protocol)
 struct lapdm_buf {
 	uint32_t len;
 	uint8_t data[20*32];
-	uint8_t nr;
-	uint8_t ns;
-} __attribute__((packed));
+	uint8_t nr; //sequence number of receiver
+	uint8_t ns; //sequence number of sender
+	uint8_t no_out_of_seq_sender_msgs;
+};
 
 struct session_info {
 	int id;
