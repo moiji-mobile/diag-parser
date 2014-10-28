@@ -1172,7 +1172,7 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 
 	/* more fragments? */
 	if (more_frag) {
-		SET_MSG_INFO(s, "<FRAGMENT>"); 
+		SET_MSG_INFO(s, "<FRAGMENT %d>", ns);
 	} else {
 		/* call L3 handler */
 		handle_dtap(s, mb->data, mb->len, fn, ul);
