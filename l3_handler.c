@@ -1116,7 +1116,7 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 
 	/* discard unknown SAPIs */
 	if ((sapi != 0) && (sapi != 3)) {
-		SET_MSG_INFO(s, "Unknown SAPI"); 
+		SET_MSG_INFO(s, "Unknown SAPI: %u", sapi);
 		return;
 	}
 
