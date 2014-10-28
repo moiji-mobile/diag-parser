@@ -35,7 +35,8 @@ db_import: db_import.o libmetagsm.a
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 clean:
-	@rm -f *.o diag_import libmetagsm* *.so
+	@rm -f *.o libmetagsm* *.so
+	@rm -f db_import gsmtap_import diag_import
 
 database:
 	@rm metadata.db
