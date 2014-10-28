@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-O2 -ggdb -I. -I/usr/include/asn1c -fPIC $(EXTRA_CFLAGS)
 LDFLAGS=-losmocore -losmogsm -lasn1c -lm -losmo-asn1-rrc $(EXTRA_LDFLAGS)
-OBJ =	address.o assignment.o bit_func.o ccch.o cch.o chan_detect.o crc.o \
+OBJ=address.o assignment.o bit_func.o ccch.o cch.o chan_detect.o crc.o \
 	umts_rrc.o diag_input.o gprs.o gsm_interleave.o cell_info.o \
 	l3_handler.o output.o process.o punct.o rand_check.o rlcmac.o \
 	sch.o session.o sms.o tch.o viterbi.o
