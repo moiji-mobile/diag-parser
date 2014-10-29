@@ -1131,8 +1131,18 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 		ns = (msg[1] >> 1) & 0x07;
 
 		/* check sequence */
-		if (mb->len && (ns != ((mb->ns + 1) % 8) || mb->no_out_of_seq_sender_msgs > 3)) {
-			mb->no_out_of_seq_sender_msgs++;
+		//if mb->len is > 0 then we have already received a fragment. Otherwise, not.
+		//BELOW: if start of message, we never check out-of-sequence
+		if (mb->len
+			&& (ns != ((mb->ns + 1) % 8) || mb->no_out_of_seq_sender_msgs >= 3)
+		) {
+			if (mb->last_out_of_seq_msg_number != ns
+				&& ((mb->ns - ns) % 8) < 2
+			) {
+				mb->no_out_of_seq_sender_msgs++;
+			}
+			mb->last_out_of_seq_msg_number = ns;
+
 			SET_MSG_INFO(s
 				, "<OUT OF SEQUENCE> recv %d want %d no out-of-seq %u", ns
 				, (mb->ns + 1)%8, mb->no_out_of_seq_sender_msgs
@@ -1140,7 +1150,7 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 			update_counters(s, &msg[3], len - 3, data_len, fn, ul);
 
 			//Fragments end, reset everything
-			if (!more_frag) {
+			if (!more_frag && mb->no_out_of_seq_sender_msgs >= 3) {
 				SET_MSG_INFO(s
 					, "<OUT OF SEQUENCE END> no out-of-seq %u, reset seq to %u"
 					, mb->no_out_of_seq_sender_msgs, ns
@@ -1153,16 +1163,30 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 			return;
 		}
 
+		mb->no_out_of_seq_sender_msgs = 0;
+		mb->last_out_of_seq_msg_number = 100;
 		mb->nr = nr;
 		mb->ns = ns;
 		break;
 	case 1:
 		/* S frame */
+		fprintf(stdout, "<S-FRAME>\n");
 		data_len = 0;
 		break;
-	case 3:
-		/* U frame */
+	case 3: {
+		/* U (unnumbered) frame */
+		const uint8_t flags = msg[1] & 0xec;
+		if (flags == 0x2c) {
+			fprintf(stdout, "<SABM U-FRAME>\n");
+			//001. 11.. = Command: Set Asynchronous Balanced Mode
+
+			mb->no_out_of_seq_sender_msgs = 0;
+			mb->len = 0;
+			mb->ns = 0;
+		}
+		}
 		break;
+
 	}
 
 	update_counters(s, &msg[3], len - 3, data_len, fn, ul);

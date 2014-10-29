@@ -30,7 +30,8 @@ struct lapdm_buf {
 	uint8_t data[20*32];
 	uint8_t nr; //sequence number of receiver
 	uint8_t ns; //sequence number of sender
-	uint8_t no_out_of_seq_sender_msgs;
+	uint16_t no_out_of_seq_sender_msgs;
+	int16_t last_out_of_seq_msg_number;
 };
 
 struct session_info {
