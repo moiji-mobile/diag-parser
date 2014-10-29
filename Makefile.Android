@@ -34,3 +34,5 @@ clean:
 database:
 	@rm metadata.db
 	@sqlite3 metadata.db < si.sql
+	@sqlite3 metadata.db < sms.sql
+	@sqlite3 metadata.db < cell_info.sql
