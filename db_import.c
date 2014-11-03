@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <mysql.h>
+
 #include <omp.h>
 #define __USE_XOPEN 1
 #include <time.h>
