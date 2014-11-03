@@ -1,5 +1,7 @@
+# Copied from Makefile.Android to make the PC build as similar as possible to the Android build
+
 CFLAGS=-DSQLITE_QUERY=1 -DMSG_VERBOSE=1 -DRATE_LIMIT=1 -O2 -ggdb -I. -I$(PREFIX)/include -I$(PREFIX)/include/asn1c/ --sysroot=$(SYSROOT) -nostdlib -fPIC
-LDFLAGS=-losmocore -losmogsm -lasn1c -lm -losmo-asn1-rrc -lcompat --sysroot $(SYSROOT) -L $(PREFIX)/lib -L .
+LDFLAGS=-losmocore -losmogsm -lasn1c -lm -losmo-asn1-rrc -lcompat -L $(PREFIX)/lib -L .
 OBJ =	address.o assignment.o bit_func.o ccch.o cch.o chan_detect.o crc.o \
 	umts_rrc.o diag_input.o gprs.o gsm_interleave.o cell_info.o \
 	l3_handler.o output.o process.o punct.o rand_check.o rlcmac.o \
@@ -21,8 +23,8 @@ install: diag_import libcompat.so
 libmetagsm.a: $(OBJ)
 	$(CROSS_COMPILE)-$(AR) rcs $@ $^
 
-libcompat.so: compat.o
-	$(CROSS_COMPILE)-$(CC) -o $@ $^ -shared -fPIC --sysroot $(SYSROOT) -lc
+libcompat.so: compat_pc.o
+	$(CROSS_COMPILE)-$(CC) -o $@ $^ -shared -fPIC -lc
 
 
 diag_import: diag_import.o libmetagsm.a libcompat.so
