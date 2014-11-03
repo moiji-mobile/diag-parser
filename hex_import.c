@@ -4,6 +4,8 @@
 
 #include "diag_input.h"
 #include "bit_func.h"
+#include "assert.h"
+#include <osmocom/core/utils.h>
 
 int main(int argc, char *argv[])
 {
