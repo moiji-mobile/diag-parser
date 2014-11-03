@@ -35,12 +35,17 @@ int main(int argc, char *argv[])
 
 		/* Skip empty lines */
 		len = strlen(diag_hex);
-		if (!len || (diag_hex[0] == '\n')) {
+		if (len == 0 || (diag_hex[0] == '\n')) {
 			continue;
 		}
 
 		/* Cut trailing \n */
-		len--;
+		if (diag_hex[len-1] == '\r') {
+			len--;
+		}
+		if (diag_hex[len-1] == '\n') {
+			len--;
+		}
 		diag_hex[len] = 0;
 
 		/* Prepare data buffer */
