@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <mysql.h>
+
 #include <assert.h>
 
 #include "mysql_api.h"
@@ -16,7 +16,10 @@
 #define MYSQL_DBNAME "celldb"
 #endif
 
+#ifdef USE_MYSQL
+#include <mysql.h>
 static MYSQL *meta_db;
+#endif
 
 void mysql_api_query_cb(const char *input)
 {
@@ -30,6 +33,7 @@ void mysql_api_query_cb(const char *input)
 		return;
 	}
 
+	#ifdef USE_MYSQL
 	while (sgets(query, sizeof(query), &ptr)) {
 		ret = mysql_query(meta_db, query);
 		if (ret) {
@@ -38,10 +42,12 @@ void mysql_api_query_cb(const char *input)
 			exit(1);
 		}
 	}
+	#endif
 }
 
 void mysql_api_init(struct session_info *s)
-{	
+{
+	#ifdef USE_MYSQL
 	int ret, one = 1;
 	MYSQL *conn_check;
 
@@ -61,9 +67,14 @@ void mysql_api_init(struct session_info *s)
 	}
 
 	s->sql_callback = mysql_api_query_cb;
+	#else
+	s->sql_callback = NULL;
+	#endif
 }
 
 void mysql_api_destroy()
 {
+	#ifdef USE_MYSQL
 	mysql_close(meta_db);
+	#endif
 }
