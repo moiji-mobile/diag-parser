@@ -290,7 +290,10 @@ void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 
 void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len, uint32_t fn)
 {
-	assert(dtap_len >= sizeof(struct gsm48_hdr));
+	if (dtap_len < sizeof(struct gsm48_hdr)) {
+		SET_MSG_INFO(s, "FAILED SANITY CHECKS (MM_LEN)");
+		return;
+	}
 
 	switch (dtap->msg_type & 0x3f) {
 	case 0x01:

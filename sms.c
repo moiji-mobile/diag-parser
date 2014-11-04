@@ -564,7 +564,7 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 	if (f_len) {
 		/* Sanity check */
 		if (!from_network) {
-			SET_MSG_INFO(s, " FAILED SANITY CHECK (SMS_SMSC_MO)");
+			SET_MSG_INFO(s, "SANITY CHECK FAILED (SMS_SMSC_MO)");
 			return;
 		}
 		handle_address(&data[off], f_len, smsc, 0);
@@ -576,7 +576,7 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 	if (f_len) {
 		/* Sanity check */
 		if (from_network) {
-			SET_MSG_INFO(s, " FAILED SANITY CHECK (SMS_SMSC_MT)");
+			SET_MSG_INFO(s, "SANITY CHECK FAILED (SMS_SMSC_MT)");
 			return;
 		}
 		handle_address(&data[off], f_len, smsc, 0);
@@ -585,7 +585,10 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 
 	/* user data length */
 	f_len = data[off++];
-	assert(f_len <= len-off);
+	if (f_len > len - off) {
+		SET_MSG_INFO(s, "SANITY CHECK FAILED (USER_DATA_LEN)");
+		return;
+	}
 
 	/* MTI type */
 	type = data[off] & 0x03;
@@ -635,8 +638,12 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 
 void handle_cpdata(struct session_info *s, uint8_t *data, unsigned len)
 {
-	assert(len >= sizeof(struct gsm411_rp_hdr));
 	struct gsm411_rp_hdr *rp = (struct gsm411_rp_hdr *) data;
+
+	if (len < sizeof(struct gsm411_rp_hdr)) {
+		SET_MSG_INFO(s, "SANITY CHECK FAILED (RP_DATA_LEN)");
+		return;
+	}
 
 	switch (rp->msg_type & 0x0f) {
 	case GSM411_MT_RP_DATA_MO:
