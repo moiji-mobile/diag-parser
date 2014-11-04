@@ -457,57 +457,57 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 	switch (dtap->msg_type) {
 	case GSM48_MT_RR_SYSINFO_1:
 		SET_MSG_INFO(s, "SYSTEM INFO 1");
-		handle_sysinfo(s, dtap, len, fn);
+		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_2:
 		SET_MSG_INFO(s, "SYSTEM INFO 2");
-		handle_sysinfo(s, dtap, len, fn);
+		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_2bis:
 		SET_MSG_INFO(s, "SYSTEM INFO 2bis");
-		handle_sysinfo(s, dtap, len, fn);
+		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_2ter:
 		SET_MSG_INFO(s, "SYSTEM INFO 2ter");
-		handle_sysinfo(s, dtap, len, fn);
+		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_2quater:
 		SET_MSG_INFO(s, "SYSTEM INFO 2quater");
-		handle_sysinfo(s, dtap, len, fn);
+		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_3:
 		SET_MSG_INFO(s, "SYSTEM INFO 3");
-		handle_sysinfo(s, dtap, len, fn);
+		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_4:
 		SET_MSG_INFO(s, "SYSTEM INFO 4");
-		handle_sysinfo(s, dtap, len, fn);
+		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_5:
 		SET_MSG_INFO(s, "SYSTEM INFO 5");
 		rand_check((uint8_t *)dtap, 18, &s->si5, s->cipher);
-		handle_sysinfo(s, dtap, len, fn);
+		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_5bis:
 		SET_MSG_INFO(s, "SYSTEM INFO 5bis");
 		rand_check((uint8_t *)dtap, 18, &s->si5bis, s->cipher);
-		handle_sysinfo(s, dtap, len, fn);
+		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_5ter:
 		SET_MSG_INFO(s, "SYSTEM INFO 5ter");
 		rand_check((uint8_t *)dtap, 18, &s->si5ter, s->cipher);
-		handle_sysinfo(s, dtap, len, fn);
+		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_6:
 		SET_MSG_INFO(s, "SYSTEM INFO 6");
 		rand_check((uint8_t *)dtap, 18, &s->si6, s->cipher);
 		si6 = (struct gsm48_system_information_type_6 *) dtap;
 		handle_lai(s, (uint8_t*)&si6->lai, htons(si6->cell_identity));
-		handle_sysinfo(s, dtap, len, fn);
+		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_13:
 		SET_MSG_INFO(s, "SYSTEM INFO 13");
-		handle_sysinfo(s, dtap, len, fn);
+		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_CHAN_REL:
 		SET_MSG_INFO(s, "CHANNEL RELEASE");
@@ -544,7 +544,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		break;
 	case GSM48_MT_RR_PAG_REQ_3:
 		SET_MSG_INFO(s, "PAGING REQ 3");
-		handle_paging3(dtap, len);
+		handle_paging3();
 		break;
 	case GSM48_MT_RR_IMM_ASS:
 		SET_MSG_INFO(s, "IMM ASSIGNMENT");
@@ -1413,7 +1413,6 @@ struct radio_message * new_l2(uint8_t *data, uint8_t len, uint8_t rat, uint8_t d
 	struct radio_message *m;
 
 	assert(data != 0);
-	assert(len < sizeof(m->msg));
 
 	m = (struct radio_message *) malloc(sizeof(struct radio_message));
 

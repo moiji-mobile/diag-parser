@@ -182,7 +182,8 @@ int main(int argc, char **argv)
 	MYSQL conn, *test;
 	MYSQL_RES *result;
 	MYSQL_ROW row;
-	int ret, i;
+	int ret;
+	unsigned i;
 	unsigned int row_count;
 	char query[128];
 	int *session_id;

@@ -51,13 +51,13 @@ struct session_info {
 	uint8_t closed;
 	uint8_t cracked;
 	uint8_t processing;
-	uint8_t decoded;
+	int8_t decoded;
 	uint8_t have_key;
 	uint8_t no_key;
 	uint8_t key[8];
 	uint8_t initial_seq;
 	uint8_t cipher_seq;
-	int cipher_missing;
+	int8_t cipher_missing;
 	uint32_t cm_cmd_fn;
 	uint32_t cm_comp_first_fn;
 	uint32_t cm_comp_last_fn;
