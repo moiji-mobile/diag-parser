@@ -238,7 +238,7 @@ int process_pdch(struct session_info *s, struct l1ctl_burst_ind *bi, uint8_t *gp
 	/* if a message is decoded */
 	if (len) {
 		/* fill gprs message struct */
-		memcpy(&m.bb, bb, sizeof(bb));
+		memcpy(&m.bb, bb, sizeof(*bb));
 		m.rat = RAT_GSM;
 		m.domain = DOMAIN_PS;
 		m.chan_nr = ts;

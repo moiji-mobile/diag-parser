@@ -149,7 +149,7 @@ int process_tch(struct session_info *s, struct l1ctl_burst_ind *bi, uint8_t *msg
 		}
 
 		m = malloc(sizeof(struct radio_message));
-		memcpy(&m->bb, bb, sizeof(bb));
+		memcpy(&m->bb, bb, sizeof(*bb));
 		m->chan_nr = bi->chan_nr;
 		m->flags = MSG_FACCH|MSG_DECODED;
 		if (s->have_key)

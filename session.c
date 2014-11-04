@@ -18,7 +18,7 @@
 #include "sqlite_api.h"
 #endif
 
-#define APPEND(log, msg) strncat(log, msg, sizeof(log))
+#define APPEND(log, msg) snprintf(log+strlen(log), sizeof(log)-strlen(log), "%s", msg);
 
 #ifndef MSG_VERBOSE
 #define MSG_VERBOSE 0
@@ -548,7 +548,6 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 void session_close(struct session_info *s)
 {
 	struct timeval t_now;
-	int i;
 
 	assert(s != NULL);
 

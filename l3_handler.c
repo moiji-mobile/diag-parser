@@ -1083,12 +1083,13 @@ void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, 
 void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *msg, unsigned len, uint32_t fn, uint8_t ul)
 {
 	uint8_t sapi, lpd_type, ea;
-	uint8_t frame_type, nr, ns;
+	uint8_t frame_type, nr, ns = 0;
 	//uint8_t cr, pf;
 	uint8_t data_len, more_frag, fo;
 	uint8_t old_auth;
 	uint8_t old_cipher;
 	struct lapdm_buf *mb;
+	uint8_t flags;
 
 	/* extract all bit fields */
 	lpd_type = (msg[0] >> 5) & 0x03;
@@ -1137,8 +1138,8 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 		//if mb->len is > 0 then we have already received a fragment. Otherwise, not.
 		//BELOW: if start of message, we never check out-of-sequence
 		if (mb->len
-			&& (ns != ((mb->ns + 1) % 8) || mb->no_out_of_seq_sender_msgs >= 3)
-		) {
+			&& (ns != ((mb->ns + 1) % 8) || mb->no_out_of_seq_sender_msgs >= 3)) {
+
 			if (mb->last_out_of_seq_msg_number != ns
 				&& ((mb->ns - ns) % 8) < 2
 			) {
@@ -1178,9 +1179,9 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 		}
 		data_len = 0;
 		break;
-	case 3: {
+	case 3:
 		/* U (unnumbered) frame */
-		const uint8_t flags = msg[1] & 0xec;
+		flags = msg[1] & 0xec;
 		if (flags == 0x2c) {
 			if (msg_verbose) {
 				fprintf(stdout, "<SABM U-FRAME>\n");
@@ -1190,7 +1191,6 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 			mb->no_out_of_seq_sender_msgs = 0;
 			mb->len = 0;
 			mb->ns = 0;
-		}
 		}
 		break;
 
