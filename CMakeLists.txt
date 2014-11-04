@@ -75,6 +75,11 @@ macro(add_c_flag_if_supported flagname)
 	endif()
 endmacro()
 
+macro(add_c_flag flagname)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flagname}")
+endmacro()
+
+#add_c_flag("-std=c99")
 add_c_flag_if_supported("-Wall")
 add_c_flag_if_supported("-Wextra")
 add_c_flag_if_supported("-Wunused")
