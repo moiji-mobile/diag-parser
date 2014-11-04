@@ -67,6 +67,8 @@ struct radio_message * handle_3G(struct diag_packet *dp, unsigned len)
 	unsigned payload_len;
 	struct radio_message *m;
 
+	assert(len >= 16);
+
 	payload_len = dp->len - 16;
 
 	assert(payload_len < sizeof(m->bb.data));

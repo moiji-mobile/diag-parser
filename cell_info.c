@@ -408,10 +408,12 @@ static int handle_si3_rest(struct cell_info *ci, uint8_t *si, uint8_t len)
 	}
 
 	/* System Onformation 2ter Indicator */
-	if (bitvec_get_bit_high(&bv) == H);
+	if (bitvec_get_bit_high(&bv) == H) {
+	}
 
 	/* Early Classark Sending Control */
-	if (bitvec_get_bit_high(&bv) == H);
+	if (bitvec_get_bit_high(&bv) == H) {
+	}
 
 	/* Scheduling if and where */
 	if (bitvec_get_bit_high(&bv) == H) {
@@ -497,7 +499,7 @@ check_si4_padding:
 	handle_si4_rest(ci, data, len - offset);
 }
 
-void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uint32_t fn)
+void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 {
 	struct gsm48_system_information_type_1 *si1;
 	struct gsm48_system_information_type_2 *si2;
@@ -775,7 +777,7 @@ void handle_paging2(struct gsm48_hdr *dtap, unsigned len)
 	paging_inc(0, mi_type);
 }
 
-void handle_paging3(struct gsm48_hdr *dtap, unsigned len)
+void handle_paging3()
 {
 	paging_inc(3, GSM_MI_TYPE_TMSI);
 	paging_inc(0, GSM_MI_TYPE_TMSI);

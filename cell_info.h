@@ -10,9 +10,9 @@ void cell_destroy();
 void cell_and_paging_dump(int force);
 uint16_t get_mcc(uint8_t *digits);
 uint16_t get_mnc(uint8_t *digits);
-void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uint32_t fn);
+void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len);
 void handle_paging1(struct gsm48_hdr *dtap, unsigned len);
 void handle_paging2(struct gsm48_hdr *dtap, unsigned len);
-void handle_paging3(struct gsm48_hdr *dtap, unsigned len);
+void handle_paging3();
 
 #endif
