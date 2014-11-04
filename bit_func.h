@@ -1,6 +1,7 @@
 #ifndef BIT_FUNC_H
 #define BIT_FUNC_H
 
+#include <stdio.h>
 #include <stdint.h>
 
 int not_zero(uint8_t *t, unsigned size);
@@ -19,6 +20,7 @@ int is_printable(const char *str, unsigned len);
 
 unsigned hamming_distance(uint8_t *v1, uint8_t *v2, unsigned len);
 char * strescape_or_null(char *str);
+unsigned fread_unescape(FILE *f, uint8_t *msg, unsigned len);
 char * sgets(char *str, unsigned len, const char **input);
 
 #endif

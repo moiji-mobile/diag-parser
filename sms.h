@@ -17,12 +17,13 @@ struct sms_meta {
 	char msisdn[32];
 	uint8_t length;
 	uint8_t data[256];
-	uint8_t info[256];
+	char info[256];
 	struct sms_meta *next;
 };
 
 void handle_sms(struct session_info *s, struct gsm48_hdr *dtap, unsigned len);
 void handle_cpdata(struct session_info *s, uint8_t *data, unsigned len);
 void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t from_network);
+void sms_make_sql(int sid, struct sms_meta *sm, char *query, unsigned len);
 
 #endif

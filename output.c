@@ -15,10 +15,12 @@ void net_init()
 	gsmtap_source_add_sink(gti);
 }
 
-void net_send_rlcmac(uint8_t *msg, int len, uint8_t ul)
+void net_send_rlcmac(uint8_t *msg, int len, int ts, uint8_t ul)
 {
 	if (gti) {
 		gsmtap_send(gti, ul?ARFCN_UPLINK:0, 0, 0xd, 0, 0, 0, 0, msg, len);
+		gsmtap_send(gti, ul?ARFCN_UPLINK:0, ts, GSMTAP_CHANNEL_PACCH, 0, 0, 0, 0, msg, len);
+
 	}
 }
 

@@ -318,8 +318,11 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 	case 0x08:
 		// LOC UPD REQ
 		session_reset(s, 1);
+		if (dtap_len < sizeof(struct gsm48_loc_upd_req)) {
+			SET_MSG_INFO(s, "FAILED SANITY CHECKS (LUR_DTAP_SIZE)");
+			break;
+		}
 		SET_MSG_INFO(s, "LOC UPD REQUEST");
-		assert(dtap_len >= sizeof(struct gsm48_loc_upd_req));
 		handle_loc_upd_req(s, dtap->data);
 		break;
 	case 0x12:
@@ -833,8 +836,8 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 
 void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 {
-	uint8_t sapi;
-	uint8_t qos_len;
+	//uint8_t sapi;
+	//uint8_t qos_len;
 
 	assert(s != NULL);
 	assert(dtap != NULL);
@@ -856,8 +859,8 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 	case 0x02:
 		// ACTIVATE PDP CTX ACCEPT
 		SET_MSG_INFO(s, "ACTIVATE PDP ACCEPT");
-		sapi = dtap->data[0];
-		qos_len = dtap->data[1];
+		//sapi = dtap->data[0];
+		//qos_len = dtap->data[1];
 		//assert(qos_len < (len-3));
 		//TLV @ data[3+qos_len+1]
 		break;
@@ -985,14 +988,14 @@ int is_double(struct session_info *s, uint8_t *msg, size_t len)
 				// set real rat and discard
 				s->rat = s->new_msg->rat;
 				s->new_msg->flags &= ~MSG_DECODED;
-				return;
+				return 1;
 			}
 		} else {
 			if ((s->last_dtap_rat != RAT_GSM) &&
 			    (s->new_msg->rat == RAT_GSM)) {
 				// discard as we already processed the 3G one
 				s->new_msg->flags &= ~MSG_DECODED;
-				return;
+				return 1;
 			}
 		}
 	}
@@ -1079,22 +1082,22 @@ void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, 
 
 void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *msg, unsigned len, uint32_t fn, uint8_t ul)
 {
-	uint8_t sapi, lpd_type, cr, ea;
-	uint8_t frame_type, nr, ns, pf;
+	uint8_t sapi, lpd_type, ea;
+	uint8_t frame_type, nr, ns;
+	//uint8_t cr, pf;
 	uint8_t data_len, more_frag, fo;
 	uint8_t old_auth;
 	uint8_t old_cipher;
 	struct lapdm_buf *mb;
-	uint8_t retry = 1;
 
 	/* extract all bit fields */
 	lpd_type = (msg[0] >> 5) & 0x03;
 	sapi = (msg[0] >> 2) & 0x07;
-	cr = (msg[0] >> 1) & 0x01;
+	//cr = (msg[0] >> 1) & 0x01;
 	ea = msg[0] & 0x01;
 
 	frame_type = msg[1] & 0x03;
-	pf = (msg[1] >> 4) & 0x01;
+	//pf = (msg[1] >> 4) & 0x01;
 
 	data_len = (msg[2] >> 2) & 0x3f;
 	more_frag = (msg[2] >> 1) & 0x1;
@@ -1170,14 +1173,18 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 		break;
 	case 1:
 		/* S frame */
-		fprintf(stdout, "<S-FRAME>\n");
+		if (msg_verbose > 1) {
+			fprintf(stdout, "<S-FRAME>\n");
+		}
 		data_len = 0;
 		break;
 	case 3: {
 		/* U (unnumbered) frame */
 		const uint8_t flags = msg[1] & 0xec;
 		if (flags == 0x2c) {
-			fprintf(stdout, "<SABM U-FRAME>\n");
+			if (msg_verbose) {
+				fprintf(stdout, "<SABM U-FRAME>\n");
+			}
 			//001. 11.. = Command: Set Asynchronous Balanced Mode
 
 			mb->no_out_of_seq_sender_msgs = 0;

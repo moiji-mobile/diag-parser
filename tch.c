@@ -5,9 +5,12 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 
+#include "gsm_interleave.h"
+#include "l3_handler.h"
+
 int process_tch(struct session_info *s, struct l1ctl_burst_ind *bi, uint8_t *msg)
 {
-	int ret, i, ul;
+	int ret, ul;
 	uint16_t arfcn;
 	uint32_t fn;
 	uint8_t conv_data[CONV_SIZE];

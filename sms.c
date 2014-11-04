@@ -114,7 +114,7 @@ enum sms_alphabet get_sms_alphabet(uint8_t dcs)
 
 void handle_text(struct sms_meta *sm, uint8_t *msg, unsigned len)
 {
-	uint8_t text[256];
+	char text[256];
 
 	if (len == 0) {
 		APPEND_INFO(sm, "<NO DATA>");
@@ -259,7 +259,7 @@ void handle_sec_cp(struct sms_meta *sm, uint8_t *msg, unsigned len)
 
 	APPEND_INFO(sm, "TAR %02X%02X%02X ", sh->tar[0], sh->tar[1], sh->tar[2]);
 
-	if ((sh->spi1 & 0x04 == 0)) {
+	if (((sh->spi1 & 0x04) == 0)) {
 		APPEND_INFO(sm, "CNTR %02X%02X%02X%02X%02X ",
 				sh->cntr[0], sh->cntr[1],
 				sh->cntr[2], sh->cntr[3],
@@ -292,7 +292,6 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 	unsigned user_data_len;
 	uint8_t offset = 1;
 	uint8_t ota_cmd = 0;
-	uint16_t ref;
 	uint8_t total_frags;
 	uint8_t this_frag;
 	char alt_dest[32];
@@ -330,7 +329,6 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 		case 0x00:
 			/* Concatenated header, 8bit reference */
 			assert(vlen == 3);
-			ref = msg[offset+0];
 			total_frags = msg[offset+1];
 			this_frag = msg[offset+2];
 			if (this_frag > total_frags) {
@@ -369,13 +367,13 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 		case 0x08:
 			/* Concatenated header, 16bit reference */
 			assert(vlen == 4);
-			ref = msg[offset+0]<<8|msg[offset+1];
 			total_frags = msg[offset+2];
 			this_frag = msg[offset+3];
 			if (this_frag > total_frags) {
 				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_FRAG_16)");
 				return;
 			}
+			APPEND_INFO(sm, "[%d/%d] ", this_frag, total_frags);	
 			sm->concat = 1;
 			break;
 		case 0x0a:
@@ -555,7 +553,7 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 	uint8_t off = 0;
 	uint8_t f_len;
 	uint8_t type;
-	uint8_t smsc[GSM48_MI_SIZE];
+	char smsc[GSM48_MI_SIZE];
 
 	assert(s != NULL);
 	assert(data != NULL);

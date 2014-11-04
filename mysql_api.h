@@ -4,6 +4,6 @@
 #include "session.h"
 
 void mysql_api_init(struct session_info *s);
-void mysql_api_close();
+void mysql_api_destroy();
 
 #endif

@@ -103,7 +103,6 @@ uint8_t chan_burst_id(uint8_t chan_nr)
 
 void process_ccch(struct session_info *s, struct burst_buf *bb, struct l1ctl_burst_ind *bi)
 {
-	int i;
 	struct radio_message *m;
 	uint32_t fn;
 	uint16_t arfcn;

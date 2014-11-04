@@ -5,6 +5,7 @@
 #include <assert.h>
 
 #include "mysql_api.h"
+#include "bit_func.h"
 
 #ifndef MYSQL_USER
 #define MYSQL_USER "root"
