@@ -7,6 +7,14 @@
 #include "cell_info.h"
 #include "bit_func.h"
 
+#ifdef USE_MYSQL
+#include "mysql_api.h"
+#endif
+
+#ifdef USE_SQLITE
+#include "sqlite_api.h"
+#endif
+
 #define MASK_BCCH	0x01
 #define MASK_NEIGH_2	0x02
 #define MASK_NEIGH_2b	0x04
@@ -33,7 +41,6 @@
 
 static unsigned cell_info_id;
 static struct llist_head cell_list;
-static struct osmo_timer_list dump_timer;
 static unsigned output_sqlite = 1;
 static struct timeval periodic_ts;
 static struct session_info s;
@@ -296,6 +303,8 @@ uint8_t si_mask(enum si_index index)
 		return MASK_NEIGH_5b;
 	case SI5t:
 		return MASK_NEIGH_5t;
+	default:
+		return 0;
 	}
 
 	return 0;
@@ -506,10 +515,6 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	struct cell_info *ci = NULL;
 
 	unsigned data_len;
-	uint16_t mcc;
-	uint16_t mnc;
-	uint16_t lac;
-	uint16_t cid;
 	int index;
 	int append = 1;
 
@@ -825,7 +830,6 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 	char first_ts[40];
 	char last_ts[40];
 	char *si_hex[SI_MAX];
-	unsigned offset;
 	int i;
 
 	assert(ci != NULL);

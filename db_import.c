@@ -23,7 +23,6 @@ int explore_session(int id)
 	int ret;
 	char *cret;
 	int mcc, mnc, lac, cid, cracked;
-	char hex_tmp[9];
 	char query[4096];
 	struct session_info *s;
 	struct tm tm;
@@ -103,7 +102,7 @@ int explore_session(int id)
 		int fn = atoi(row[0]);
 		int channel = atoi(row[1]);
 		int uplink = atoi(row[2]);
-		uint8_t *data = row[3];
+		char *data = row[3];
 		struct radio_message *m;
 
 		m = (struct radio_message *) malloc(sizeof(struct radio_message));
@@ -174,6 +173,8 @@ int explore_session(int id)
 	session_free(s);
 
 	mysql_close(&w_conn);
+
+	return 0;
 }
 
 int main(int argc, char **argv)
@@ -181,17 +182,18 @@ int main(int argc, char **argv)
 	MYSQL conn, *test;
 	MYSQL_RES *result;
 	MYSQL_ROW row;
-	int ret, i, s_id;
+	int ret, i;
 	unsigned int row_count;
 	char query[128];
+	int *session_id;
 
 	session_init(0, 0, 0, 0, CALLBACK_MYSQL);
 	auto_reset = 0;
 
 	if (argc == 2) {
-		msg_verbose = 1;
+		int s_id = atoi(argv[1]);
 
-		s_id = atoi(argv[1]);
+		msg_verbose = 1;
 
 		printf("Session %d\n", s_id);
 
@@ -202,12 +204,14 @@ int main(int argc, char **argv)
 
 	memset(&conn, 0, sizeof(conn));
 
+	//test = mysql_real_connect(&conn, "127.0.0.1", "root", "moth*echo5Sigma", "session_meta_test", 3306, 0, 0);
 	test = mysql_real_connect(&conn, "10.0.0.1", "luca", "nooHah1Aes", "celldb", 3306, 0, 0);
 	if (test == 0) {
 		printf("Cannot connect to database\n");
 		return -1;
 	}
 
+	//snprintf(query, sizeof(query), "select id from sms_meta where id < 8000000 and pid = 64 order by id;");
 	snprintf(query, sizeof(query), "select id from session where id > %d order by id;", START_ID);
 
 	ret = mysql_query(&conn, query);
@@ -224,26 +228,37 @@ int main(int argc, char **argv)
 
 	row_count = mysql_num_rows(result);
 
-//	#pragma omp parallel for private(row) shared(result) num_threads (10)
+	printf("Running over %d sessions...\n", row_count);
 
-	for (i = 1; i < row_count; i++) {
-		row = mysql_fetch_row(result);
-		if (row[0] == 0) {
-			printf("Error read row from result\n");
-			return -1;
-		}
-
-		s_id = atoi(row[0]);
-
-		printf("Session %d\n", s_id);
-
-		explore_session(s_id);
+	session_id = malloc(row_count*sizeof(*session_id));
+	if (!session_id) {
+		printf("Cannot allocate memory for session IDs\n");
+		return -1;
 	}
 
-	cell_and_paging_dump(1);
+	for (i = 0; i < row_count; i++) {
+		row = mysql_fetch_row(result);
+		if (row[0] == 0) {
+			printf("Cannot parse session ID\n");
+			return -1;
+		}
+		session_id[i] = atoi(row[0]);
+	}
 
 	mysql_free_result(result);
 	mysql_close(&conn);
+
+	//#pragma omp parallel for num_threads (10)
+	for (i = 0; i < row_count; i++) {
+
+		printf("Session %d\n", session_id[i]);
+
+		explore_session(session_id[i]);
+	}
+
+	free(session_id);
+
+	cell_and_paging_dump(1);
 
 	return 0;
 }

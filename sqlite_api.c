@@ -4,6 +4,7 @@
 #include <sqlite3.h>
 
 #include "sqlite_api.h"
+#include "bit_func.h"
 
 static sqlite3 *meta_db;
 

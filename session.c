@@ -10,6 +10,14 @@
 #include <assert.h>
 #include <osmocom/gsm/gsm_utils.h>
 
+#ifdef USE_MYSQL
+#include "mysql_api.h"
+#endif
+
+#ifdef USE_SQLITE
+#include "sqlite_api.h"
+#endif
+
 #define APPEND(log, msg) strncat(log, msg, sizeof(log))
 
 #ifndef MSG_VERBOSE
@@ -428,7 +436,6 @@ void session_print(struct session_info *s)
 void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8_t sqlite)
 {
 	char timestamp[40];
-	int ret;
 	char *tmsi;
 	char *new_tmsi;
 	char *tlli;

@@ -10,7 +10,7 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 	UL_DCCH_Message_t *dcch = NULL;
 	asn_dec_rval_t rv;
 
-	MessageAuthenticationCode_t *mac;
+	//MessageAuthenticationCode_t *mac;
 	uint8_t *nas = NULL;
 	int nas_len;
 	int domain = -1;
@@ -96,8 +96,8 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 	uint8_t *nas = NULL;
 	int nas_len = 0;
 	int domain;
-	MessageAuthenticationCode_t *mac = NULL;
-	SecurityCapability_t *cap = NULL; 
+	//MessageAuthenticationCode_t *mac = NULL;
+	//SecurityCapability_t *cap = NULL; 
 	CipheringModeInfo_t *cipher = NULL;
 	CipheringModeInfo_r7_t *cipher7 = NULL;
 	IntegrityProtectionModeInfo_t *integrity= NULL;	
@@ -111,7 +111,7 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 
 	/* sanity check */
 	if (len > 90) {
-        SET_MSG_INFO(s, "RRC Message too long: %d", len);
+        SET_MSG_INFO(s, "RRC Message too long: %lu", len);
 		return 1;
 	}
 
@@ -141,7 +141,7 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 		switch(dcch->message.choice.securityModeCommand.present) {
 		case SecurityModeCommand_PR_r3:
 			domain = dcch->message.choice.securityModeCommand.choice.r3.securityModeCommand_r3.cn_DomainIdentity;
-			cap = &dcch->message.choice.securityModeCommand.choice.r3.securityModeCommand_r3.securityCapability;
+			//cap = &dcch->message.choice.securityModeCommand.choice.r3.securityModeCommand_r3.securityCapability;
 			cipher = dcch->message.choice.securityModeCommand.choice.r3.securityModeCommand_r3.cipheringModeInfo;
 			integrity = dcch->message.choice.securityModeCommand.choice.r3.securityModeCommand_r3.integrityProtectionModeInfo;
 			if (cipher && (cipher->cipheringModeCommand.present == CipheringModeCommand_PR_startRestart)) {
@@ -154,8 +154,8 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 		case SecurityModeCommand_PR_later_than_r3:
 			switch(dcch->message.choice.securityModeCommand.choice.later_than_r3.criticalExtensions.present) {
 			case SecurityModeCommand__later_than_r3__criticalExtensions_PR_r7:
-				cap = &dcch->message.choice.securityModeCommand.choice.later_than_r3.criticalExtensions.choice.r7.securityModeCommand_r7.securityCapability;
 				domain = dcch->message.choice.securityModeCommand.choice.later_than_r3.criticalExtensions.choice.r7.securityModeCommand_r7.cn_DomainIdentity;
+				//cap = &dcch->message.choice.securityModeCommand.choice.later_than_r3.criticalExtensions.choice.r7.securityModeCommand_r7.securityCapability;
 				cipher7 = dcch->message.choice.securityModeCommand.choice.later_than_r3.criticalExtensions.choice.r7.securityModeCommand_r7.cipheringModeInfo;
 				integrity7 = dcch->message.choice.securityModeCommand.choice.later_than_r3.criticalExtensions.choice.r7.securityModeCommand_r7.integrityProtectionModeInfo;
 				if (cipher7) {
@@ -166,13 +166,13 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 				}
 				break;
 			default:
-				SET_MSG_INFO(&s[domain], "RRC Security Mode Command / Not supported");
+				SET_MSG_INFO(&s[0], "RRC Security Mode Command / Not supported");
 				error = 1;
 				goto dl_end;
 			}
 			break;
 		default:
-			SET_MSG_INFO(&s[domain], "RRC Security Mode Command / Not supported");
+			SET_MSG_INFO(&s[0], "RRC Security Mode Command / Not supported");
 			error = 1;
 			goto dl_end;
 		}

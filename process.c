@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <arpa/inet.h>
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/select.h>
@@ -20,6 +21,7 @@
 #include "session.h"
 #include "l3_handler.h"
 #include "ccch.h"
+#include "gprs.h"
 
 void process_init()
 {
@@ -29,15 +31,15 @@ void process_init()
 
 int process_handle_burst(struct session_info *s, struct l1ctl_burst_ind *bi)
 {
-	int len, ul;
-	uint32_t fn;
+	int ul;
+	//int len;
+	//uint32_t fn;
 	uint8_t type, subch, ts;
-	uint8_t msg[54];
 	struct burst_buf *bb = 0;
 
 	rsl_dec_chan_nr(bi->chan_nr, &type, &subch, &ts);
 
-	fn = ntohl(bi->frame_nr);
+	//fn = ntohl(bi->frame_nr);
 	ul = !!(ntohs(bi->band_arfcn) & ARFCN_UPLINK);
 
 	//printf("fn %d ts %d ul %d snr %d ", fn, ts, ul, bi->snr);
@@ -54,7 +56,7 @@ int process_handle_burst(struct session_info *s, struct l1ctl_burst_ind *bi)
 		} else {
 			//FIXME: detect type of channel
 			/* try TCH (FACCH) */
-			len = process_tch(s, bi, msg);
+			//len = process_tch(s, bi, msg);
 			/* try PDCH */
 			//len = process_pdch(s, bi, msg);
 		}

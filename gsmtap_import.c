@@ -13,10 +13,10 @@
 
 #include "session.h"
 #include "process.h"
+#include "l3_handler.h"
 
 void chantype_from_gsmtap(struct radio_message *m, uint8_t gsmtap_chantype, uint8_t timeslot)
 {
-	uint8_t ret = GSMTAP_CHANNEL_UNKNOWN;
 	uint8_t rsl_type = 0;
 
 	switch (gsmtap_chantype & ~GSMTAP_CHANNEL_ACCH) {
@@ -118,7 +118,7 @@ void process_gsmtap(const struct pcap_pkthdr* pkt_hdr, const u_char* pkt_data, u
 
 void process_udp(const struct pcap_pkthdr* pkt_hdr, const u_char* pkt_data, uint32_t offset)
 {
-	uint16_t *sport, *dport;
+	uint16_t *dport;
 
 	assert(pkt_hdr->len - offset > 8);
 
@@ -170,7 +170,6 @@ void process_ethernet(u_char *arg, const struct pcap_pkthdr* pkt_hdr, const u_ch
 int main(int argc, char *argv[]) {
 	char errbuf[PCAP_ERRBUF_SIZE];
 	pcap_t *read_fp;
-	int ret;
 
 	if (argc < 4) {
 		printf("Not enough arguments\n");
