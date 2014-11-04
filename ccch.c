@@ -155,7 +155,7 @@ void process_ccch(struct session_info *s, struct burst_buf *bb, struct l1ctl_bur
 	if (s->cipher || (type && not_zero(s->key, 8)))
 		m->flags |= MSG_CIPHERED;
 
-	memcpy(&m->bb, bb, sizeof(bb));
+	memcpy(&m->bb, bb, sizeof(*bb));
 
 	m->info[0] = 0;
 
