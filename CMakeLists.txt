@@ -119,6 +119,9 @@ include_directories(${LIBOSMO_ASN1_RRC_INCLUDE_DIR})
 find_package(libosmocore REQUIRED)
 include_directories(${LIBOSMOCORE_INCLUDE_DIR})
 
+find_package(PCAP REQUIRED)
+include_directories(${PCAP_INCLUDE_DIR})
+
 #include_directories()
 
 macro(metagsm_add_public_header LIBTARGET HEADER)
@@ -175,6 +178,7 @@ target_link_libraries(libmetagsm
 	${LIBASN1C_LIBRARIES}
 	${LIBOSMO_ASN1_RRC_LIBRARY}
 	${LIBOSMOCORE_LIBRARIES}
+	${PCAP_LIBRARY}
 )
 
 set_target_properties(libmetagsm PROPERTIES
@@ -217,6 +221,10 @@ install(TARGETS libmetagsm
 	PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_PREFIX}/include/metagsm"
 )
 
+set(CPACK_PACKAGE_EXECUTABLES "")
+
+############
+
 add_executable (diag_import
 	diag_import.c
 )
@@ -227,13 +235,65 @@ target_link_libraries(diag_import
 	libmetagsm
 )
 
-# target_include_directories (diag_import
-# 	PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-# )
-
 install(TARGETS diag_import
 	EXPORT ${METAGSM_EXPORT_NAME}
 	RUNTIME DESTINATION bin
 )
+SET(CPACK_PACKAGE_EXECUTABLES ${CPACK_PACKAGE_EXECUTABLES} "diag_import")
 
-SET(CPACK_PACKAGE_EXECUTABLES "diag_import")
+############
+
+add_executable (hex_import
+	hex_import.c
+)
+
+set_target_properties(hex_import PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+set_target_properties(hex_import PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+target_link_libraries(hex_import
+	libmetagsm
+)
+
+install(TARGETS hex_import
+	EXPORT ${METAGSM_EXPORT_NAME}
+	RUNTIME DESTINATION bin
+)
+SET(CPACK_PACKAGE_EXECUTABLES ${CPACK_PACKAGE_EXECUTABLES} "hex_import")
+
+############
+
+add_executable (gsmtap_import
+	gsmtap_import.c
+)
+
+set_target_properties(gsmtap_import PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+set_target_properties(gsmtap_import PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+target_link_libraries(gsmtap_import
+	libmetagsm
+)
+
+install(TARGETS gsmtap_import
+	EXPORT ${METAGSM_EXPORT_NAME}
+	RUNTIME DESTINATION bin
+)
+SET(CPACK_PACKAGE_EXECUTABLES ${CPACK_PACKAGE_EXECUTABLES} "gsmtap_import")
+
+############
+
+if (MYSQL_FOUND)
+	add_executable (db_import
+		db_import.c
+	)
+
+	set_target_properties(db_import PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+	set_target_properties(db_import PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+	target_link_libraries(db_import
+		libmetagsm
+	)
+
+	install(TARGETS db_import
+		EXPORT ${METAGSM_EXPORT_NAME}
+		RUNTIME DESTINATION bin
+	)
+	SET(CPACK_PACKAGE_EXECUTABLES ${CPACK_PACKAGE_EXECUTABLES} "db_import")
+endif()
+
