@@ -59,8 +59,8 @@ macro(add_c_flag flagname)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flagname}")
 endmacro()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g")
-SET(CMAKE_C_FLAGS_RELWITHDEBINFO "-O3")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb")
+SET(CMAKE_C_FLAGS_RELWITHDEBINFO "-ggdb -O3")
 SET(CMAKE_C_FLAGS_RELEASE "-O3 -g0 -DNDEBUG")
 SET(CMAKE_C_FLAGS_DEBUG "-O0 -ggdb")
 
@@ -107,9 +107,6 @@ else ()
 	MESSAGE(STATUS "WARNING: Did not find Sqlite3, Sqlite3 support will be disabled")
 endif ()
 
-#find_package(Talloc REQUIRED)
-#include_directories(${TALLOC_INCLUDE_DIRS})
-
 find_package(libasn1c REQUIRED)
 include_directories(${LIBASN1C_INCLUDE_DIRS})
 
@@ -121,8 +118,6 @@ include_directories(${LIBOSMOCORE_INCLUDE_DIR})
 
 find_package(PCAP REQUIRED)
 include_directories(${PCAP_INCLUDE_DIR})
-
-#include_directories()
 
 macro(metagsm_add_public_header LIBTARGET HEADER)
 	set(HEADER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${HEADER}")
