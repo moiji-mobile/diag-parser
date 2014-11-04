@@ -186,16 +186,32 @@ set_target_properties(libmetagsm PROPERTIES
 	PUBLIC_HEADER "${metagsm_public_headers}"
 )
 
-metagsm_add_public_header(libmetagsm
-	address.h ccch.h crc.h gsm_interleave.h process.h
-	sch.h  umts_rrc.h assignment.h
-	cch.h diag_input.h l3_handler.h punct.h
-	session.h viterbi.h bit_func.h cell_info.h
-	diag_structs.h mysql_api.h rand_check.h
-	sms.h burst_desc.h rlcmac.h
-	chan_detect.h gprs.h output.h
-	sqlite_api.h
-)
+metagsm_add_public_header(libmetagsm address.h)
+metagsm_add_public_header(libmetagsm ccch.h)
+metagsm_add_public_header(libmetagsm crc.h)
+metagsm_add_public_header(libmetagsm gsm_interleave.h)
+metagsm_add_public_header(libmetagsm process.h)
+metagsm_add_public_header(libmetagsm sch.h)
+metagsm_add_public_header(libmetagsm umts_rrc.h)
+metagsm_add_public_header(libmetagsm assignment.h)
+metagsm_add_public_header(libmetagsm cch.h)
+metagsm_add_public_header(libmetagsm diag_input.h)
+metagsm_add_public_header(libmetagsm l3_handler.h)
+metagsm_add_public_header(libmetagsm punct.h)
+metagsm_add_public_header(libmetagsm session.h)
+metagsm_add_public_header(libmetagsm viterbi.h)
+metagsm_add_public_header(libmetagsm bit_func.h)
+metagsm_add_public_header(libmetagsm cell_info.h)
+metagsm_add_public_header(libmetagsm diag_structs.h)
+metagsm_add_public_header(libmetagsm mysql_api.h)
+metagsm_add_public_header(libmetagsm rand_check.h)
+metagsm_add_public_header(libmetagsm sms.h)
+metagsm_add_public_header(libmetagsm burst_desc.h)
+metagsm_add_public_header(libmetagsm rlcmac.h)
+metagsm_add_public_header(libmetagsm chan_detect.h)
+metagsm_add_public_header(libmetagsm gprs.h)
+metagsm_add_public_header(libmetagsm output.h)
+metagsm_add_public_header(libmetagsm sqlite_api.h)
 
 set(HEADER_DEST "${CMAKE_BINARY_DIR}/include/metagsm")
 add_custom_target(CopyPublicHeaders ALL)
@@ -297,3 +313,16 @@ if (MYSQL_FOUND)
 	SET(CPACK_PACKAGE_EXECUTABLES ${CPACK_PACKAGE_EXECUTABLES} "db_import")
 endif()
 
+
+# -----------------------------------------------------------------------------
+# Add uninstall target for makefiles
+# -----------------------------------------------------------------------------
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+    IMMEDIATE @ONLY
+)
+
+add_custom_target(uninstall
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+)
