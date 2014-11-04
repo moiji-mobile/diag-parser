@@ -12,8 +12,8 @@ void compress_msb(const uint8_t *in, uint8_t *out, unsigned size);
 void expand_lsb(const uint8_t *in, uint8_t *out, unsigned size);
 void expand_msb(const uint8_t *in, uint8_t *out, unsigned size);
 
-int hex_bin2str(const uint8_t *vec, char *str, unsigned len);
-int hex_str2bin(const char *str, uint8_t *vec, unsigned len);
+unsigned hex_bin2str(const uint8_t *vec, char *str, unsigned len);
+unsigned hex_str2bin(const char *str, uint8_t *vec, unsigned len);
 
 int bcd2str(uint8_t *bcd, char *s, unsigned len, unsigned off);
 int is_printable(const char *str, unsigned len);

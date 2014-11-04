@@ -80,9 +80,9 @@ inline void expand_msb(const uint8_t *in, uint8_t *out, unsigned size)
 	}
 }
 
-inline int hex_bin2str(const uint8_t *vec, char *str, unsigned len)
+inline unsigned hex_bin2str(const uint8_t *vec, char *str, unsigned len)
 {
-	int i;
+	unsigned i;
 	char hexchar[] = {'0', '1', '2', '3', '4', '5', '6', '7',
 			  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 	
@@ -94,9 +94,9 @@ inline int hex_bin2str(const uint8_t *vec, char *str, unsigned len)
 	return i;
 }
 
-inline int hex_str2bin(const char *str, uint8_t *vec, unsigned len)
+inline unsigned hex_str2bin(const char *str, uint8_t *vec, unsigned len)
 {
-	int i = 0;
+	unsigned i = 0;
 
 	while (str[i] && (i / 2 < len)) {
 		switch (str[i]) {
