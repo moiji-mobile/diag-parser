@@ -39,7 +39,7 @@ db_import: db_import.o libmetagsm.a
 
 clean:
 	@rm -f *.o libmetagsm* *.so
-	@rm -f db_import gsmtap_import diag_import
+	@rm -f db_import gsmtap_import diag_import hex_import
 
 database:
 	@rm metadata.db
