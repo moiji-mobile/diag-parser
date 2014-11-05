@@ -570,6 +570,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		gsm48_decode_freq_list(	ci->arfcn_list, si1->cell_channel_description,
 					sizeof(si1->cell_channel_description), 0xff, MASK_BCCH);
 		break;
+
 	case GSM48_MT_RR_SYSINFO_2:
 		if (!append)
 			break;
@@ -577,6 +578,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		gsm48_decode_freq_list(	ci->arfcn_list, si2->bcch_frequency_list,
 					sizeof(si2->bcch_frequency_list), 0xff, MASK_NEIGH_2);
 		break;
+
 	case GSM48_MT_RR_SYSINFO_2bis:
 		if (!append)
 			break;
@@ -584,6 +586,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		gsm48_decode_freq_list(	ci->arfcn_list, si2b->bcch_frequency_list,
 					sizeof(si2b->bcch_frequency_list), 0xff, MASK_NEIGH_2b);
 		break;
+
 	case GSM48_MT_RR_SYSINFO_2ter:
 		if (!append)
 			break;
@@ -591,11 +594,13 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		gsm48_decode_freq_list(	ci->arfcn_list, si2t->ext_bcch_frequency_list,
 					sizeof(si2t->ext_bcch_frequency_list), 0xff, MASK_NEIGH_2t);
 		break;
+
 	case GSM48_MT_RR_SYSINFO_2quater:
 		if (!append)
 			break;
 		si2q = (struct gsm48_system_information_type_2quater *) ((uint8_t *)dtap - 1);
 		break;
+
 	case GSM48_MT_RR_SYSINFO_3:
 		if (!append)
 			break;
@@ -616,6 +621,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 			handle_si3_rest(ci, si3->rest_octets, len - sizeof(*si3));
 		}
 		break;
+
 	case GSM48_MT_RR_SYSINFO_4:
 		if (!append)
 			break;
@@ -625,6 +631,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		ci->lac = htons(si4->lai.lac);
 		handle_si4_data(ci, si4->data, len - sizeof(*si4));
 		break;
+
 	case GSM48_MT_RR_SYSINFO_5:
 		if (s->ci) {
 			if (msg_verbose > 1) {
@@ -642,6 +649,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		gsm48_decode_freq_list(	ci->arfcn_list, si5->bcch_frequency_list,
 					sizeof(si5->bcch_frequency_list), 0xff, MASK_NEIGH_5);
 		break;
+
 	case GSM48_MT_RR_SYSINFO_5bis:
 		if (s->ci) {
 			if (append)
@@ -655,6 +663,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		gsm48_decode_freq_list(	ci->arfcn_list, si5b->bcch_frequency_list,
 					sizeof(si5b->bcch_frequency_list), 0xff, MASK_NEIGH_5b);
 		break;
+
 	case GSM48_MT_RR_SYSINFO_5ter:
 		if (s->ci) {
 			if (append)
