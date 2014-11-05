@@ -1185,11 +1185,11 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 	case 3:
 		/* U (unnumbered) frame */
 		flags = msg[1] & 0xec;
+		//001. 11.. = Command: Set Asynchronous Balanced Mode
 		if (flags == 0x2c) {
-			if (msg_verbose) {
+			if (msg_verbose > 1) {
 				fprintf(stdout, "<SABM U-FRAME>\n");
 			}
-			//001. 11.. = Command: Set Asynchronous Balanced Mode
 
 			mb->no_out_of_seq_sender_msgs = 0;
 			mb->len = 0;

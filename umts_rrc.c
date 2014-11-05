@@ -104,30 +104,54 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 	IntegrityProtectionModeInfo_r7_t *integrity7 = NULL;
 	int c_algo = 0;
 	int i_algo = 0;
+	uint8_t msg_type;
 
 	assert(s != NULL);
 	assert(msg != NULL);
 	assert(len > 0);
 
-	/* sanity check */
-	if (len > 90) {
-        SET_MSG_INFO(s, "RRC Message too long: %lu", len);
-		return 1;
-	}
-
-    rv = uper_decode(NULL, &asn_DEF_DL_DCCH_Message, (void **) &dcch, msg, len, 0, 0);
-    if ((rv.code != RC_OK) || !dcch) {
-        SET_MSG_INFO(s, "ASN.1 PARSING ERROR");
-		return 1;
-    }
-
 	s[0].rat = RAT_UMTS;
 	s[1].rat = RAT_UMTS;
 
+	/* Pre-decode message type */
+	if (msg[0] & 0x80) {
+		assert(len > 4);
+		msg_type = ((msg[4] & 0x07) << 2) | (msg[5] >> 6);
+	} else {
+		msg_type = (msg[0] & 0x7c) >> 2;
+	}
+
+	/* Attach description and discard unsupported types */
+	switch (msg_type) {
+	case 8:
+		SET_MSG_INFO(s, "RRC MeasurementControl");
+		goto dl_no_free;
+	case 10:
+		SET_MSG_INFO(s, "RRC PhysicalChannelReconfig");
+		goto dl_no_free;
+	case 12:
+		SET_MSG_INFO(s, "RRC RadioBearerReconfig");
+		goto dl_no_free;
+	case 13:
+		SET_MSG_INFO(s, "RRC RadioBearerRelease");
+		goto dl_no_free;
+	case 14:
+		SET_MSG_INFO(s, "RRC RadioBearerSetup");
+		goto dl_no_free;
+	case 24:
+		SET_MSG_INFO(s, "RRC utranMobilityInformation");
+		goto dl_no_free;
+	}
+
+	/* Call ASN.1 decoder */
+	rv = uper_decode(NULL, &asn_DEF_DL_DCCH_Message, (void **) &dcch, msg, len, 0, 0);
+	if ((rv.code != RC_OK) || !dcch) {
+		SET_MSG_INFO(s, "ASN.1 PARSING ERROR");
+		return 1;
+	}
+
+	/* Process contents by message type */
 	switch(dcch->message.present) {
-	case DL_DCCH_MessageType_PR_radioBearerSetup:
-		SET_MSG_INFO(s, "RRC Radio Bearer Setup");
-		break;
 	case DL_DCCH_MessageType_PR_signallingConnectionRelease:
 		SET_MSG_INFO(s, "RRC Signalling Connection Release");
 		break;
@@ -203,19 +227,6 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 			goto dl_end;
 		}
 		break;
-	/* Buggy structures that cannot be freed */
-	case DL_DCCH_MessageType_PR_measurementControl:
-		SET_MSG_INFO(s, "RRC MeasurementControl");
-		goto dl_no_free;
-	case DL_DCCH_MessageType_PR_radioBearerRelease:
-		SET_MSG_INFO(s, "RRC RadioBearerRelease");
-		goto dl_no_free;
-	case DL_DCCH_MessageType_PR_utranMobilityInformation:
-		SET_MSG_INFO(s, "RRC utranMobilityInformation");
-		goto dl_no_free;
-	case DL_DCCH_MessageType_PR_radioBearerReconfiguration:
-		SET_MSG_INFO(s, "RRC RadioBearerReconfig");
-		goto dl_no_free;
 	default:
 		SET_MSG_INFO(s, "DL-DCCH type=%d", dcch->message.present);
 		s->new_msg->flags &= ~MSG_DECODED;

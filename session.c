@@ -251,9 +251,11 @@ void session_stream(struct session_info *s)
 	while (m) {
 		if (m->flags & MSG_DECODED) {
 			net_send_msg(m);
+#if 0
 			if (msg_verbose && m->info[0]) {
 				printf("%c %s\n", m->bb.arfcn[0] & ARFCN_UPLINK ? 'U' : 'D', m->info);
 			}
+#endif
 		}
 		m = m->next;
 	}
