@@ -86,7 +86,11 @@ void net_send_msg(struct radio_message *m)
 		break;
 	}
 
-	if (msgb)
-		gsmtap_sendmsg(gti, msgb);
+	if (msgb) {
+		int ret = gsmtap_sendmsg(gti, msgb);
+		if (ret != 0) {
+			msgb_free(msgb);
+		}
+	}
 }
 
