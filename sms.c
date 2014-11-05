@@ -325,6 +325,7 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			return;
 		}
 
+		/* Definitions from 3GPP TS 23.040 9.2.3.24 */
 		switch (type) {
 		case 0x00:
 			/* Concatenated header, 8bit reference */
@@ -379,6 +380,12 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 		case 0x0a:
 			/* Text formatting (EMS) */
 			break;
+		case 0x0d:
+			/* Predefined animation (EMS) */
+			break;
+		case 0x14:
+			/* Extended object (EMS) */
+			break;
 		case 0x22:
 			/* Alternate reply address */
 			assert(vlen >= (msg[offset]/2 + 1));
@@ -387,6 +394,11 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			break;
 		case 0x24:
 			/* National language shift */
+			assert(vlen == 1);
+			APPEND_INFO(sm, "LANG_SHIFT=%d ", msg[offset]);
+			break;
+		case 0x25:
+			/* National language locking shift */
 			assert(vlen == 1);
 			APPEND_INFO(sm, "LANG_SHIFT=%d ", msg[offset]);
 			break;
