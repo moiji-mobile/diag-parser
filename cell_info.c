@@ -718,6 +718,9 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		ci->first_seen = s->new_msg->timestamp;
 		ci->id = cell_info_id++;
 		llist_add(&ci->entry, &cell_list);
+		if (msg_verbose > 1) {
+			printf("linking ptr %p to cell_list\n", ci);
+		}
 	}
 }
 
