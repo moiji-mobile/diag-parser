@@ -135,7 +135,7 @@ void cell_and_paging_dump(int on_destroy)
 	/* Elapsed time from measurement start */
 	time_delta = ts_now.tv_sec - periodic_ts.tv_sec;
 
-	if (RATE_LIMIT && time_delta < 10)
+	if (!on_destroy && RATE_LIMIT && time_delta < 10)
 		return;
 
 	/* Dump cell_info and arfcn_list */
