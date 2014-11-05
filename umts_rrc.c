@@ -115,7 +115,10 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 
 	/* Pre-decode message type */
 	if (msg[0] & 0x80) {
-		assert(len > 4);
+		if (len < 6) {
+			SET_MSG_INFO(s, "SANITY CHECK FAILED (HMAC_LEN)");
+			return 1;
+		}
 		msg_type = ((msg[4] & 0x07) << 2) | (msg[5] >> 6);
 	} else {
 		msg_type = (msg[0] & 0x7c) >> 2;
