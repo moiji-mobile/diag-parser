@@ -677,6 +677,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		gsm48_decode_freq_list(	ci->arfcn_list, si5t->bcch_frequency_list,
 					sizeof(si5t->bcch_frequency_list), 0xff, MASK_NEIGH_5t);
 		break;
+
 	case GSM48_MT_RR_SYSINFO_6:
 		if (s->ci) {
 			if (append)
@@ -692,9 +693,13 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		ci->lac = htons(si6->lai.lac);
 		ci->cid = htons(si6->cell_identity);
 		break;
+
 	case GSM48_MT_RR_SYSINFO_13:
+		if (!append)
+			break;
 		si13 = (struct gsm48_system_information_type_13 *) ((uint8_t *)dtap - 1);
 		break;
+
 	default:
 		printf("<error>\n");
 		free(ci);
