@@ -123,6 +123,9 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 
 	/* Attach description and discard unsupported types */
 	switch (msg_type) {
+	case 3:
+		SET_MSG_INFO(s, "RRC CellUpdateConfirm");
+		goto dl_no_free;
 	case 8:
 		SET_MSG_INFO(s, "RRC MeasurementControl");
 		goto dl_no_free;
@@ -138,8 +141,14 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 	case 14:
 		SET_MSG_INFO(s, "RRC RadioBearerSetup");
 		goto dl_no_free;
+	case 18:
+		SET_MSG_INFO(s, "RRC TransportChannelReconfig");
+		goto dl_no_free;
 	case 24:
 		SET_MSG_INFO(s, "RRC utranMobilityInformation");
+		goto dl_no_free;
+	case 25:
+		SET_MSG_INFO(s, "RRC handoverFromUTRAN");
 		goto dl_no_free;
 	}
 
