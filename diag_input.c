@@ -71,6 +71,7 @@ struct radio_message * handle_3G(struct diag_packet *dp, unsigned len)
 
 	payload_len = dp->len - 16;
 
+	assert(payload_len < len - 16);
 	assert(payload_len < sizeof(m->bb.data));
 
 	m = (struct radio_message *) malloc(sizeof(struct radio_message));
@@ -78,20 +79,36 @@ struct radio_message * handle_3G(struct diag_packet *dp, unsigned len)
 	memset(m, 0, sizeof(struct radio_message));
 
 	m->rat = RAT_UMTS;
+
 	m->bb.fn[0] = get_fn(dp);
+
 	switch (dp->msg_type) {
-	case 1:
+	case 0: /* UL-CCCH */
+		m->flags = MSG_FACCH;
 		m->bb.arfcn[0] = ARFCN_UPLINK;
 		break;
-	case 3:
+	case 1: /* UL-DCCH */
+		m->flags = MSG_SDCCH;
+		m->bb.arfcn[0] = ARFCN_UPLINK;
+		break;
+	case 2: /* DL-CCCH */
+		m->flags = MSG_FACCH;
+		m->bb.arfcn[0] = 0;
+		break;
+	case 3: /* DL-DCCH */
+		m->flags = MSG_SDCCH;
 		m->bb.arfcn[0] = 0;
 		break;
 	default:
+		if (msg_verbose > 1) {
+			printf("Discarding 3G message type=%d data=%s\n", dp->msg_type, osmo_hexdump_nospc(dp->data, payload_len));
+		}
 		free(m);
 		return 0;
 	}
 
 	m->msg_len = payload_len;
+
 	memcpy(m->bb.data, &dp->data[1], payload_len);
 
 	return m;

@@ -1327,10 +1327,20 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 		break;
 
 	case RAT_UMTS:
-		if (ul) {
-			handle_dcch_ul(s, m->bb.data, m->msg_len);
+		if (m->flags & MSG_SDCCH) {
+			if (ul) {
+				handle_dcch_ul(s, m->bb.data, m->msg_len);
+			} else {
+				handle_dcch_dl(s, m->bb.data, m->msg_len);
+			}
+		} else if (m->flags & MSG_FACCH) {
+			if (ul) {
+				handle_ccch_ul(s, m->bb.data, m->msg_len);
+			} else {
+				handle_ccch_dl(s, m->bb.data, m->msg_len);
+			}
 		} else {
-			handle_dcch_dl(s, m->bb.data, m->msg_len);
+			assert(0);
 		}
 		if (msg_verbose && s->new_msg == m && m->flags & MSG_DECODED) {
 			printf("RRC %s %s %u : %s\n", m->domain ? "PS" : "CS", ul ? "UL" : "DL",

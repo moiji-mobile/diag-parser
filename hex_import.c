@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 		len = osmo_hexparse(diag_hex, msg, sizeof(msg));
 		assert(len >= 0);
 
-		if (len >= 0) {
+		if (len > 0) {
 			handle_diag(msg, len);
 		}
 

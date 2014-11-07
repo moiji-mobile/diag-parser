@@ -65,6 +65,7 @@ void net_send_llc(uint8_t *data, int len, uint8_t ul)
 void net_send_msg(struct radio_message *m)
 {
 	struct msgb *msgb = 0;
+	uint8_t gsmtap_channel;
 
 	if (!(gti && (m->flags & MSG_DECODED)))
 		return;
@@ -72,17 +73,35 @@ void net_send_msg(struct radio_message *m)
 	switch (m->rat) {
 	case RAT_GSM: {
 		uint8_t ts, type, subch;
+
 		rsl_dec_chan_nr(m->chan_nr, &type, &subch, &ts);
-		msgb = gsmtap_makemsg(m->bb.arfcn[0], ts,
-				      chantype_rsl2gsmtap(type, (m->flags & MSG_SACCH) ? 0x40 : 0),
-				      subch, m->bb.fn[0], m->bb.rxl[0], m->bb.snr[0], m->msg, m->msg_len);
+
+		gsmtap_channel = chantype_rsl2gsmtap(type, (m->flags & MSG_SACCH) ? 0x40 : 0);
+
+		msgb = gsmtap_makemsg(m->bb.arfcn[0], ts, gsmtap_channel, subch,
+				 m->bb.fn[0], m->bb.rxl[0], m->bb.snr[0], m->msg, m->msg_len);
 		break;
 	}
 
 	case RAT_UMTS:
+		if (m->flags & MSG_SDCCH) {
+			if (m->bb.arfcn[0] & ARFCN_UPLINK) {
+				gsmtap_channel = GSMTAP_RRC_SUB_UL_DCCH_Message;
+			} else {
+				gsmtap_channel = GSMTAP_RRC_SUB_DL_DCCH_Message;
+			}
+		} else if (m->flags & MSG_FACCH) {
+			if (m->bb.arfcn[0] & ARFCN_UPLINK) {
+				gsmtap_channel = GSMTAP_RRC_SUB_UL_CCCH_Message;
+			} else {
+				gsmtap_channel = GSMTAP_RRC_SUB_DL_CCCH_Message;
+			}
+		} else {
+			/* no other types defined */
+			return;
+		}
 		msgb = gsmtap_makemsg_ex(GSMTAP_TYPE_UMTS_RRC, m->bb.arfcn[0], 0,
-					 m->bb.arfcn[0] & ARFCN_UPLINK ? GSMTAP_RRC_SUB_UL_DCCH_Message : GSMTAP_RRC_SUB_DL_DCCH_Message,
-					 0, 0, 0, 0, m->msg, m->msg_len);
+				 gsmtap_channel, 0, 0, 0, 0, m->bb.data, m->msg_len);
 		break;
 	}
 
@@ -90,6 +109,8 @@ void net_send_msg(struct radio_message *m)
 		int ret = gsmtap_sendmsg(gti, msgb);
 		if (ret != 0) {
 			msgb_free(msgb);
+		} else {
+			osmo_select_main(1);
 		}
 	}
 }

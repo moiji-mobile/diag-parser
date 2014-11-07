@@ -1,6 +1,8 @@
 #include <stdio.h>
-#include <osmocom/rrc/DL-DCCH-Message.h>
 #include <osmocom/rrc/UL-DCCH-Message.h>
+#include <osmocom/rrc/DL-DCCH-Message.h>
+#include <osmocom/rrc/UL-CCCH-Message.h>
+#include <osmocom/rrc/DL-CCCH-Message.h>
 
 #include "umts_rrc.h"
 #include "l3_handler.h"
@@ -260,5 +262,121 @@ dl_end:
 	ASN_STRUCT_FREE(asn_DEF_DL_DCCH_Message, dcch);
 dl_no_free:
 
+	return error;
+}
+
+int handle_ccch_ul(struct session_info *s, uint8_t *msg, size_t len)
+{
+	UL_CCCH_Message_t *ccch = NULL;
+	asn_dec_rval_t rv;
+	int error = 0;
+	uint8_t msg_type;
+
+	assert(s != NULL);
+	assert(msg != NULL);
+	assert(len > 0);
+
+	s[0].rat = RAT_UMTS;
+	s[1].rat = RAT_UMTS;
+
+	/* Pre-decode message type */
+	if (msg[0] & 0x80) {
+		if (len < 5) {
+			SET_MSG_INFO(s, "SANITY CHECK FAILED (HMAC_LEN)");
+			return 1;
+		}
+		msg_type = (msg[4] & 0x07);
+	} else {
+		msg_type = (msg[0] & 0x70) >> 4;
+	}
+
+	/* Attach description and discard unsupported types */
+	switch(msg_type) {
+	case 3:
+		SET_MSG_INFO(s, "RRC Connection Request");
+		goto ul_ccch_no_free;
+	default:
+		/* no other messages accepted */
+		goto ul_ccch_no_free;
+	}
+	
+	/* Call ASN.1 decoder */
+	rv = uper_decode(NULL, &asn_DEF_UL_CCCH_Message, (void **) &ccch, msg, len, 0, 0);
+	if ((rv.code != RC_OK) || !ccch) {
+		SET_MSG_INFO(s, "ASN.1 PARSING ERROR");
+		return 1;
+	}
+
+	/* Process contents by message type */
+	switch(ccch->message.present) {
+	default:
+		SET_MSG_INFO(s, "UL-CCCH type=%d", ccch->message.present);
+		s->new_msg->flags &= ~MSG_DECODED;
+	}
+
+	ASN_STRUCT_FREE(asn_DEF_UL_CCCH_Message, ccch);
+
+ul_ccch_no_free:
+	return error;
+}
+
+int handle_ccch_dl(struct session_info *s, uint8_t *msg, size_t len)
+{
+	DL_CCCH_Message_t *ccch = NULL;
+	asn_dec_rval_t rv;
+	int error = 0;
+	uint8_t msg_type;
+
+	assert(s != NULL);
+	assert(msg != NULL);
+	assert(len > 0);
+
+	s[0].rat = RAT_UMTS;
+	s[1].rat = RAT_UMTS;
+
+	/* Pre-decode message type */
+	if (msg[0] & 0x80) {
+		if (len < 5) {
+			SET_MSG_INFO(s, "SANITY CHECK FAILED (HMAC_LEN)");
+			return 1;
+		}
+		msg_type = (msg[4] & 0x07);
+	} else {
+		msg_type = (msg[0] & 0x70) >> 4;
+	}
+
+	/* Attach description and discard unsupported types */
+	switch(msg_type) {
+	case 3:
+		SET_MSG_INFO(s, "RRC Connection Setup");
+		goto dl_ccch_no_free;
+	default:
+		/* no other messages accepted */
+		goto dl_ccch_no_free;
+	}
+	
+	/* Call ASN.1 decoder */
+	rv = uper_decode(NULL, &asn_DEF_DL_CCCH_Message, (void **) &ccch, msg, len, 0, 0);
+	if ((rv.code != RC_OK) || !ccch) {
+		SET_MSG_INFO(s, "ASN.1 PARSING ERROR");
+		return 1;
+	}
+
+	/* Process contents by message type */
+	switch(ccch->message.present) {
+	case DL_CCCH_MessageType_PR_rrcConnectionRelease:
+		SET_MSG_INFO(s, "RRC Connection Release");
+		break;
+	case DL_CCCH_MessageType_PR_rrcConnectionReject:
+		SET_MSG_INFO(s, "RRC Connection Reject");
+		break;
+	default:
+		SET_MSG_INFO(s, "DL-CCCH type=%d", ccch->message.present);
+		s->new_msg->flags &= ~MSG_DECODED;
+	}
+
+	ASN_STRUCT_FREE(asn_DEF_DL_CCCH_Message, ccch);
+
+dl_ccch_no_free:
 	return error;
 }
