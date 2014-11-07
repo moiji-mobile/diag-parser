@@ -227,8 +227,8 @@ insert into sec_params
 	 avg(enc_null-enc_null_rand) as nulls,
 	 avg(predict) as pred,
 	 avg(cmc_imeisv) as imeisv,
-	 avg(if(mobile_term, auth, NULL)) as auth_mt,
-	 avg(if(mobile_orig, auth, NULL)) as auth_mo,
+	 avg(if(mobile_term, if(auth,1,0), NULL)) as auth_mt,
+	 avg(if(mobile_orig, if(auth,1,0), NULL)) as auth_mo,
 	 avg(t_tmsi_realloc) as tmsi,
 	 avg(iden_imsi_bc) as imsi
   from session_info
@@ -248,8 +248,8 @@ insert into sec_params
 	 avg(enc_null-enc_null_rand) as nulls,
 	 avg(predict) as pred,
 	 avg(cmc_imeisv) as imeisv,
-	 avg(if(mobile_term, auth, NULL)) as auth_mt,
-	 avg(if(mobile_orig, auth, NULL)) as auth_mo,
+	 avg(if(mobile_term, if(auth,1,0), NULL)) as auth_mt,
+	 avg(if(mobile_orig, if(auth,1,0), NULL)) as auth_mo,
 	 avg(t_tmsi_realloc) as tmsi,
 	 avg(iden_imsi_bc) as imsi
   from session_info
@@ -267,8 +267,8 @@ insert into sec_params
 	 avg(enc_null-enc_null_rand) as nulls,
 	 avg(predict) as pred,
 	 avg(cmc_imeisv) as imeisv,
-	 avg(if(mobile_term, auth, NULL)) as auth_mt,
-	 avg(if(mobile_orig, auth, NULL)) as auth_mo,
+	 avg(if(mobile_term, if(auth,1,0), NULL)) as auth_mt,
+	 avg(if(mobile_orig, if(auth,1,0), NULL)) as auth_mo,
 	 avg(t_tmsi_realloc) as tmsi,
 	 avg(iden_imsi_bc) as imsi
   from session_info
