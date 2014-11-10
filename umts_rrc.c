@@ -24,11 +24,11 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 		return 1;
 	}
 
-        rv = uper_decode(NULL, &asn_DEF_UL_DCCH_Message, (void **) &dcch, msg, len, 0, 0);
-        if ((rv.code != RC_OK) || !dcch) {
-                SET_MSG_INFO(s, "ASN.1 PARSING ERROR");
+	rv = uper_decode(NULL, &asn_DEF_UL_DCCH_Message, (void **) &dcch, msg, len, 0, 0);
+	if ((rv.code != RC_OK) || !dcch) {
+		SET_MSG_INFO(s, "ASN.1 PARSING ERROR");
 		return 1;
-        }
+	}
 
 	s[0].rat = RAT_UMTS;
 	s[1].rat = RAT_UMTS;
