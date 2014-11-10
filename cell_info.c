@@ -465,7 +465,10 @@ void handle_si4_data(struct cell_info *ci, uint8_t *data, unsigned len)
 
 	assert(ci != NULL);
 	assert(data != NULL);
-	assert(len > 0);
+
+	if (!len) {
+		return;
+	}
 
 	/* Check if CBCH description is present */
 	if (data[offset++] != GSM48_IE_CBCH_CHAN_DESC)
@@ -493,10 +496,10 @@ check_si4_padding:
 		return;
 	}
 
-	assert(offset < len);
-
-	/* Rest octets present */
-	handle_si4_rest(ci, data, len - offset);
+	if (offset < len) {
+		/* Rest octets present */
+		handle_si4_rest(ci, data, len - offset);
+	}
 }
 
 void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
@@ -812,7 +815,10 @@ void arfcn_list_make_sql(struct cell_info *ci, enum si_index index, char *query,
 	assert(query != NULL);
 	assert(index >= 0);
 	assert(index < SI_MAX);
-	assert(len > 0);
+
+	if (!len) {
+		return;
+	}
 
 	query[0] = 0;
 
@@ -853,7 +859,10 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 
 	assert(ci != NULL);
 	assert(query != NULL);
-	assert(len > 0);
+
+	if (!len) {
+		return;
+	}
 
 	/* Format timestamps according to db */
 	if (sqlite) {
@@ -953,7 +962,10 @@ void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite)
 	float time_delta;
 
 	assert(query != NULL);
-	assert(len > 0);
+
+	if (!len) {
+		return;
+	}
 
 	/* Format timestamp according to db */
 	if (sqlite) {

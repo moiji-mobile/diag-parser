@@ -457,6 +457,10 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 	s->rat = RAT_GSM;
 	assert(s->new_msg);
 
+	if (!len) {
+		return;
+	}
+
 	switch (dtap->msg_type) {
 	case GSM48_MT_RR_SYSINFO_1:
 		SET_MSG_INFO(s, "SYSTEM INFO 1");
@@ -656,7 +660,10 @@ void handle_ss(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 {
 	assert(s != NULL);
 	assert(dtap != NULL);
-	assert(len > 0);
+
+	if (!len) {
+		return;
+	}
 
 	s->ssa = 1;
 
@@ -707,7 +714,10 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 {
 	assert(s != NULL);
 	assert(dtap != NULL);
-	assert(len > 0);
+
+	if (!len) {
+		return;
+	}
 
 	if (s->domain != DOMAIN_PS) {
 		SET_MSG_INFO(s, "FAILED SANITY CHECKS (GMM_IN_CS)");
@@ -844,7 +854,10 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 
 	assert(s != NULL);
 	assert(dtap != NULL);
-	assert(len > 0);
+
+	if (!len) {
+		return;
+	}
 
 	if (s->domain != DOMAIN_PS) {
 		SET_MSG_INFO(s, "FAILED SANITY CHECKS (SM_IN_CS)");
@@ -978,7 +991,9 @@ int is_double(struct session_info *s, uint8_t *msg, size_t len)
 	int min_len;
 	uint8_t ul;
 
-	assert(len < sizeof(s->last_dtap));
+	if (len > sizeof(s->last_dtap)) {
+		len = sizeof(s->last_dtap);
+	}
 
 	min_len = len > s->last_dtap_len ? s->last_dtap_len : len;
 

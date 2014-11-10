@@ -444,11 +444,13 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 	uint8_t vp;
 	struct sms_meta *sm;
 
-	assert(len < 256);
 	assert(s != NULL);
 	assert(msg != NULL);
-	assert(len > 2);
 	assert(smsc != NULL);
+
+	if (len < 2 || len > 255) {
+		return;
+	}
 
 	sm = (struct sms_meta *) malloc(sizeof(struct sms_meta));
 	assert(sm != NULL);
@@ -485,7 +487,10 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 		APPEND_MSG_INFO(s, ", TO %s", sm->msisdn);
 	}
 	off += f_len/2 + 1;
-	assert(off <= len);
+	if (off > len) {
+		free(sm);
+		return;
+	}
 
 	/* TP-PID and TP-DCS */
 	sm->pid = msg[off++];
@@ -510,7 +515,10 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 	if (from_network) {
 		off += 7;
 	}
-	assert(off <= len);
+	if (off > len) {
+		free(sm);
+		return;
+	}
 
 	/* User data length */
 	sm->length = msg[off++];
@@ -535,7 +543,10 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 	}
 
 	/* Store unparsed bytes */
-	assert(off <= len);
+	if (off > len) {
+		free(sm);
+		return;
+	}
 	memcpy(sm->data, &msg[off], len - off);
 
 	sm->alphabet = get_sms_alphabet(sm->dcs);
@@ -569,7 +580,10 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 
 	assert(s != NULL);
 	assert(data != NULL);
-	assert(len > 0);
+
+	if (!len) {
+		return;
+	}
 
 	/* originating (SMSC) address length */
 	f_len = data[off++];

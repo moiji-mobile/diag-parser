@@ -1,16 +1,15 @@
 #include "address.h"
 #include "bit_func.h"
 #include <string.h>
-#include <assert.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <stdio.h>
 
 int handle_addr_national(uint8_t *data, unsigned digit_len, char *dest)
 {
-	assert(data != NULL);
-	assert(dest != NULL);
-	assert(digit_len > 0);
+	if (!data || !dest || !digit_len) {
+		return 0;
+	}
 
 	/* Check first digit */
 	if (data[0] & 0x0f) {
@@ -24,9 +23,9 @@ int handle_addr_national(uint8_t *data, unsigned digit_len, char *dest)
 
 int handle_addr_e164(uint8_t *data, unsigned digit_len, char *dest)
 {
-	assert(data != NULL);
-	assert(dest != NULL);
-	assert(digit_len > 0);
+	if (!data || !dest || !digit_len) {
+		return 0;
+	}
 
 	/* Insert "+" before number */
 	dest[0] = '+';
@@ -51,8 +50,9 @@ void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 	uint8_t digit_len;
 	uint8_t ret;
 
-	assert(data != NULL);
-	assert(dest != NULL);
+	if (!data || !dest) {
+		return;
+	}
 
 	/* Special case */
 	if (len == 0) {
@@ -91,7 +91,9 @@ void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 	if (digit_only)
 		digit_len = len;
 
-	assert(digit_len > 0);
+	if (digit_len == 0) {
+		return;
+	}
 
 	if (digit_len > 31) {
 		digit_len = 31;

@@ -7,7 +7,6 @@
 #include <osmocom/core/utils.h>
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
-#include <assert.h>
 #include <arpa/inet.h>
 
 #include "diag_input.h"
@@ -31,8 +30,8 @@ struct diag_packet {
 void diag_init(unsigned start_sid, unsigned start_cid)
 {
 #ifdef USE_MYSQL
-	session_init(start_sid, start_cid, 0, 0, CALLBACK_MYSQL);
-	//msg_verbose = 1;
+	session_init(start_sid, start_cid, 0, 0, CALLBACK_CONSOLE);
+	msg_verbose = 1;
 #else
 #ifdef USE_SQLITE
 	session_init(start_sid, start_cid, 0, 1, CALLBACK_SQLITE);
@@ -67,12 +66,19 @@ struct radio_message * handle_3G(struct diag_packet *dp, unsigned len)
 	unsigned payload_len;
 	struct radio_message *m;
 
-	assert(len >= 16);
+	if (len < 16) {
+		return 0;
+	}
 
 	payload_len = dp->len - 16;
 
-	assert(payload_len < len - 16);
-	assert(payload_len < sizeof(m->bb.data));
+	if (payload_len > len - 16) {
+		return 0;
+	}
+
+	if (payload_len > sizeof(m->bb.data)) {
+		return 0;
+	}
 
 	m = (struct radio_message *) malloc(sizeof(struct radio_message));
 

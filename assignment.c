@@ -3,7 +3,6 @@
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/gsm/gsm48_ie.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
-#include <assert.h>
 
 #include "assignment.h"
 
@@ -121,7 +120,9 @@ void parse_assignment(struct gsm48_hdr *hdr, unsigned len, struct gsm_sysinfo_fr
 
 		/* decode mobile allocation */
 		if (ma) {
-			assert(ma_len > 0);
+			if (ma_len == 0) {
+				return;
+			}
 			for (i=1, j=0; i<=1024; i++) {
 				arfcn = i & 1023;
 				if (cell_arfcns[arfcn].mask & mask) {
