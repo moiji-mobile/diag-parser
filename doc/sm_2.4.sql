@@ -174,7 +174,7 @@ create table sec_params(
 --	mnc SMALLINT UNSIGNED NOT NULL,
 --	rand_imsi BOOLEAN,
 --	home_routing BOOLEAN
--- );
+-- )
 
 ----
 
