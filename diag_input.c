@@ -204,7 +204,11 @@ void handle_gsm_l1_txlev_timing_advance(struct diag_packet *dp, unsigned len)
 
 	decoded->arfcn_and_band = ntohs(decoded->arfcn_and_band);
 
-	assert(len-16-2 == 4);
+	if (len-16-2 != 4) {
+		printf("x gsm_l1_txlev_timing_advance length incorrect\n");
+		return;
+	}
+
 	printf("x gsm_l1_txlev_timing_advance\n");
 	//printf("x %s\n", osmo_hexdump_nospc(&dp->msg_type, len-16) );
 	printf("x -> arfcn: %d\n", get_arfcn_from_arfcn_and_band(decoded->arfcn_and_band));
@@ -218,7 +222,10 @@ void handle_gsm_l1_surround_cell_ba_list(struct diag_packet *dp, unsigned len)
 	struct gsm_l1_surround_cell_ba_list *cl = (struct gsm_l1_surround_cell_ba_list *)&dp->msg_type;
 	struct surrounding_cell *sc = cl->surr_cells;
 
-	assert(len-16-2 == sizeof(struct surrounding_cell)*cl->cell_count + 1);
+	if (len-16-2 != sizeof(struct surrounding_cell)*cl->cell_count + 1) {
+		printf("x gsm_l1_surround_cell_ba_list length incorrect\n");
+		return;
+	}
 
 	printf("x gsm_l1_surround_cell_ba_list\n");
 	int i;
@@ -237,7 +244,10 @@ void handle_gsm_l1_burst_metrics(struct diag_packet *dp, unsigned len)
 {
 	struct gsm_l1_burst_metrics *dat = (struct gsm_l1_burst_metrics *)&dp->msg_type;
 
-	assert(len-16-2 == sizeof(struct gsm_l1_burst_metrics));
+	if (len-16-2 != sizeof(struct gsm_l1_burst_metrics)) {
+		printf("x gsm_l1_burst_metrics length incorrect\n");
+		return;
+	}
 
 	printf("x gsm_l1_burst_metrics\n");
 	printf("x -> channel: %u\n", dat->channel);
@@ -259,7 +269,10 @@ void handle_gsm_l1_neighbor_cell_auxiliary_measurments(struct diag_packet *dp, u
 {
 	struct gsm_l1_neighbor_cell_auxiliary_measurments *cl = (struct gsm_l1_neighbor_cell_auxiliary_measurments *)&dp->msg_type;
 
-	assert(len-16-2 == sizeof(struct cell)*cl->cell_count + 1);
+	if (len-16-2 != sizeof(struct cell)*cl->cell_count + 1) {
+		printf("x gsm_l1_neighbor_cell_auxiliary_measurments length icorrect\n");
+		return;
+	}
 
 	printf("x gsm_l1_neighbor_cell_auxiliary_measurments\n");
 	int i;
@@ -278,7 +291,10 @@ void handle_gsm_monitor_bursts_v2(struct diag_packet *dp, unsigned len)
 {
 	struct gsm_monitor_bursts_v2 *cl = (struct gsm_monitor_bursts_v2 *)&dp->msg_type;
 
-	assert(len-16-2 == sizeof(struct monitor_record)*cl->number_of_records + 4);
+	if (len-16-2 != sizeof(struct monitor_record)*cl->number_of_records + 4) {
+		printf("x gsm_monitor_bursts_v2 length incorrect\n");
+		return;
+	}
 
 	printf("x gsm_monitor_bursts_v2\n");
 	int i;
@@ -300,7 +316,10 @@ void handle_gprs_grr_cell_reselection_measurements(struct diag_packet *dp, unsig
 
 	//printf("num %d len: %d, shoudl be %d\n", cl->neighboring_6_strongest_cells_count, len-16-2, sizeof(struct neighbor)*cl->neighboring_6_strongest_cells_count + 26);
 	//assert(len-16-2 == sizeof(struct neighbor)*cl->neighboring_6_strongest_cells_count + 26);
-	assert(len-16-2 == sizeof(struct gprs_grr_cell_reselection_measurements));
+	if (len-16-2 != sizeof(struct gprs_grr_cell_reselection_measurements)) {
+		printf("x gprs_grr_cell_reselection_measurements length incorrect\n");
+		return;
+	}
 
 	printf("x gprs_grr_cell_reselection_measurements\n");
 	int i;
