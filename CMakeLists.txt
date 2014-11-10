@@ -43,7 +43,7 @@ foreach (build_config ${build_types})
 	endforeach()
 endforeach()
 
-project (glueminisat)
+project (metagsm)
 
 option(ENABLE_ASSERTIONS "Build with assertions enabled" ON)
 if (ENABLE_ASSERTIONS)
