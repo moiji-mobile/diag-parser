@@ -30,7 +30,7 @@ find_path(PCAP_INCLUDE_DIR
 
 find_library(PCAP_LIBRARY
     NAMES pcap
-    HINTS ${PCAP_ROOT_DIR}/lib
+    HINTS ${PCAP_ROOT_DIR}/lib ${PCAP_ROOT_DIR}/lib/x86_64-linux-gnu
 )
 
 include(FindPackageHandleStandardArgs)
