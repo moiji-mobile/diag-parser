@@ -14,9 +14,17 @@ CC = gcc
 
 all: diag_import
 
-install: diag_import libcompat.so
+install: diag_import libcompat.so sm_2g.sql sm_3g.sql
 	install -d $(DESTDIR)
 	install $^ $(DESTDIR)
+
+sm_2g.sql: doc/sm_2.4.sql
+	cpp -DSQLITE -w $< | grep -ve "^#" > $@.tmp
+	mv $@.tmp $@
+
+sm_3g.sql: doc/sm_3G_0.9.sql
+	cpp -DSQLITE -w $< | grep -ve "^#" > $@.tmp
+	mv $@.tmp $@
 
 libmetagsm.a: $(OBJ)
 	$(CROSS_COMPILE)-$(AR) rcs $@ $^
