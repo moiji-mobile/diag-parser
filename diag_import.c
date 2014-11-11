@@ -20,6 +20,9 @@ int main(int argc, char *argv[])
 
 	diag_init(atoi(argv[1]), atoi(argv[2]));
 
+	printf("PARSER_OK\n");
+	fflush(stdout);
+
 	for (;;) {
 		memset(msg, 0x2b, sizeof(msg));
 		len = fread_unescape(stdin, msg, sizeof(msg));
