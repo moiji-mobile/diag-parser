@@ -532,10 +532,15 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	if (s->new_msg->flags & MSG_SDCCH)
 		return;
 
+#if 0
+	/* Removed as this is buggy, some mobiles continue to
+	 * give BCCH messages while being on dedicated channels */
+
 	/* close pending session */
 	if (s->started && (s->mt || s->mo) && !s->closed && (s->new_msg->flags & MSG_BCCH)) {
 		session_reset(s, 1);
 	}
+#endif
 
 	index = si_index(dtap->msg_type);
 	if (index < 0) {
