@@ -30,7 +30,7 @@ struct diag_packet {
 void diag_init(unsigned start_sid, unsigned start_cid)
 {
 #ifdef USE_MYSQL
-	session_init(start_sid, start_cid, 0, 0, CALLBACK_CONSOLE);
+	session_init(start_sid, start_cid, 0, 1, CALLBACK_MYSQL);
 	msg_verbose = 1;
 #else
 #ifdef USE_SQLITE
@@ -211,16 +211,20 @@ void handle_gsm_l1_txlev_timing_advance(struct diag_packet *dp, unsigned len)
 	decoded->arfcn_and_band = ntohs(decoded->arfcn_and_band);
 
 	if (len-16-2 != 4) {
-		printf("x gsm_l1_txlev_timing_advance length incorrect\n");
+		if (msg_verbose > 1) {
+			printf("x gsm_l1_txlev_timing_advance length incorrect\n");
+		}
 		return;
 	}
 
-	printf("x gsm_l1_txlev_timing_advance\n");
-	//printf("x %s\n", osmo_hexdump_nospc(&dp->msg_type, len-16) );
-	printf("x -> arfcn: %d\n", get_arfcn_from_arfcn_and_band(decoded->arfcn_and_band));
-	printf("x -> band: %d\n", get_band_from_arfcn_and_band(decoded->arfcn_and_band));
-	printf("x -> timing advance: %u\n", decoded->timing_advance);
-	printf("x -> tx_power_level: %u\n", decoded->tx_power_level);
+	if (msg_verbose > 1) {
+		printf("x gsm_l1_txlev_timing_advance\n");
+		//printf("x %s\n", osmo_hexdump_nospc(&dp->msg_type, len-16) );
+		printf("x -> arfcn: %d\n", get_arfcn_from_arfcn_and_band(decoded->arfcn_and_band));
+		printf("x -> band: %d\n", get_band_from_arfcn_and_band(decoded->arfcn_and_band));
+		printf("x -> timing advance: %u\n", decoded->timing_advance);
+		printf("x -> tx_power_level: %u\n", decoded->tx_power_level);
+	}
 }
 
 void handle_gsm_l1_surround_cell_ba_list(struct diag_packet *dp, unsigned len)
@@ -229,20 +233,26 @@ void handle_gsm_l1_surround_cell_ba_list(struct diag_packet *dp, unsigned len)
 	struct surrounding_cell *sc = cl->surr_cells;
 
 	if (len-16-2 != sizeof(struct surrounding_cell)*cl->cell_count + 1) {
-		printf("x gsm_l1_surround_cell_ba_list length incorrect\n");
+		if (msg_verbose > 1) {
+			printf("x gsm_l1_surround_cell_ba_list length incorrect\n");
+		}
 		return;
 	}
 
-	printf("x gsm_l1_surround_cell_ba_list\n");
-	int i;
-	for (i = 0; i < cl->cell_count; i++) {
-		printf("x -> Surrounding cell %d -- arfcn %u band: %u rx_power %d frame_number_offset: %u\n",
-			i,
-			get_arfcn_from_arfcn_and_band(ntohs(sc[i].bcch_arfcn_and_band)),
-			get_band_from_arfcn_and_band(ntohs(sc[i].bcch_arfcn_and_band)),
-			sc[i].rx_power,
-			sc[i].frame_number_offset
-		);
+	if (msg_verbose > 1) {
+		int i;
+
+		printf("x gsm_l1_surround_cell_ba_list\n");
+
+		for (i = 0; i < cl->cell_count; i++) {
+			printf("x -> Surrounding cell %d -- arfcn %u band: %u rx_power %d frame_number_offset: %u\n",
+				i,
+				get_arfcn_from_arfcn_and_band(ntohs(sc[i].bcch_arfcn_and_band)),
+				get_band_from_arfcn_and_band(ntohs(sc[i].bcch_arfcn_and_band)),
+				sc[i].rx_power,
+				sc[i].frame_number_offset
+			);
+		}
 	}
 }
 
@@ -251,23 +261,29 @@ void handle_gsm_l1_burst_metrics(struct diag_packet *dp, unsigned len)
 	struct gsm_l1_burst_metrics *dat = (struct gsm_l1_burst_metrics *)&dp->msg_type;
 
 	if (len-16-2 != sizeof(struct gsm_l1_burst_metrics)) {
-		printf("x gsm_l1_burst_metrics length incorrect\n");
+		if (msg_verbose > 1) {
+			printf("x gsm_l1_burst_metrics length incorrect\n");
+		}
 		return;
 	}
 
-	printf("x gsm_l1_burst_metrics\n");
-	printf("x -> channel: %u\n", dat->channel);
-	int i;
-	for (i = 0; i < 4; i++) {
-		printf("x -> Burst metric %d -- arfcn %u band: %u frame_number: %u rssi: %u rx_power: %d\n",
-			i,
-			get_arfcn_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band)),
-			get_band_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band)),
-			dat->metrics[i].frame_number,
-			dat->metrics[i].rssi,
-			dat->metrics[i].rx_power
-			//,ntohl(sc[i].frame_number_offset)
-		);
+	if (msg_verbose > 1) {
+		int i;
+
+		printf("x gsm_l1_burst_metrics\n");
+		printf("x -> channel: %u\n", dat->channel);
+
+		for (i = 0; i < 4; i++) {
+			printf("x -> Burst metric %d -- arfcn %u band: %u frame_number: %u rssi: %u rx_power: %d\n",
+				i,
+				get_arfcn_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band)),
+				get_band_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band)),
+				dat->metrics[i].frame_number,
+				dat->metrics[i].rssi,
+				dat->metrics[i].rx_power
+				//,ntohl(sc[i].frame_number_offset)
+			);
+		}
 	}
 }
 
@@ -276,20 +292,26 @@ void handle_gsm_l1_neighbor_cell_auxiliary_measurments(struct diag_packet *dp, u
 	struct gsm_l1_neighbor_cell_auxiliary_measurments *cl = (struct gsm_l1_neighbor_cell_auxiliary_measurments *)&dp->msg_type;
 
 	if (len-16-2 != sizeof(struct cell)*cl->cell_count + 1) {
-		printf("x gsm_l1_neighbor_cell_auxiliary_measurments length icorrect\n");
+		if (msg_verbose > 1) {
+			printf("x gsm_l1_neighbor_cell_auxiliary_measurments length icorrect\n");
+		}
 		return;
 	}
 
-	printf("x gsm_l1_neighbor_cell_auxiliary_measurments\n");
-	int i;
-	for (i = 0; i < cl->cell_count; i++) {
-		struct cell* c = cl->cells + i;
-		printf("x -> cell %d -- arfcn %u band: %u rx_power %d\n",
-			i,
-			get_arfcn_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
-			get_band_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
-			c[i].rx_power
-		);
+	if (msg_verbose > 1) {
+		int i;
+
+		printf("x gsm_l1_neighbor_cell_auxiliary_measurments\n");
+
+		for (i = 0; i < cl->cell_count; i++) {
+			struct cell* c = cl->cells + i;
+			printf("x -> cell %d -- arfcn %u band: %u rx_power %d\n",
+				i,
+				get_arfcn_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
+				get_band_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
+				c[i].rx_power
+			);
+		}
 	}
 }
 
@@ -298,21 +320,27 @@ void handle_gsm_monitor_bursts_v2(struct diag_packet *dp, unsigned len)
 	struct gsm_monitor_bursts_v2 *cl = (struct gsm_monitor_bursts_v2 *)&dp->msg_type;
 
 	if (len-16-2 != sizeof(struct monitor_record)*cl->number_of_records + 4) {
-		printf("x gsm_monitor_bursts_v2 length incorrect\n");
+		if (msg_verbose > 1) {
+			printf("x gsm_monitor_bursts_v2 length incorrect\n");
+		}
 		return;
 	}
 
-	printf("x gsm_monitor_bursts_v2\n");
-	int i;
-	for (i = 0; i < cl->number_of_records; i++) {
-		struct monitor_record* c = cl->records + i;
-		printf("x -> record %d -- arfcn %u band: %u frame no %d rx_power %d\n",
-			i,
-			get_arfcn_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
-			get_band_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
-			c[i].frame_number,
-			c[i].rx_power
-		);
+	if (msg_verbose > 1) {
+		int i;
+
+		printf("x gsm_monitor_bursts_v2\n");
+
+		for (i = 0; i < cl->number_of_records; i++) {
+			struct monitor_record* c = cl->records + i;
+			printf("x -> record %d -- arfcn %u band: %u frame no %d rx_power %d\n",
+				i,
+				get_arfcn_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
+				get_band_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
+				c[i].frame_number,
+				c[i].rx_power
+			);
+		}
 	}
 }
 
@@ -323,22 +351,28 @@ void handle_gprs_grr_cell_reselection_measurements(struct diag_packet *dp, unsig
 	//printf("num %d len: %d, shoudl be %d\n", cl->neighboring_6_strongest_cells_count, len-16-2, sizeof(struct neighbor)*cl->neighboring_6_strongest_cells_count + 26);
 	//assert(len-16-2 == sizeof(struct neighbor)*cl->neighboring_6_strongest_cells_count + 26);
 	if (len-16-2 != sizeof(struct gprs_grr_cell_reselection_measurements)) {
-		printf("x gprs_grr_cell_reselection_measurements length incorrect\n");
+		if (msg_verbose > 1) {
+			printf("x gprs_grr_cell_reselection_measurements length incorrect\n");
+		}
 		return;
 	}
 
-	printf("x gprs_grr_cell_reselection_measurements\n");
-	int i;
-	for (i = 0; i < cl->neighboring_6_strongest_cells_count; i++) {
-		struct neighbor* c = cl->neigbors + i;
-		printf("x -> neighbor %d -- BCC arfcn %u band: %u  PBCC arfcn %u band: %u rx_level_avg %u\n",
-			i,
-			get_arfcn_from_arfcn_and_band(ntohs(c[i].neighbor_cell_bcch_arfcn_and_band)),
-			get_band_from_arfcn_and_band(ntohs(c[i].neighbor_cell_bcch_arfcn_and_band)),
-			get_arfcn_from_arfcn_and_band(ntohs(c[i].neighbor_cell_pbcch_arfcn_and_band)),
-			get_band_from_arfcn_and_band(ntohs(c[i].neighbor_cell_pbcch_arfcn_and_band)),
-			c[i].neighbor_cell_rx_level_average
-		);
+	if (msg_verbose > 1) {
+		int i;
+
+		printf("x gprs_grr_cell_reselection_measurements\n");
+
+		for (i = 0; i < cl->neighboring_6_strongest_cells_count; i++) {
+			struct neighbor* c = cl->neigbors + i;
+			printf("x -> neighbor %d -- BCC arfcn %u band: %u  PBCC arfcn %u band: %u rx_level_avg %u\n",
+				i,
+				get_arfcn_from_arfcn_and_band(ntohs(c[i].neighbor_cell_bcch_arfcn_and_band)),
+				get_band_from_arfcn_and_band(ntohs(c[i].neighbor_cell_bcch_arfcn_and_band)),
+				get_arfcn_from_arfcn_and_band(ntohs(c[i].neighbor_cell_pbcch_arfcn_and_band)),
+				get_band_from_arfcn_and_band(ntohs(c[i].neighbor_cell_pbcch_arfcn_and_band)),
+				c[i].neighbor_cell_rx_level_average
+			);
+		}
 	}
 }
 
@@ -374,6 +408,11 @@ void handle_diag(uint8_t *msg, unsigned len)
 			fprintf(stderr, "handle_gsm_l1_txlev_timing_advance\n");
 		}
 		handle_gsm_l1_txlev_timing_advance(dp, len);
+		break;
+
+	case 0x507A:
+		// GSM L1 Serving Auxiliary Measurments
+		// not yet parsed
 		break;
 
 	case 0x507B:
