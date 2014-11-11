@@ -600,7 +600,7 @@ void session_close(struct session_info *s)
 #endif
 
 	/* Output functions */
-	if (output_gsmtap)
+	if (output_gsmtap && !auto_reset)
 		session_stream(s);
 
 	if (output_console)
