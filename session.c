@@ -27,6 +27,7 @@
 uint8_t privacy = 0;
 uint8_t msg_verbose = MSG_VERBOSE;
 uint8_t auto_reset = 1;
+uint8_t auto_timestamp = 1;
 static uint8_t output_console = 1;
 static uint8_t output_gsmtap = 1;
 static uint8_t output_sqlite = 1;
@@ -125,11 +126,14 @@ struct session_info *session_create(int id, char* name, uint8_t *key, int mcc, i
 		ns->id = id;
 	}
 
-	if (name)
+	if (name) {
 		strcpy(ns->name, name);
+	}
 
 	/* Set timestamp */
-	gettimeofday(&ns->timestamp, 0);
+	if (auto_timestamp) {
+		gettimeofday(&ns->timestamp, 0);
+	}
 
 	if (key) {
 		ns->have_key = 1;
@@ -557,7 +561,7 @@ void session_close(struct session_info *s)
 
 	/* Attach or update timestamp */
 	gettimeofday(&t_now, NULL);
-	if (!s->timestamp.tv_sec || (auto_reset && t_now.tv_sec > s->timestamp.tv_sec)) {
+	if (!s->timestamp.tv_sec || auto_timestamp) {
 		s->timestamp = t_now;
 	}
 
@@ -687,7 +691,9 @@ void session_reset(struct session_info *s, int forced_release)
 	}
 	strncpy(s->name, old_s.name, sizeof(s->name));
 	s->domain = old_s.domain;
-	s->timestamp = old_s.timestamp;
+	if (!auto_timestamp) {
+		s->timestamp = old_s.timestamp;
+	}
 	s->mcc = old_s.mcc;
 	s->mnc = old_s.mnc;
 	s->lac = old_s.lac;

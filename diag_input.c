@@ -481,7 +481,11 @@ void handle_diag(uint8_t *msg, unsigned len)
 	}
 
 	if (m) {
-		gettimeofday(&m->timestamp, NULL);
+		if (auto_timestamp) {
+			gettimeofday(&m->timestamp, NULL);
+		} else {
+			m->timestamp = _s[0].timestamp;
+		}
 		handle_radio_msg(_s, m);
 	}
 }

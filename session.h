@@ -181,6 +181,7 @@ int session_enumerate();
 extern uint8_t privacy;
 extern uint8_t msg_verbose;
 extern uint8_t auto_reset;
+extern uint8_t auto_timestamp;
 extern struct session_info _s[2];
 
 #endif
