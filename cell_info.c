@@ -736,7 +736,8 @@ void paging_inc(int pag_type, uint8_t mi_type)
 {
 	assert(pag_type < 4);
 
-	if (pag_type > 0) {
+	/* Ignore dummy pagings */
+	if (pag_type > 0 && mi_type != GSM_MI_TYPE_NONE) {
 		paging_count[pag_type - 1]++;
 	}
 
