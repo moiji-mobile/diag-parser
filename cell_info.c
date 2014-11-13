@@ -31,6 +31,8 @@
 #define RATE_LIMIT 1
 #endif /* !RATE_LIMIT */
 
+#define DUMP_INTERVAL 600
+
 #include <osmocom/core/bitvec.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/linuxlist.h>
@@ -47,6 +49,7 @@ static struct session_info s;
 unsigned paging_count[3];
 unsigned paging_imsi;
 unsigned paging_tmsi;
+unsigned paging_null;
 
 enum si_index {
 	SI1 = 0,
@@ -135,7 +138,7 @@ void cell_and_paging_dump(int on_destroy)
 	/* Elapsed time from measurement start */
 	time_delta = ts_now.tv_sec - periodic_ts.tv_sec;
 
-	if (!on_destroy && RATE_LIMIT && time_delta < 10)
+	if (!on_destroy && RATE_LIMIT && (time_delta < DUMP_INTERVAL))
 		return;
 
 	/* Dump cell_info and arfcn_list */
@@ -737,11 +740,14 @@ void paging_inc(int pag_type, uint8_t mi_type)
 	assert(pag_type < 4);
 
 	/* Ignore dummy pagings */
-	if (pag_type > 0 && mi_type != GSM_MI_TYPE_NONE) {
+	if ((pag_type > 0) && (mi_type != GSM_MI_TYPE_NONE)) {
 		paging_count[pag_type - 1]++;
 	}
 
 	switch (mi_type) {
+	case GSM_MI_TYPE_NONE:
+		paging_null++;
+		break;
 	case GSM_MI_TYPE_IMSI:
 		paging_imsi++;
 		break;
