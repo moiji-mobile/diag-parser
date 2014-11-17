@@ -177,6 +177,7 @@ void session_store(struct session_info *s);
 void session_reset(struct session_info *s, int forced_release);
 void session_free(struct session_info *s);
 int session_enumerate();
+int session_from_filename(const char *filename, struct session_info *s);
 
 extern uint8_t privacy;
 extern uint8_t msg_verbose;

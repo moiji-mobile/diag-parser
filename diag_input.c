@@ -27,7 +27,7 @@ struct diag_packet {
 	uint8_t data[0];
 } __attribute__ ((packed));
 
-void diag_init(unsigned start_sid, unsigned start_cid)
+void diag_init(unsigned start_sid, unsigned start_cid, char *filename)
 {
 #ifdef USE_MYSQL
 	session_init(start_sid, start_cid, 0, 1, CALLBACK_MYSQL);
@@ -40,6 +40,10 @@ void diag_init(unsigned start_sid, unsigned start_cid)
 	//msg_verbose = 1;
 #endif
 #endif
+	if (filename && (filename[0] != '-')) {
+		session_from_filename(filename, &_s[0]);
+		session_from_filename(filename, &_s[1]);
+	}
 }
 
 void diag_destroy()

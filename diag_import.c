@@ -10,22 +10,31 @@ int main(int argc, char *argv[])
 {
 	uint8_t msg[4096]; 
 	unsigned len = 0;
+	FILE *infile = stdin;
 
-	if (argc < 3) {
-		printf("Not enough arguments\n");
-		printf("Usage: %s <session_info id> <cell_info id>\n", argv[0]);
-		fflush(stdout);
+	if (argc < 3 || argc > 4) {
+		printf("Wrong number of arguments\n");
+		printf("Usage: %s <session_info id> <cell_info id> [filename]\n", argv[0]);
 		return -1;
 	}
 
-	diag_init(atoi(argv[1]), atoi(argv[2]));
+	if (argc == 4) {
+		infile = fopen(argv[3], "rb");
+		if (!infile) {
+			printf("Cannot open input file: %s\n", argv[3]);
+			return -1;
+		}
+		diag_init(atoi(argv[1]), atoi(argv[2]), argv[3]);
+	} else {
+		diag_init(atoi(argv[1]), atoi(argv[2]), NULL);
+	}
 
 	printf("PARSER_OK\n");
 	fflush(stdout);
 
 	for (;;) {
 		memset(msg, 0x2b, sizeof(msg));
-		len = fread_unescape(stdin, msg, sizeof(msg));
+		len = fread_unescape(infile, msg, sizeof(msg));
 
 		if (!len) {
 			break;
@@ -37,6 +46,8 @@ int main(int argc, char *argv[])
 	}
 
 	diag_destroy();
+
+	fclose(infile);
 
 	return 0;
 }
