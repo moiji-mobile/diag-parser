@@ -7,6 +7,8 @@ drop table if exists attack_component;
 drop table if exists attack_component_x4;
 drop table if exists sec_params;
 
+drop view if exists valid_op;
+drop view if exists valid_si;
 drop view if exists n_src;
 drop view if exists c_src;
 drop view if exists call_avg;
