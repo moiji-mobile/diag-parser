@@ -93,11 +93,14 @@ void session_destroy()
 	if (msg_verbose > 1) {
 		printf("session_destroy!\n");
 	}
+
 	session_reset(&_s[0], 0);
 	_s[1].new_msg = NULL;
 	session_reset(&_s[1], 0);
 
 	cell_destroy();
+
+	net_destroy();
 
 	if (_s[0].sql_callback) {
 #ifdef USE_SQLITE

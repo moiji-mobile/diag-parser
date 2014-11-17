@@ -7,18 +7,29 @@
 
 #include "output.h"
 
-static struct gsmtap_inst *gti = 0;
+static struct gsmtap_inst *gti = NULL;
 
 void net_init()
 {
 	gti = gsmtap_source_init("127.0.0.1", GSMTAP_UDP_PORT, 0);
+	if (!gti) {
+		fprintf(stderr, "Cannot initialize GSMTAP\n");
+		abort();
+	}
 	gsmtap_source_add_sink(gti);
+}
+
+void net_destroy()
+{
+	if (gti) {
+		talloc_free(gti);
+	}
 }
 
 void net_send_rlcmac(uint8_t *msg, int len, int ts, uint8_t ul)
 {
 	if (gti) {
-		gsmtap_send(gti, ul?ARFCN_UPLINK:0, 0, 0xd, 0, 0, 0, 0, msg, len);
+		//gsmtap_send(gti, ul?ARFCN_UPLINK:0, 0, 0xd, 0, 0, 0, 0, msg, len);
 		gsmtap_send(gti, ul?ARFCN_UPLINK:0, ts, GSMTAP_CHANNEL_PACCH, 0, 0, 0, 0, msg, len);
 
 	}
