@@ -625,6 +625,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		} else {
 			ci->combined = 0;
 		}
+		ci->msc_ver = si3->control_channel_desc.spare1;
 		ci->t3212 = si3->control_channel_desc.t3212;
 		ci->agch_blocks = si3->control_channel_desc.bs_ag_blks_res;
 		ci->pag_mframes = 2 + si3->control_channel_desc.bs_pa_mfrms;
