@@ -123,7 +123,7 @@ void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 		//printf("digit_len=%d string=%s\n", digit_len, dest);
 		break;
 	case 0: /* Unknown */
-	case 3: /* Network specific */
+	case 3: /* Network specific (Service numbers?) */
 	case 4: /* Subscriber number */
 	case 6: /* Abbreviated number */
 	case 7: /* Reserved value */
@@ -136,7 +136,7 @@ void handle_address(uint8_t *data, unsigned len, char *dest, int digit_only)
 		case 1: /* E.164 */
 		case 3: /* Data numbering X.121 */
 		case 4: /* Telex numbering F.69 */
-		case 5: /* Private / SMSC specific */
+		case 5: /* Private / SMSC specific (Large Accounts) */
 		case 6: /* Land mobile E.212 / National */
 		case 9: /* Private */
 		case 10: /* Ermes numbering */
