@@ -679,6 +679,20 @@ void session_reset(struct session_info *s, int forced_release)
 	}
 
 	if (s->started && !s->closed) {
+		switch (s->rat) {
+		case RAT_GSM:
+			printf("RAT: GSM\n");
+			break;
+		case RAT_UMTS:
+			printf("RAT: 3G\n");
+			break;
+		case RAT_LTE:
+			printf("RAT: LTE\n");
+			break;
+		default:
+			printf("RAT: UNKNOWN\n");
+		}
+		fflush(stdout);
 		s->cracked = 1;
 		session_close(s);
 	}
