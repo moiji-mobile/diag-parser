@@ -58,6 +58,15 @@ uint32_t get_fn(struct diag_packet *dp)
 }
 
 inline
+uint32_t get_epoch(uint8_t *qd_time)
+{
+	uint64_t *int_conv = (uint64_t *) qd_time;
+	double double_conv = (double) (*int_conv & 0x0000ffffffffffff) / 621.5;
+
+	return (uint32_t) double_conv;
+}
+
+inline
 void print_common(struct diag_packet *dp, unsigned len)
 {
 	printf("%u [%02u] ", get_fn(dp), dp->len);
@@ -169,6 +178,7 @@ struct radio_message * handle_bcch_and_rr(struct diag_packet *dp, unsigned len)
 	case 0: // SDCCH UL RR
 		switch (dp->msg_subtype) {
 		case 22: // Classmark change
+		case 23: // Channel mode modification
 		case 39: // Paging response
 		case 41: // Assignment complete
 		case 44: // Handover complete
@@ -386,6 +396,10 @@ void handle_diag(uint8_t *msg, unsigned len)
 	struct radio_message *m = NULL;
 
 	if (dp->msg_class != 0x0010) {
+		if (dp->msg_class == 0x001d && !_s[0].timestamp.tv_sec) {
+			_s[0].timestamp.tv_sec = get_epoch(&msg[3]);
+			_s[1].timestamp = _s[0].timestamp;
+		}
 		if (msg_verbose > 1) {
 			fprintf(stderr, "Class %04x is not supported\n", dp->msg_class);
 		}
@@ -485,11 +499,8 @@ void handle_diag(uint8_t *msg, unsigned len)
 	}
 
 	if (m) {
-		if (auto_timestamp) {
-			gettimeofday(&m->timestamp, NULL);
-		} else {
-			m->timestamp = _s[0].timestamp;
-		}
+		m->timestamp.tv_sec = get_epoch(&msg[10]);
+
 		handle_radio_msg(_s, m);
 	}
 }
