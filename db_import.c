@@ -29,7 +29,7 @@ int explore_session(int id)
 
 	memset(&r_conn, 0, sizeof(r_conn));
 
-	test = mysql_real_connect(&r_conn, "127.0.0.1", "metagsm", "metagsm", "celldb", 3306, 0, 0);
+	test = mysql_real_connect(&r_conn, "10.0.0.1", "luca", "nooHah1Aes", "celldb", 3306, 0, 0);
 	if (test == 0) {
 		printf("Cannot connect to R-database\n");
 		return -1;
@@ -145,7 +145,7 @@ int explore_session(int id)
 
 	memset(&w_conn, 0, sizeof(w_conn));
 
-	test = mysql_real_connect(&w_conn, "127.0.0.1", "metagsm", "metagsm", "celldb", 3306, 0, 0);
+	test = mysql_real_connect(&w_conn, "127.0.0.1", "root", "moth*echo5Sigma", "session_meta_test", 3306, 0, 0);
 	if (test == 0) {
 		printf("Cannot connect to W-database\n");
 		return -1;
@@ -188,7 +188,7 @@ int main(int argc, char **argv)
 	char query[128];
 	int *session_id;
 
-	session_init(0, 0, 0, 1, CALLBACK_MYSQL);
+	session_init(0, 0, 0, 0, CALLBACK_MYSQL);
 	auto_reset = 0;
 	auto_timestamp = 0;
 
@@ -207,7 +207,7 @@ int main(int argc, char **argv)
 	memset(&conn, 0, sizeof(conn));
 
 	//test = mysql_real_connect(&conn, "127.0.0.1", "root", "moth*echo5Sigma", "session_meta_test", 3306, 0, 0);
-	test = mysql_real_connect(&conn, "127.0.0.1", "metagsm", "metagsm", "celldb", 3306, 0, 0);
+	test = mysql_real_connect(&conn, "10.0.0.1", "luca", "nooHah1Aes", "celldb", 3306, 0, 0);
 	if (test == 0) {
 		printf("Cannot connect to database\n");
 		return -1;

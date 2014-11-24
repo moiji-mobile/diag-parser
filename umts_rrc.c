@@ -24,33 +24,14 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 		return 1;
 	}
 
-	s[0].rat = RAT_UMTS;
-	s[1].rat = RAT_UMTS;
-
-	/* Pre-decode message type */
-	uint8_t msg_type;
-	if (msg[0] & 0x80) {
-		if (len < 6) {
-			SET_MSG_INFO(s, "SANITY CHECK FAILED (HMAC_LEN)");
-			return 1;
-		}
-		msg_type = ((msg[4] & 0x07) << 2) | (msg[5] >> 6);
-	} else {
-		msg_type = (msg[0] & 0x7c) >> 2;
-	}
-
-	/* Attach description and discard unsupported types */
-	switch (msg_type) {
-	case 18:
-		SET_MSG_INFO(s, "RRC ConnectionSetupComplete");
-		goto ul_no_free;
-	}
-
 	rv = uper_decode(NULL, &asn_DEF_UL_DCCH_Message, (void **) &dcch, msg, len, 0, 0);
 	if ((rv.code != RC_OK) || !dcch) {
 		SET_MSG_INFO(s, "ASN.1 PARSING ERROR");
 		return 1;
 	}
+
+	s[0].rat = RAT_UMTS;
+	s[1].rat = RAT_UMTS;
 
 	switch(dcch->message.present) {
 	case UL_DCCH_MessageType_PR_rrcConnectionSetupComplete:
@@ -108,7 +89,6 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 #endif
 
 	ASN_STRUCT_FREE(asn_DEF_UL_DCCH_Message, dcch);
-	ul_no_free:
 
 	return 0;
 }
@@ -162,9 +142,6 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 		goto dl_no_free;
 	case 10:
 		SET_MSG_INFO(s, "RRC PhysicalChannelReconfig");
-		goto dl_no_free;
-	case 11:
-		SET_MSG_INFO(s, "RRC PhysicalSharedChannelAllocation");
 		goto dl_no_free;
 	case 12:
 		SET_MSG_INFO(s, "RRC RadioBearerReconfig");

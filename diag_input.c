@@ -30,15 +30,14 @@ struct diag_packet {
 void diag_init(unsigned start_sid, unsigned start_cid, char *filename)
 {
 #ifdef USE_MYSQL
-	//session_init(start_sid, start_cid, 0, 1, CALLBACK_MYSQL);
-	session_init(start_sid, start_cid, 0, 1, CALLBACK_NONE);
+	session_init(start_sid, start_cid, 0, 1, CALLBACK_MYSQL);
 	msg_verbose = 1;
-	//msg_verbose = 0;
 #else
 #ifdef USE_SQLITE
 	session_init(start_sid, start_cid, 0, 1, CALLBACK_SQLITE);
 #else
-	session_init(start_sid, start_cid, 0, 1, CALLBACK_CONSOLE);
+	session_init(start_sid, start_cid, 0, 0, CALLBACK_CONSOLE);
+	//msg_verbose = 1;
 #endif
 #endif
 	if (filename && (filename[0] != '-')) {
