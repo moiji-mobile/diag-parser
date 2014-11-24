@@ -6,6 +6,7 @@
 
 #include "umts_rrc.h"
 #include "l3_handler.h"
+#include "session.h"
 
 int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 {
