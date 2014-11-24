@@ -31,6 +31,8 @@
 #define RATE_LIMIT 1
 #endif /* !RATE_LIMIT */
 
+#define DUMP_INTERVAL 60
+
 #include <osmocom/core/bitvec.h>
 #include <osmocom/core/timer.h>
 #include <osmocom/core/linuxlist.h>
@@ -47,6 +49,7 @@ static struct session_info s;
 unsigned paging_count[3];
 unsigned paging_imsi;
 unsigned paging_tmsi;
+unsigned paging_null;
 
 enum si_index {
 	SI1 = 0,
@@ -135,7 +138,7 @@ void cell_and_paging_dump(int on_destroy)
 	/* Elapsed time from measurement start */
 	time_delta = ts_now.tv_sec - periodic_ts.tv_sec;
 
-	if (!on_destroy && RATE_LIMIT && time_delta < 10)
+	if (!on_destroy && RATE_LIMIT && (time_delta < DUMP_INTERVAL))
 		return;
 
 	/* Dump cell_info and arfcn_list */
@@ -532,10 +535,15 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	if (s->new_msg->flags & MSG_SDCCH)
 		return;
 
+#if 0
+	/* Removed as this is buggy, some mobiles continue to
+	 * give BCCH messages while being on dedicated channels */
+
 	/* close pending session */
 	if (s->started && (s->mt || s->mo) && !s->closed && (s->new_msg->flags & MSG_BCCH)) {
 		session_reset(s, 1);
 	}
+#endif
 
 	index = si_index(dtap->msg_type);
 	if (index < 0) {
@@ -617,9 +625,10 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		} else {
 			ci->combined = 0;
 		}
+		ci->msc_ver = si3->control_channel_desc.spare1;
 		ci->t3212 = si3->control_channel_desc.t3212;
 		ci->agch_blocks = si3->control_channel_desc.bs_ag_blks_res;
-		ci->pag_mframes = si3->control_channel_desc.bs_pa_mfrms;
+		ci->pag_mframes = 2 + si3->control_channel_desc.bs_pa_mfrms;
 		if (si3->rest_octets[0] != 0x2b) {
 			handle_si3_rest(ci, si3->rest_octets, len - sizeof(*si3));
 		}
@@ -731,11 +740,15 @@ void paging_inc(int pag_type, uint8_t mi_type)
 {
 	assert(pag_type < 4);
 
-	if (pag_type > 0) {
+	/* Ignore dummy pagings */
+	if ((pag_type > 0) && (mi_type != GSM_MI_TYPE_NONE)) {
 		paging_count[pag_type - 1]++;
 	}
 
 	switch (mi_type) {
+	case GSM_MI_TYPE_NONE:
+		paging_null++;
+		break;
 	case GSM_MI_TYPE_IMSI:
 		paging_imsi++;
 		break;

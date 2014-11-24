@@ -14,7 +14,7 @@ CC = gcc
 
 all: diag_import
 
-install: diag_import libcompat.so sm_2g.sql sm_3g.sql doc/data/mcc.sql doc/data/mnc.sql doc/data/hlr_info.sql
+install: diag_import libcompat.so sm_2g.sql sm_3g.sql doc/data/mcc.sql doc/data/mnc.sql doc/data/hlr_info.sql doc/sm.sql
 	install -d $(DESTDIR)
 	install $^ $(DESTDIR)
 

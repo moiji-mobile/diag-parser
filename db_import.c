@@ -190,6 +190,7 @@ int main(int argc, char **argv)
 
 	session_init(0, 0, 0, 0, CALLBACK_MYSQL);
 	auto_reset = 0;
+	auto_timestamp = 0;
 
 	if (argc == 2) {
 		int s_id = atoi(argv[1]);

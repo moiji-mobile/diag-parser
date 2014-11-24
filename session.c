@@ -27,6 +27,7 @@
 uint8_t privacy = 0;
 uint8_t msg_verbose = MSG_VERBOSE;
 uint8_t auto_reset = 1;
+uint8_t auto_timestamp = 1;
 static uint8_t output_console = 1;
 static uint8_t output_gsmtap = 1;
 static uint8_t output_sqlite = 1;
@@ -92,11 +93,14 @@ void session_destroy()
 	if (msg_verbose > 1) {
 		printf("session_destroy!\n");
 	}
+
 	session_reset(&_s[0], 0);
 	_s[1].new_msg = NULL;
 	session_reset(&_s[1], 0);
 
 	cell_destroy();
+
+	net_destroy();
 
 	if (_s[0].sql_callback) {
 #ifdef USE_SQLITE
@@ -125,11 +129,14 @@ struct session_info *session_create(int id, char* name, uint8_t *key, int mcc, i
 		ns->id = id;
 	}
 
-	if (name)
+	if (name) {
 		strcpy(ns->name, name);
+	}
 
 	/* Set timestamp */
-	gettimeofday(&ns->timestamp, 0);
+	if (auto_timestamp) {
+		gettimeofday(&ns->timestamp, 0);
+	}
 
 	if (key) {
 		ns->have_key = 1;
@@ -557,7 +564,7 @@ void session_close(struct session_info *s)
 
 	/* Attach or update timestamp */
 	gettimeofday(&t_now, NULL);
-	if (!s->timestamp.tv_sec || (auto_reset && t_now.tv_sec > s->timestamp.tv_sec)) {
+	if (!s->timestamp.tv_sec || auto_timestamp) {
 		s->timestamp = t_now;
 	}
 
@@ -600,7 +607,7 @@ void session_close(struct session_info *s)
 #endif
 
 	/* Output functions */
-	if (output_gsmtap)
+	if (output_gsmtap && !auto_reset)
 		session_stream(s);
 
 	if (output_console)
@@ -672,6 +679,20 @@ void session_reset(struct session_info *s, int forced_release)
 	}
 
 	if (s->started && !s->closed) {
+		switch (s->rat) {
+		case RAT_GSM:
+			printf("RAT: GSM\n");
+			break;
+		case RAT_UMTS:
+			printf("RAT: 3G\n");
+			break;
+		case RAT_LTE:
+			printf("RAT: LTE\n");
+			break;
+		default:
+			printf("RAT: UNKNOWN\n");
+		}
+		fflush(stdout);
 		s->cracked = 1;
 		session_close(s);
 	}
@@ -687,7 +708,9 @@ void session_reset(struct session_info *s, int forced_release)
 	}
 	strncpy(s->name, old_s.name, sizeof(s->name));
 	s->domain = old_s.domain;
-	s->timestamp = old_s.timestamp;
+	if (!auto_timestamp) {
+		s->timestamp = old_s.timestamp;
+	}
 	s->mcc = old_s.mcc;
 	s->mnc = old_s.mnc;
 	s->lac = old_s.lac;
@@ -728,4 +751,91 @@ void session_reset(struct session_info *s, int forced_release)
 	session_free_sms_list(&old_s);
 	old_s.first_msg = NULL;
 	old_s.last_msg = NULL;
+}
+
+int session_from_filename(const char *filename, struct session_info *s)
+{
+	char *xgs_ptr;
+	char *qdmon_ptr;
+	char *ptr;
+	char *token;
+	struct tm ts;
+
+	/* Locate baseband type in filename */
+	xgs_ptr = strstr(filename, "_xgs.");
+	qdmon_ptr = strstr(filename, "_qdmon.");
+
+	/* Only one string should match */
+	if (xgs_ptr) {
+		if (qdmon_ptr) {
+			goto parse_error;
+		} else {
+			ptr = xgs_ptr;
+		}
+	} else {
+		if (qdmon_ptr) {
+			ptr = qdmon_ptr;
+		} else {
+			goto parse_error;
+		}
+	}
+
+	/* Create tokenizer and skip first element */
+	token = strtok_r(ptr, ".", &ptr);
+	if (!token)
+		goto parse_error;
+
+	/* Get phone model (needed for xgs only) */
+	token = strtok_r(0, ".", &ptr);
+	if (!token) {
+		goto parse_error;
+	} else {
+		// Do model checks for xgs, not really needed for now
+	}
+
+	memset(&ts, 0, sizeof(ts));
+
+	/* Timestamp */
+	token = strtok_r(0, ".", &ptr);
+	if (!token || sscanf(token, "%04d%02d%02d-%02d%02d%02d", &ts.tm_year, &ts.tm_mon, &ts.tm_mday, &ts.tm_hour, &ts.tm_min, &ts.tm_sec) != 6) {
+		fprintf(stderr, "unknown timestamp format %s\n", (token?token:"(null)"));
+		gettimeofday(&s->timestamp, NULL);
+	} else {
+		ts.tm_year -= 1900;
+		ts.tm_mon -= 1;
+		s->timestamp.tv_sec = mktime(&ts);
+	}
+
+	/* Network type */
+	token = strtok_r(0, ".", &ptr);
+	if (!token)
+		return -1;
+	if (!strcmp(token, "UMTS") ||
+	    !strcmp(token, "3G")||
+	    !strcmp(token, "WCDMA")) {
+		s->rat = 1;
+	} else if (!strcmp(token, "GSM")) {
+		s->rat = 0;
+	} else {
+		// unknown
+		fprintf(stderr, "unknown network type %s\n", token);
+		return -1;
+	}
+
+	/* Cell ID */
+	token = strtok_r(0, ".", &ptr);
+	if (sscanf(token, "%03hu%03hu-%hx-%x", &s->mcc, &s->mnc, &s->lac, &s->cid) != 4) {
+		fprintf(stderr, "unknown cellid format %s\n", (token?token:"(null)"));
+		s->mcc = 65535;
+		s->mnc = 65535;
+		s->lac = 65535;
+		s->cid = 65535;
+		return -1;
+	}
+
+	return 0;
+
+parse_error:
+	gettimeofday(&s->timestamp, NULL);
+	return -1;
 }

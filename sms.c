@@ -487,7 +487,8 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 		APPEND_MSG_INFO(s, ", TO %s", sm->msisdn);
 	}
 	off += f_len/2 + 1;
-	if (off > len) {
+	if (off >= len) {
+		APPEND_MSG_INFO(s, " <TRUNCATED>");
 		free(sm);
 		return;
 	}
@@ -495,6 +496,16 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 	/* TP-PID and TP-DCS */
 	sm->pid = msg[off++];
 	sm->dcs = msg[off++];
+
+	/* Decode DCS */
+	sm->alphabet = get_sms_alphabet(sm->dcs);
+	sm->class = get_sms_class(sm->dcs);
+
+	if (off >= len) {
+		APPEND_MSG_INFO(s, " <TRUNCATED>");
+		free(sm);
+		return;
+	}
 
 	/* Validity period */
 	if (!from_network) {
@@ -515,7 +526,8 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 	if (from_network) {
 		off += 7;
 	}
-	if (off > len) {
+	if (off >= len) {
+		APPEND_MSG_INFO(s, " <TRUNCATED>");
 		free(sm);
 		return;
 	}
@@ -532,8 +544,10 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 			if (msg_verbose > 1) {
 				printf("len %d off %d sm->len %d\n", len, off, sm->length);
 			}
-			free(sm);
-			return;
+			APPEND_INFO(sm, "<TRUNCATED> ");
+
+			/* Setting new message length (max) */
+			sm->length = ((len - off) * 8) / 7;
 		}
 	} else {
 		//FIXME: estimate compressed length
@@ -542,15 +556,14 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 		}
 	}
 
-	/* Store unparsed bytes */
-	if (off > len) {
+	if (off >= len) {
+		APPEND_MSG_INFO(s, " <TRUNCATED>");
 		free(sm);
 		return;
 	}
-	memcpy(sm->data, &msg[off], len - off);
 
-	sm->alphabet = get_sms_alphabet(sm->dcs);
-	sm->class = get_sms_class(sm->dcs);
+	/* Store unparsed bytes */
+	memcpy(sm->data, &msg[off], len - off);
 
 	/* Handle UDH if present */
 	if (sm->udhi) {
@@ -612,7 +625,12 @@ void handle_rpdata(struct session_info *s, uint8_t *data, unsigned len, uint8_t 
 	/* user data length */
 	f_len = data[off++];
 	if (f_len > len - off) {
-		SET_MSG_INFO(s, "SANITY CHECK FAILED (USER_DATA_LEN)");
+		/* Crop to available data */
+		f_len = len - off - 1;
+	}
+
+	if (off >= len) {
+		SET_MSG_INFO(s, "SANITY CHECK FAILED (SMS_OFFSET)");
 		return;
 	}
 
