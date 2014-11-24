@@ -751,8 +751,6 @@ void paging_inc(int pag_type, uint8_t mi_type)
 {
 	assert(pag_type < 4);
 
-	printf("paging_inc type=%d mi=%d\n", pag_type, mi_type);
-
 	/* Ignore dummy pagings */
 	if ((pag_type > 0) && (mi_type != GSM_MI_TYPE_NONE)) {
 		paging_count[pag_type - 1]++;
