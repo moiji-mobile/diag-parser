@@ -60,7 +60,7 @@ macro(add_c_flag flagname)
 endmacro()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb")
-SET(CMAKE_C_FLAGS_RELWITHDEBINFO "-ggdb -O3")
+SET(CMAKE_C_FLAGS_RELWITHDEBINFO "-ggdb -O0")
 SET(CMAKE_C_FLAGS_RELEASE "-O3 -g0 -DNDEBUG")
 SET(CMAKE_C_FLAGS_DEBUG "-O0 -ggdb")
 

@@ -7,17 +7,19 @@ OBJ=address.o assignment.o bit_func.o ccch.o cch.o chan_detect.o crc.o \
 	sch.o session.o sms.o tch.o viterbi.o
 
 # Host build
-CFLAGS+=-DUSE_MYSQL -DUSE_SQLITE $(shell mysql_config --cflags)
+#CFLAGS+= -DUSE_MYSQL -DUSE_SQLITE $(shell mysql_config --cflags)
+CFLAGS+= $(shell mysql_config --cflags)
 LDFLAGS+=$(shell mysql_config --libs) -lsqlite3
 OBJ+=mysql_api.o sqlite_api.o
 
 # Database config for r2
-#CFLAGS+=-DMYSQL_USER=\"root\" -DMYSQL_PASS=\"moth*echo5Sigma\" -DMYSQL_DBNAME=\"session_meta_test\"
+CFLAGS+=-DMYSQL_USER=\"metagsm\" -DMYSQL_PASS=\"metagsm\" -DMYSQL_DBNAME=\"celldb\"
 
 %.o: %.c %.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 all: diag_import hex_import gsmtap_import db_import
+#db_import
 
 libmetagsm.so: $(OBJ)
 	$(CC) -o $@ $^ -shared -fPIC $(LDFLAGS)
