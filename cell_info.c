@@ -135,10 +135,14 @@ void cell_and_paging_dump(uint32_t timestamp, int forced, int on_destroy)
 	/* Elapsed time from measurement start */
 	time_delta = timestamp - previous_ts;
 
+	/* Handle large out of sequence messages */
+	if (time_delta > 86400) {
+		previous_ts = timestamp;
+		return;
+	}
+
 	if (!forced && RATE_LIMIT && (time_delta < DUMP_INTERVAL))
 		return;
-
-	printf("cell and paging dump\n");
 
 	/* Dump cell_info and arfcn_list */
 	llist_for_each_entry_safe(ci, ci2, &cell_list, entry) {
