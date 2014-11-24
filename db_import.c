@@ -11,6 +11,7 @@
 #include "bit_func.h"
 #include "assignment.h"
 #include "session.h"
+#include "cell_info.h"
 #include "process.h"
 
 #define START_ID 0
@@ -188,7 +189,8 @@ int main(int argc, char **argv)
 	char query[128];
 	int *session_id;
 
-	session_init(0, 0, 0, 0, CALLBACK_MYSQL);
+	session_init(0, 0, 0, CALLBACK_MYSQL);
+	cell_init(0, 0, CALLBACK_MYSQL);
 	auto_reset = 0;
 	auto_timestamp = 0;
 
@@ -260,7 +262,7 @@ int main(int argc, char **argv)
 
 	free(session_id);
 
-	cell_and_paging_dump(1);
+	cell_and_paging_dump(0, 1, 1);
 
 	return 0;
 }

@@ -44,7 +44,7 @@
 static unsigned cell_info_id;
 static struct llist_head cell_list;
 static unsigned output_sqlite = 1;
-static struct timeval periodic_ts;
+static uint32_t previous_ts = 0;
 static struct session_info s;
 unsigned paging_count[3];
 unsigned paging_imsi;
@@ -125,21 +125,20 @@ static void paging_reset()
 	paging_tmsi = 0;
 }
 
-void cell_and_paging_dump(int on_destroy)
+void cell_and_paging_dump(uint32_t timestamp, int forced, int on_destroy)
 {
 	char query[8192];
 	struct cell_info *ci, *ci2;
-	struct timeval ts_now;
 	unsigned time_delta;
 	int i;
 
-	gettimeofday(&ts_now, NULL);
-
 	/* Elapsed time from measurement start */
-	time_delta = ts_now.tv_sec - periodic_ts.tv_sec;
+	time_delta = timestamp - previous_ts;
 
-	if (!on_destroy && RATE_LIMIT && (time_delta < DUMP_INTERVAL))
+	if (!forced && RATE_LIMIT && (time_delta < DUMP_INTERVAL))
 		return;
+
+	printf("cell and paging dump\n");
 
 	/* Dump cell_info and arfcn_list */
 	llist_for_each_entry_safe(ci, ci2, &cell_list, entry) {
@@ -167,7 +166,11 @@ void cell_and_paging_dump(int on_destroy)
 	}
 
 	/* dump paging info */
-	paging_make_sql(ts_now.tv_sec, query, sizeof(query), output_sqlite);
+	if (timestamp) {
+		paging_make_sql(timestamp, query, sizeof(query), output_sqlite);
+	} else {
+		paging_make_sql(previous_ts, query, sizeof(query), output_sqlite);
+	}
 	if (s.sql_callback && strlen(query)) {
 		(*s.sql_callback)(query);
 	}
@@ -183,7 +186,7 @@ void cell_and_paging_dump(int on_destroy)
 	/* reset counters */
 	paging_reset();
 
-	periodic_ts = ts_now;
+	previous_ts = timestamp;
 }
 
 static void console_callback(const char *sql)
@@ -194,13 +197,21 @@ static void console_callback(const char *sql)
 	fflush(stdout);
 }
 
-void cell_init(unsigned start_id, int callback)
+void cell_init(unsigned start_id, uint32_t unix_time, int callback)
 {
 	INIT_LLIST_HEAD(&cell_list);
 
 	paging_reset();
 
-	gettimeofday(&periodic_ts, NULL);
+	if (unix_time) {
+		previous_ts = unix_time;
+	} else {
+		struct timeval t1;
+
+		gettimeofday(&t1, NULL);
+
+		previous_ts = t1.tv_sec;
+	}
 
 	cell_info_id = start_id;
 
@@ -226,7 +237,7 @@ void cell_init(unsigned start_id, int callback)
 
 void cell_destroy()
 {
-	cell_and_paging_dump(1);
+	cell_and_paging_dump(0, 1, 1);
 }
 
 uint16_t get_mcc(uint8_t *digits)
@@ -740,6 +751,8 @@ void paging_inc(int pag_type, uint8_t mi_type)
 {
 	assert(pag_type < 4);
 
+	printf("paging_inc type=%d mi=%d\n", pag_type, mi_type);
+
 	/* Ignore dummy pagings */
 	if ((pag_type > 0) && (mi_type != GSM_MI_TYPE_NONE)) {
 		paging_count[pag_type - 1]++;
@@ -758,7 +771,7 @@ void paging_inc(int pag_type, uint8_t mi_type)
 	}
 }
 
-void handle_paging1(struct gsm48_hdr *dtap, unsigned len)
+void handle_paging1(uint8_t *data, unsigned len)
 {
 	struct gsm48_paging1 *pag;
 	int len1, mi_type, tag;
@@ -766,10 +779,14 @@ void handle_paging1(struct gsm48_hdr *dtap, unsigned len)
 	if (len < sizeof(*pag))
 		return;
 
-	pag = (struct gsm48_paging1 *) dtap;
+	pag = (struct gsm48_paging1 *) (data - 1);
 
 	len1 = pag->data[0];
-	mi_type = pag->data[1] & GSM_MI_TYPE_MASK;
+	if (len1 > 1) {
+		mi_type = pag->data[1] & GSM_MI_TYPE_MASK;
+	} else {
+		mi_type = 0;
+	}
 
 	paging_inc(1, mi_type);
 
@@ -784,7 +801,7 @@ void handle_paging1(struct gsm48_hdr *dtap, unsigned len)
 	paging_inc(0, mi_type);
 }
 
-void handle_paging2(struct gsm48_hdr *dtap, unsigned len)
+void handle_paging2(uint8_t *data, unsigned len)
 {
 	struct gsm48_paging2 *pag;
 	int tag, mi_type;
@@ -792,7 +809,7 @@ void handle_paging2(struct gsm48_hdr *dtap, unsigned len)
 	if (len < sizeof(*pag))
 		return;
 
-	pag = (struct gsm48_paging2 *) dtap; 
+	pag = (struct gsm48_paging2 *) (data - 1);
 
 	paging_inc(2, GSM_MI_TYPE_TMSI);
 	paging_inc(0, GSM_MI_TYPE_TMSI);
@@ -987,7 +1004,7 @@ void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite)
 		snprintf(paging_ts, sizeof(paging_ts), "FROM_UNIXTIME(%u)", epoch_now);
 	}
 
-	time_delta = (float) (epoch_now-periodic_ts.tv_sec);
+	time_delta = (float) (epoch_now-previous_ts);
 
 	if (time_delta > 0.0) {
 		snprintf(query, len, "INSERT INTO paging_info VALUES (%s, %f, %f, %f, %f, %f);",

@@ -13,6 +13,7 @@
 
 #include "session.h"
 #include "process.h"
+#include "cell_info.h"
 #include "l3_handler.h"
 
 void chantype_from_gsmtap(struct radio_message *m, uint8_t gsmtap_chantype, uint8_t timeslot)
@@ -184,7 +185,9 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	session_init(atoi(argv[2]), atoi(argv[3]), 1, 1, CALLBACK_MYSQL);
+	session_init(atoi(argv[2]), 1, 1, CALLBACK_MYSQL);
+	//TODO: read timestamp from pcap header and replace the 0 below
+	cell_init(atoi(argv[3]), 0, CALLBACK_MYSQL);
 	//msg_verbose = 1;
 
 	pcap_loop(read_fp, -1, process_ethernet, NULL);

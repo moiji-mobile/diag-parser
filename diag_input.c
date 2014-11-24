@@ -29,21 +29,28 @@ struct diag_packet {
 
 void diag_init(unsigned start_sid, unsigned start_cid, char *filename)
 {
+	int callback_type;
+
 #ifdef USE_MYSQL
-	session_init(start_sid, start_cid, 0, 1, CALLBACK_MYSQL);
-	msg_verbose = 1;
+	callback_type = CALLBACK_MYSQL;
+	msg_verbose = 0;
 #else
 #ifdef USE_SQLITE
-	session_init(start_sid, start_cid, 0, 1, CALLBACK_SQLITE);
+	callback_type = CALLBACK_SQLITE;
 #else
-	session_init(start_sid, start_cid, 0, 0, CALLBACK_CONSOLE);
+	callback_type = CALLBACK_CONSOLE;
 	//msg_verbose = 1;
 #endif
 #endif
+	session_init(start_sid, 0, 1, callback_type);
+	auto_timestamp = 0;
+
 	if (filename && (filename[0] != '-')) {
 		session_from_filename(filename, &_s[0]);
 		session_from_filename(filename, &_s[1]);
 	}
+
+	cell_init(start_cid, _s[0].timestamp.tv_sec, callback_type);
 }
 
 void diag_destroy()
@@ -58,12 +65,12 @@ uint32_t get_fn(struct diag_packet *dp)
 }
 
 inline
-uint32_t get_epoch(uint8_t *qd_time)
+uint64_t get_epoch(uint8_t *qd_time)
 {
 	uint64_t *int_conv = (uint64_t *) qd_time;
 	double double_conv = (double) (*int_conv & 0x0000ffffffffffff) / 621.5;
 
-	return (uint32_t) double_conv;
+	return (uint64_t) double_conv;
 }
 
 inline
@@ -211,11 +218,6 @@ struct radio_message * handle_bcch_and_rr(struct diag_packet *dp, unsigned len)
 	}
 
 	return 0;
-}
-
-void handle_periodic_task()
-{
-	cell_and_paging_dump(0);
 }
 
 void handle_gsm_l1_txlev_timing_advance(struct diag_packet *dp, unsigned len)
@@ -394,6 +396,7 @@ void handle_diag(uint8_t *msg, unsigned len)
 {
 	struct diag_packet *dp = (struct diag_packet *) msg;
 	struct radio_message *m = NULL;
+	uint64_t unix_time;
 
 	if (dp->msg_class != 0x0010) {
 		if (dp->msg_class == 0x001d && !_s[0].timestamp.tv_sec) {
@@ -405,6 +408,10 @@ void handle_diag(uint8_t *msg, unsigned len)
 		}
 		return;
 	}
+
+	unix_time = get_epoch(&msg[10]);
+
+	cell_and_paging_dump(unix_time, 0, 0);
 
 	switch(dp->msg_protocol) {
 	case 0x5071:
@@ -499,7 +506,7 @@ void handle_diag(uint8_t *msg, unsigned len)
 	}
 
 	if (m) {
-		m->timestamp.tv_sec = get_epoch(&msg[10]);
+		m->timestamp.tv_sec = unix_time;
 
 		handle_radio_msg(_s, m);
 	}

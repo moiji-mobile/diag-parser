@@ -58,8 +58,6 @@ int main(int argc, char *argv[])
 		if (len > 0) {
 			handle_diag(msg, len);
 		}
-
-		handle_periodic_task();
 	}
 
 	diag_destroy();

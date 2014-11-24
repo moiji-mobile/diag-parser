@@ -46,7 +46,7 @@ static void console_callback(const char *sql)
 	fflush(stdout);
 }
 
-void session_init(unsigned start_sid, unsigned start_cid, int console, int gsmtap, int callback)
+void session_init(unsigned start_sid, int console, int gsmtap, int callback)
 {
 	output_console = console;
 	output_gsmtap = gsmtap;
@@ -81,8 +81,6 @@ void session_init(unsigned start_sid, unsigned start_cid, int console, int gsmta
 	_s[0].id = s_id++;
 	_s[1].id = s_id++;
 	_s[1].domain = DOMAIN_PS;
-
-	cell_init(start_cid, callback);
 
 	if (gsmtap)
 		net_init();
@@ -836,6 +834,8 @@ int session_from_filename(const char *filename, struct session_info *s)
 	return 0;
 
 parse_error:
-	gettimeofday(&s->timestamp, NULL);
+	if (auto_timestamp) {
+		gettimeofday(&s->timestamp, NULL);
+	}
 	return -1;
 }
