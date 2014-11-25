@@ -10,10 +10,13 @@
 
 int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 {
+	uint8_t msg_type;
+	int need_to_parse = 0;
+
 	UL_DCCH_Message_t *dcch = NULL;
 	asn_dec_rval_t rv;
-
 	//MessageAuthenticationCode_t *mac;
+
 	uint8_t *nas = NULL;
 	int nas_len;
 	int domain = -1;
@@ -28,9 +31,9 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 	s[0].rat = RAT_UMTS;
 	s[1].rat = RAT_UMTS;
 
-	/* Pre-decode message type */
-	uint8_t msg_type;
+	/* Decode message type */
 	if (msg[0] & 0x80) {
+		/* Integrity present */
 		if (len < 6) {
 			SET_MSG_INFO(s, "SANITY CHECK FAILED (HMAC_LEN)");
 			return 1;
@@ -41,7 +44,6 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 	}
 
 	/* Attach description and discard unsupported types */
-	int need_to_parse = 0;
 	switch (msg_type) {
 	case (UL_DCCH_MessageType_PR_rrcConnectionSetupComplete-1):
 		SET_MSG_INFO(s, "RRC Setup Complete");
@@ -81,11 +83,12 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 		break;
 
 	default:
-		SET_MSG_INFO(s, "UL-DCCH type=%d", dcch->message.present);
+		SET_MSG_INFO(s, "UL-DCCH type=%d", msg_type);
 		s->new_msg->flags &= ~MSG_DECODED;
 	}
 
 
+	/* Apply ASN.1 decoder to extract needed information */
 	if (need_to_parse) {
 		rv = uper_decode(NULL, &asn_DEF_UL_DCCH_Message, (void **) &dcch, msg, len, 0, 0);
 		if ((rv.code != RC_OK) || !dcch) {
@@ -135,21 +138,22 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 
 int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 {
+	uint8_t msg_type;
+	int need_to_parse = 0;
+	int error = 0;
 	DL_DCCH_Message_t *dcch = NULL;
 	asn_dec_rval_t rv;
-	int error = 0;
-	uint8_t *nas = NULL;
-	int nas_len = 0;
-	int domain;
 	//MessageAuthenticationCode_t *mac = NULL;
 	//SecurityCapability_t *cap = NULL; 
 	CipheringModeInfo_t *cipher = NULL;
 	CipheringModeInfo_r7_t *cipher7 = NULL;
 	IntegrityProtectionModeInfo_t *integrity= NULL;	
 	IntegrityProtectionModeInfo_r7_t *integrity7 = NULL;
+	uint8_t *nas = NULL;
+	int nas_len = 0;
+	int domain;
 	int c_algo = 0;
 	int i_algo = 0;
-	uint8_t msg_type;
 
 	assert(s != NULL);
 	assert(msg != NULL);
@@ -173,7 +177,6 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 	}
 
 	/* Attach description and discard unsupported types */
-	int need_to_parse = 0;
 	switch (msg_type) {
 		case (DL_DCCH_MessageType_PR_signallingConnectionRelease-1):
 			SET_MSG_INFO(s, "RRC Signalling Connection Release");
@@ -201,7 +204,7 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 			break;
 
 		default:
-			SET_MSG_INFO(s, "DL-DCCH type=%d", dcch->message.present);
+			SET_MSG_INFO(s, "DL-DCCH type=%d", msg_type);
 			s->new_msg->flags &= ~MSG_DECODED;
 			break;
 	}
@@ -293,7 +296,7 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 			handle_dtap(s, nas, nas_len, 0, 0);
 		}
 
-		dl_end:
+dl_end:
 		ASN_STRUCT_FREE(asn_DEF_DL_DCCH_Message, dcch);
 	}
 
@@ -310,9 +313,6 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 
 int handle_ccch_ul(struct session_info *s, uint8_t *msg, size_t len)
 {
-	UL_CCCH_Message_t *ccch = NULL;
-	asn_dec_rval_t rv;
-	int error = 0;
 	uint8_t msg_type;
 
 	assert(s != NULL);
@@ -340,37 +340,18 @@ int handle_ccch_ul(struct session_info *s, uint8_t *msg, size_t len)
 	switch(msg_type) {
 	case 3:
 		SET_MSG_INFO(s, "RRC Connection Request");
-		goto ul_ccch_no_free;
+		break;
 	default:
 		/* no other messages accepted */
-		goto ul_ccch_no_free;
-	}
-	
-	/* Call ASN.1 decoder */
-	rv = uper_decode(NULL, &asn_DEF_UL_CCCH_Message, (void **) &ccch, msg, len, 0, 0);
-	if ((rv.code != RC_OK) || !ccch) {
-		SET_MSG_INFO(s, "ASN.1 PARSING ERROR");
-		return 1;
-	}
-
-	/* Process contents by message type */
-	switch(ccch->message.present) {
-	default:
-		SET_MSG_INFO(s, "UL-CCCH type=%d", ccch->message.present);
+		SET_MSG_INFO(s, "UL-CCCH type=%d", msg_type);
 		s->new_msg->flags &= ~MSG_DECODED;
 	}
 
-	ASN_STRUCT_FREE(asn_DEF_UL_CCCH_Message, ccch);
-
-ul_ccch_no_free:
-	return error;
+	return 0;
 }
 
 int handle_ccch_dl(struct session_info *s, uint8_t *msg, size_t len)
 {
-	DL_CCCH_Message_t *ccch = NULL;
-	asn_dec_rval_t rv;
-	int error = 0;
 	uint8_t msg_type;
 
 	assert(s != NULL);
@@ -396,36 +377,20 @@ int handle_ccch_dl(struct session_info *s, uint8_t *msg, size_t len)
 
 	/* Attach description and discard unsupported types */
 	switch(msg_type) {
-	case 3:
+	case (DL_CCCH_MessageType_PR_rrcConnectionSetup-1):
 		SET_MSG_INFO(s, "RRC Connection Setup");
-		goto dl_ccch_no_free;
-	default:
-		/* no other messages accepted */
-		goto dl_ccch_no_free;
-	}
-	
-	/* Call ASN.1 decoder */
-	rv = uper_decode(NULL, &asn_DEF_DL_CCCH_Message, (void **) &ccch, msg, len, 0, 0);
-	if ((rv.code != RC_OK) || !ccch) {
-		SET_MSG_INFO(s, "ASN.1 PARSING ERROR");
-		return 1;
-	}
-
-	/* Process contents by message type */
-	switch(ccch->message.present) {
-	case DL_CCCH_MessageType_PR_rrcConnectionRelease:
+		break;
+	case (DL_CCCH_MessageType_PR_rrcConnectionRelease-1):
 		SET_MSG_INFO(s, "RRC Connection Release");
 		break;
-	case DL_CCCH_MessageType_PR_rrcConnectionReject:
+	case (DL_CCCH_MessageType_PR_rrcConnectionReject-1):
 		SET_MSG_INFO(s, "RRC Connection Reject");
 		break;
 	default:
-		SET_MSG_INFO(s, "DL-CCCH type=%d", ccch->message.present);
+		/* no other messages accepted */
+		SET_MSG_INFO(s, "DL-CCCH type=%d", msg_type);
 		s->new_msg->flags &= ~MSG_DECODED;
 	}
-
-	ASN_STRUCT_FREE(asn_DEF_DL_CCCH_Message, ccch);
-
-dl_ccch_no_free:
-	return error;
+	
+	return 0;
 }
