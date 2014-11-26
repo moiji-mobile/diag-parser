@@ -1,3 +1,7 @@
+#ifdef SQLITE
+#define date_format(x,y) strftime(y,x)
+#endif
+
 --  Valid operators
 DROP VIEW IF EXISTS valid_op;
 CREATE VIEW valid_op AS
@@ -48,6 +52,7 @@ INSERT INTO risk_3g
 SELECT
 	valid_si.mcc,
 	valid_si.mnc,
+	date_format(valid_si.timestamp, "%Y-%m") as month,
 	valid_op.country,
 	valid_op.operator,
 	count(*) as samples,
@@ -72,4 +77,5 @@ WHERE
 	(is_call OR is_sms OR is_lu)
 GROUP BY
 	valid_si.mcc,
-	valid_si.mnc;
+	valid_si.mnc,
+	month;
