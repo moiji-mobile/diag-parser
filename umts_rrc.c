@@ -193,10 +193,6 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 			need_to_parse = 1;
 			break;
 
-		case (SecurityModeCommand_PR_later_than_r3-1):
-			need_to_parse = 1;
-			break;
-
 		case (DL_DCCH_MessageType_PR_downlinkDirectTransfer-1):
 			SET_MSG_INFO(s, "RRC DownlinkDirectTransfer");
 

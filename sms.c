@@ -329,7 +329,10 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 		switch (type) {
 		case 0x00:
 			/* Concatenated header, 8bit reference */
-			assert(vlen == 3);
+			if (vlen != 3) {
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_FRAG_HDR)");
+				return;
+			}
 			total_frags = msg[offset+1];
 			this_frag = msg[offset+2];
 			if (this_frag > total_frags) {
@@ -341,33 +344,51 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			break;
 		case 0x01:
 			/* Special SMS indication */
-			assert(vlen == 2);
+			if (vlen != 2) {
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_SPECIAL_UDH)");
+				return;
+			}
 			break;
 		case 0x04:
 			/* Application address port, 8bit */
-			assert(vlen == 2);
+			if (vlen != 2) {
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_PORT8_HDR)");
+				return;
+			}
 			APPEND_INFO(sm, "PORT8 %d->%d ",
 				 msg[offset+1],
 				 msg[offset+0]);	
 			break;
 		case 0x05:
 			/* Application address port, 16bit */
-			assert(vlen == 4);
+			if (vlen != 4) {
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_PORT8_HDR)");
+				return;
+			}
 			APPEND_INFO(sm, "PORT16 %d->%d ",
 				 msg[offset+0]<<8|msg[offset+1],
 				 msg[offset+2]<<8|msg[offset+3]);	
 			break;
 		case 0x06:
 			/* Service center control parameters */
-			assert(vlen == 1);
+			if (vlen != 1) {
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_SC_PARAM)");
+				return;
+			}
 			break;
 		case 0x07:
 			/* UDH source indicator */
-			assert(vlen == 1);
+			if (vlen != 1) {
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_SOURCE_IND)");
+				return;
+			}
 			break;
 		case 0x08:
 			/* Concatenated header, 16bit reference */
-			assert(vlen == 4);
+			if (vlen != 4) {
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_FRAG16_HDR)");
+				return;
+			}
 			total_frags = msg[offset+2];
 			this_frag = msg[offset+3];
 			if (this_frag > total_frags) {
@@ -388,18 +409,27 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			break;
 		case 0x22:
 			/* Alternate reply address */
-			assert(vlen >= (msg[offset]/2 + 1));
+			if (vlen < (msg[offset]/2 + 1)) {
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_REPLY_ADDR)");
+				return;
+			}
 			handle_address(&msg[offset+1], msg[offset], alt_dest, 1);
 			APPEND_INFO(sm, "REPLY_ADDR=%s ", alt_dest);
 			break;
 		case 0x24:
 			/* National language shift */
-			assert(vlen == 1);
+			if (vlen != 1) {
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_LANG_SHIFT)");
+				return;
+			}
 			APPEND_INFO(sm, "LANG_SHIFT=%d ", msg[offset]);
 			break;
 		case 0x25:
 			/* National language locking shift */
-			assert(vlen == 1);
+			if (vlen != 1) {
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_LANG_LOCK_SHIFT)");
+				return;
+			}
 			APPEND_INFO(sm, "LANG_SHIFT=%d ", msg[offset]);
 			break;
 		case 0x70:
@@ -414,7 +444,10 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			break;
 		case 0xda:
 			/* SMSC-specific */
-			assert(vlen <= header_len);
+			if (vlen > header_len) {
+				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_SMSC_SPECIFIC)");
+				return;
+			}
 			printf("SMSC-specific %s\n", osmo_hexdump_nospc(&msg[offset], vlen));
 			break;
 		default:

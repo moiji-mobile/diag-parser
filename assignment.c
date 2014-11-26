@@ -14,13 +14,22 @@ void parse_assignment(struct gsm48_hdr *hdr, unsigned len, struct gsm_sysinfo_fr
 	int payload_len = 0; 
 	uint8_t *payload_data = NULL;
 	struct tlv_parsed tp;
+	int ret;
 	uint8_t *ma = 0;
 	uint8_t ma_len;
 	uint8_t ch_type, ch_subch, ch_ts;
 	unsigned i, mask;
 
+	if (!ga)
+		return;
+
+	memset(ga, 0, sizeof(*ga));
+
 	/* handover */
 	if (hdr->msg_type == 0x2b) {
+		if (len < (sizeof(*hdr) + sizeof(*hoc))) {
+			return;
+		}
 		hoc = (struct gsm48_ho_cmd *) hdr->data;
 		cd = &hoc->chan_desc;
 		payload_len = len - sizeof(*hdr) - sizeof(*hoc);
@@ -31,6 +40,9 @@ void parse_assignment(struct gsm48_hdr *hdr, unsigned len, struct gsm_sysinfo_fr
 
 	/* assignment */
 	if (hdr->msg_type == 0x2e) {
+		if (len < (sizeof(*hdr) + sizeof(*ac))) {
+			return;
+		}
 		ac = (struct gsm48_ass_cmd *) hdr->data;
 		cd = &ac->chan_desc;
 		payload_len = len - sizeof(*hdr) - sizeof(*ac);
@@ -44,12 +56,15 @@ void parse_assignment(struct gsm48_hdr *hdr, unsigned len, struct gsm_sysinfo_fr
 		return;
 		
 	/* Parse TLV in the message */
-	tlv_parse(&tp, &gsm48_rr_att_tlvdef, payload_data, payload_len, 0, 0);
+	ret = tlv_parse(&tp, &gsm48_rr_att_tlvdef, payload_data, payload_len, 0, 0);
+	if (ret < payload_len) {
+		printf("Parsing failed\n");
+		return;
+	}
 
 	ma_len = 0;
 	ma = NULL;
 	mask = 0;
-	memset(ga, 0, sizeof(*ga));
 
 	/* Cell channel description */
 	if (TLVP_PRESENT(&tp, GSM48_IE_CELL_CH_DESC)) {

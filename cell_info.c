@@ -498,7 +498,9 @@ void handle_si4_data(struct cell_info *ci, uint8_t *data, unsigned len)
 	/* Jump after descriptor */
 	offset += 3;
 
-	assert(offset < len);
+	if (offset >= len) {
+		return;
+	}
 
 	/* Check if CBCH is hopping */
 	if (cd->h0.h) {
