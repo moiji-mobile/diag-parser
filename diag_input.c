@@ -67,6 +67,17 @@ uint32_t get_fn(struct diag_packet *dp)
 inline
 uint64_t get_epoch(uint8_t *qd_time)
 {
+	int rv = -1;
+	struct timeval tv;
+
+	rv = gettimeofday(&tv, NULL);
+	if (0 == rv)
+	{
+		return (uint64_t)tv.tv_sec;
+	}
+	return 0;
+
+	/* This function crashes on Android */
 	uint64_t *int_conv = (uint64_t *) qd_time;
 	double double_conv = (double) (*int_conv & 0x0000ffffffffffff) / 621.5;
 
