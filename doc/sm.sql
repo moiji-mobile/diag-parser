@@ -160,7 +160,11 @@ CREATE TABLE risk_3g(
 	sms_perc FLOAT(1),
 	lu_perc FLOAT(1),
 	enc_perc FLOAT(1),
-	auth_perc FLOAT(1),
+	enc_lu_perc FLOAT(1),
+	auth_mo_perc FLOAT(1),
+	auth_mt_perc FLOAT(1),
+	auth_aka_perc FLOAT(1),
+	tmsi_realloc_perc FLOAT(1),
 	intercept FLOAT(1),
 	impersonation FLOAT(1)
 );
