@@ -12,7 +12,7 @@ LDFLAGS+=$(shell mysql_config --libs) -lsqlite3
 OBJ+=mysql_api.o sqlite_api.o
 
 # Database config for r2
-#CFLAGS+=-DMYSQL_USER=\"root\" -DMYSQL_PASS=\"moth*echo5Sigma\" -DMYSQL_DBNAME=\"session_meta_test\"
+CFLAGS+=-DMYSQL_USER=\"root\" -DMYSQL_PASS=\"moth*echo5Sigma\" -DMYSQL_DBNAME=\"session_meta_test\"
 
 %.o: %.c %.h
 	$(CC) -c -o $@ $< $(CFLAGS)

@@ -148,8 +148,8 @@ create table sec_params(
 );
 
 --  3G risk table
-DROP TABLE IF EXISTS risk_3g;
-CREATE TABLE risk_3g(
+DROP TABLE IF EXISTS risk_3G;
+CREATE TABLE risk_3G(
 	mcc SMALLINT UNSIGNED NOT NULL,
 	mnc SMALLINT UNSIGNED NOT NULL,
 	month CHAR(7) NOT NULL,
@@ -165,6 +165,6 @@ CREATE TABLE risk_3g(
 	auth_mt_perc FLOAT(1),
 	auth_aka_perc FLOAT(1),
 	tmsi_realloc_perc FLOAT(1),
-	intercept FLOAT(1),
-	impersonation FLOAT(1)
+	intercept3G FLOAT(1),
+	impersonation3G FLOAT(1)
 );

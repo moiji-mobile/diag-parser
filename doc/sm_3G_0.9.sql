@@ -50,8 +50,8 @@ WHERE
 	rat = 1 and domain = 0;
 
 --  Scores per operator
-DELETE FROM risk_3g;
-INSERT INTO risk_3g
+DELETE FROM risk_3G;
+INSERT INTO risk_3G
 SELECT
 	valid_si.mcc,
 	valid_si.mnc,
@@ -70,12 +70,12 @@ SELECT
 	(sum((t_tmsi_realloc AND (is_call OR is_sms))+0.0))/sum((is_call OR is_sms)+0.0) as tmsi_realloc_perc,
 	sum(CASE
 		WHEN cipher = 0 THEN 0.0
-	                    ELSE 1.0 END)/count(*) as intercept,
+	                    ELSE 1.0 END)/count(*) as intercept3G,
 	sum(CASE
 		WHEN auth = 2 THEN 1.0	-- UMTS authentication
 		WHEN auth = 1 THEN 0.7  -- GSM authentication
 				      ELSE 0.0  -- No authentication
-		END)/count(*) as impersonation
+		END)/count(*) as impersonation3G
 FROM
 	valid_op, valid_si
 WHERE
