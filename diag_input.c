@@ -269,11 +269,8 @@ void handle_gsm_l1_surround_cell_ba_list(struct diag_packet *dp, unsigned len)
 	if (msg_verbose > 1) {
 		int i;
 
-		printf("x gsm_l1_surround_cell_ba_list\n");
-
 		for (i = 0; i < cl->cell_count; i++) {
-			printf("x -> Surrounding cell %d -- arfcn %u band: %u rx_power %d frame_number_offset: %u\n",
-				i,
+			printf("neighbor cell arfcn %u band: %u rx_power %d frame_number_offset: %u\n",
 				get_arfcn_from_arfcn_and_band(ntohs(sc[i].bcch_arfcn_and_band)),
 				get_band_from_arfcn_and_band(ntohs(sc[i].bcch_arfcn_and_band)),
 				sc[i].rx_power,
@@ -301,8 +298,7 @@ void handle_gsm_l1_burst_metrics(struct diag_packet *dp, unsigned len)
 		printf("x -> channel: %u\n", dat->channel);
 
 		for (i = 0; i < 4; i++) {
-			printf("x -> Burst metric %d -- arfcn %u band: %u frame_number: %u rssi: %u rx_power: %d\n",
-				i,
+			printf("burst metric arfcn %u band: %u frame_number: %u rssi: %u rx_power: %d\n",
 				get_arfcn_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band)),
 				get_band_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band)),
 				dat->metrics[i].frame_number,
@@ -332,8 +328,7 @@ void handle_gsm_l1_neighbor_cell_auxiliary_measurments(struct diag_packet *dp, u
 
 		for (i = 0; i < cl->cell_count; i++) {
 			struct cell* c = cl->cells + i;
-			printf("x -> cell %d -- arfcn %u band: %u rx_power %d\n",
-				i,
+			printf("neighbor cell arfcn %u band: %u rx_power %d\n",
 				get_arfcn_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
 				get_band_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
 				c[i].rx_power
@@ -360,8 +355,7 @@ void handle_gsm_monitor_bursts_v2(struct diag_packet *dp, unsigned len)
 
 		for (i = 0; i < cl->number_of_records; i++) {
 			struct monitor_record* c = cl->records + i;
-			printf("x -> record %d -- arfcn %u band: %u frame no %d rx_power %d\n",
-				i,
+			printf("monitor burst arfcn %u band: %u frame no %d rx_power %d\n",
 				get_arfcn_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
 				get_band_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
 				c[i].frame_number,

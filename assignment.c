@@ -14,7 +14,6 @@ void parse_assignment(struct gsm48_hdr *hdr, unsigned len, struct gsm_sysinfo_fr
 	int payload_len = 0; 
 	uint8_t *payload_data = NULL;
 	struct tlv_parsed tp;
-	int ret;
 	uint8_t *ma = 0;
 	uint8_t ma_len;
 	uint8_t ch_type, ch_subch, ch_ts;
@@ -56,11 +55,7 @@ void parse_assignment(struct gsm48_hdr *hdr, unsigned len, struct gsm_sysinfo_fr
 		return;
 		
 	/* Parse TLV in the message */
-	ret = tlv_parse(&tp, &gsm48_rr_att_tlvdef, payload_data, payload_len, 0, 0);
-	if (ret < payload_len) {
-		printf("Parsing failed\n");
-		return;
-	}
+	tlv_parse(&tp, &gsm48_rr_att_tlvdef, payload_data, payload_len, 0, 0);
 
 	ma_len = 0;
 	ma = NULL;
