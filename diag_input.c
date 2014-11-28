@@ -8,6 +8,7 @@
 #include <osmocom/gsm/gsm_utils.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 #include <arpa/inet.h>
+#include <assert.h>
 
 #include "diag_input.h"
 #include "process.h"
@@ -65,23 +66,27 @@ uint32_t get_fn(struct diag_packet *dp)
 }
 
 inline
-uint64_t get_epoch(uint8_t *qd_time)
+uint32_t get_epoch(uint8_t *qd_time)
 {
+
+	/* On the host side only */
+#if (__x86_64__ || __i386__)
+	uint64_t *int_conv = (uint64_t *) qd_time;
+	double double_conv = (double) (*int_conv & 0x0000ffffffffffff) / 621.5;
+
+	return (uint32_t) double_conv;
+#endif
+	/* For mobile platforms */
 	int rv = -1;
 	struct timeval tv;
 
 	rv = gettimeofday(&tv, NULL);
-	if (0 == rv)
-	{
-		return (uint64_t)tv.tv_sec;
+
+	if (0 == rv) {
+		return tv.tv_sec;
 	}
+
 	return 0;
-
-	/* This function crashes on Android */
-	uint64_t *int_conv = (uint64_t *) qd_time;
-	double double_conv = (double) (*int_conv & 0x0000ffffffffffff) / 621.5;
-
-	return (uint64_t) double_conv;
 }
 
 inline
@@ -401,10 +406,11 @@ void handle_diag(uint8_t *msg, unsigned len)
 {
 	struct diag_packet *dp = (struct diag_packet *) msg;
 	struct radio_message *m = NULL;
-	uint64_t unix_time;
+	uint32_t unix_time;
 
 	if (dp->msg_class != 0x0010) {
 		if (dp->msg_class == 0x001d && !_s[0].timestamp.tv_sec) {
+			assert(len > 3);
 			_s[0].timestamp.tv_sec = get_epoch(&msg[3]);
 			_s[1].timestamp = _s[0].timestamp;
 		}
@@ -413,6 +419,8 @@ void handle_diag(uint8_t *msg, unsigned len)
 		}
 		return;
 	}
+
+	assert(len > 10);
 
 	unix_time = get_epoch(&msg[10]);
 
