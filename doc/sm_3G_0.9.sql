@@ -43,7 +43,7 @@ SELECT
 	CASE WHEN auth > 0                                                 THEN 1 ELSE 0 END as is_auth,
 	CASE WHEN mobile_term AND NOT mobile_orig                          THEN 1 ELSE 0 END as is_mt,
 	CASE WHEN mobile_orig AND NOT mobile_term                          THEN 1 ELSE 0 END as is_mo,
-	CASE WHEN left(imsi, 3) = mcc                                      THEN 1 ELSE 0 END as is_homeuser
+	CASE WHEN substr(imsi, 1, 3) = mcc                                  THEN 1 ELSE 0 END as is_homeuser
 FROM
 	session_info
 WHERE
