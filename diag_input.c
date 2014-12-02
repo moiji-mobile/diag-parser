@@ -43,8 +43,13 @@ void diag_init(unsigned start_sid, unsigned start_cid, char *filename)
 	//msg_verbose = 1;
 #endif
 #endif
-	session_init(start_sid, 0, 1, callback_type);
+#ifdef USE_AUTOTIME
+	auto_timestamp = 1;
+#else
 	auto_timestamp = 0;
+#endif
+
+	session_init(start_sid, 0, 1, callback_type);
 
 	if (filename && (filename[0] != '-')) {
 		session_from_filename(filename, &_s[0]);
