@@ -56,6 +56,7 @@ SELECT
 	valid_si.mcc,
 	valid_si.mnc,
 	date_format(valid_si.timestamp, "%Y-%m") as month,
+	lac,
 	valid_op.country,
 	valid_op.operator,
 	count(*) as total_samples,
@@ -87,4 +88,4 @@ WHERE
 GROUP BY
 	valid_si.mcc,
 	valid_si.mnc,
-	month;
+	month, lac;
