@@ -439,6 +439,11 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		s->mo = 1;
 		handle_cmreq(s, dtap->data);
 		break;
+	case 0x29:
+		// ABORT
+		SET_MSG_INFO(s, "ABORT");
+		s->abort = 1;
+		break;
 	case 0x32:
 		// MM INFORMATION (Network name, Time)
 		SET_MSG_INFO(s, "MM INFORMATION");
@@ -556,11 +561,13 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 	case GSM48_MT_RR_IMM_ASS:
 		SET_MSG_INFO(s, "IMM ASSIGNMENT");
 		break;
+	case GSM48_MT_RR_IMM_ASS_EXT:
+		SET_MSG_INFO(s, "IMM ASSIGNMENT EXT");
+		break;
 	case GSM48_MT_RR_IMM_ASS_REJ:
 		SET_MSG_INFO(s, "IMM ASSIGNMENT REJECT");
 		break;
 	case GSM48_MT_RR_PAG_RESP:
-
 		session_reset(s, 1);
 		SET_MSG_INFO(s, "PAGING RESPONSE");
 		handle_pag_resp(s, dtap->data);

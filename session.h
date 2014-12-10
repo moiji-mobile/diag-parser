@@ -90,6 +90,7 @@ struct session_info {
 	uint8_t call;
 	uint8_t sms;
 	uint8_t ssa;
+	uint8_t abort;
 	uint8_t raupd;
 	uint8_t attach;
 	uint8_t att_acc;
