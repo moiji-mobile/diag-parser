@@ -89,3 +89,7 @@ GROUP BY
 	valid_si.mcc,
 	valid_si.mnc,
 	month, lac;
+
+-- Round up scores close to 100%
+UPDATE risk_3G set intercept3G = 1.0 where intercept3G > 0.3;
+UPDATE risk_3G set enc_perc = 1.0 where enc_perc > 0.3;
