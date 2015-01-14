@@ -7,3 +7,4 @@ libmetagsm.*
 metadata.db
 sm_2g.sql
 sm_3g.sql
+hex_import
