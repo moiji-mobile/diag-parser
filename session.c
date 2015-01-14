@@ -632,7 +632,7 @@ void session_close(struct session_info *s)
 	s->closed = 1;
 }
 
-inline void link_to_msg_list(struct session_info* s, struct radio_message *m)
+void link_to_msg_list(struct session_info* s, struct radio_message *m)
 {
 	if (msg_verbose > 1) {
 		printf("linking to domain %d message ptr %p\n", s->domain, m);
