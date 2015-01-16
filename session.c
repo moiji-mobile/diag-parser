@@ -757,6 +757,7 @@ int session_from_filename(const char *filename, struct session_info *s)
 	char *qdmon_ptr;
 	char *ptr;
 	char *token;
+	unsigned mcc_mnc;
 	struct tm ts;
 
 	/* Locate baseband type in filename */
@@ -791,10 +792,20 @@ int session_from_filename(const char *filename, struct session_info *s)
 		// Do model checks for xgs, not really needed for now
 	}
 
+	/* Next token */
+	token = strtok_r(0, ".", &ptr);
+
+	/* Check if MCC/MNC is present (new format) */
+	if ((strlen(token) == 6) && (sscanf(token, "%06d", &mcc_mnc) == 1)) {
+		// this information is not used yet
+
+		/* Advance to next token */
+		token = strtok_r(0, ".", &ptr);
+	}
+
 	memset(&ts, 0, sizeof(ts));
 
 	/* Timestamp */
-	token = strtok_r(0, ".", &ptr);
 	if (!token || sscanf(token, "%04d%02d%02d-%02d%02d%02d", &ts.tm_year, &ts.tm_mon, &ts.tm_mday, &ts.tm_hour, &ts.tm_min, &ts.tm_sec) != 6) {
 		fprintf(stderr, "unknown timestamp format %s\n", (token?token:"(null)"));
 		gettimeofday(&s->timestamp, NULL);
