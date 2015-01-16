@@ -73,25 +73,31 @@ uint32_t get_fn(struct diag_packet *dp)
 inline
 uint32_t get_epoch(uint8_t *qd_time)
 {
+	double qd_ts;
 
-	/* On the host side only */
-#if (__x86_64__ || __i386__)
-	uint64_t *int_conv = (uint64_t *) qd_time;
-	double double_conv = (double) (*int_conv & 0x0000ffffffffffff) / 621.5;
+	qd_ts = qd_time[1];
+	qd_ts += ((uint32_t)qd_time[2]) << 8;
+	qd_ts += ((uint32_t)qd_time[3]) << 16;
+	qd_ts += ((uint32_t)qd_time[4]) << 24;
+	qd_ts *= 1.25*256.0/1000.0;
 
-	return (uint32_t) double_conv;
-#endif
-	/* For mobile platforms */
-	int rv = -1;
-	struct timeval tv;
+	/* Sanity check on timestamp (year > 2011) */
+	if (qd_ts > 1000000000) {
+		/* Adjust timestamp from GPS to UNIX */
+		qd_ts += 315964800.0;
+	} else {
+		/* Use current time */
+		int rv = -1;
+		struct timeval tv;
 
-	rv = gettimeofday(&tv, NULL);
+		rv = gettimeofday(&tv, NULL);
 
-	if (0 == rv) {
-		return tv.tv_sec;
+		if (0 == rv) {
+			return tv.tv_sec;
+		}
 	}
 
-	return 0;
+	return qd_ts;
 }
 
 inline
@@ -414,7 +420,7 @@ void handle_diag(uint8_t *msg, unsigned len)
 	uint32_t unix_time;
 
 	if (dp->msg_class != 0x0010) {
-		if (dp->msg_class == 0x001d && !_s[0].timestamp.tv_sec) {
+		if (dp->msg_class == 0x001d) {
 			assert(len > 3);
 			_s[0].timestamp.tv_sec = get_epoch(&msg[3]);
 			_s[1].timestamp = _s[0].timestamp;
