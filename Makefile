@@ -27,7 +27,7 @@ OBJ = \
 	tch.o \
 	viterbi.o
 
-TOOLS = diag_import hex_import gsmtap_import
+TOOLS = diag_import hex_import gsmtap_import analyze.sh
 
 ifeq ($(MYSQL),1)
 CFLAGS  += -DUSE_MYSQL $(shell mysql_config --cflags)
@@ -65,6 +65,10 @@ gsmtap_import: gsmtap_import.o libmetagsm.a
 
 db_import: db_import.o libmetagsm.a
 	$(CC) -o $@ $^ $(LDFLAGS)
+
+analyze.sh: analyze_header.in cell_info.sql si.sql sms.sql analyze_footer.in
+	cat $^ >> $@
+	chmod 755 $@
 
 clean:
 	@rm -f *.o libmetagsm* *.so

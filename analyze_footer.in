@@ -1,0 +1,15 @@
+SQL
+
+# Hack: We ask for the sudo password in advance and
+# hope that sudo is configured to remember it until
+# the last sudo. The reason is, that we cannot have
+# tcpdump started in background by sudo *and* kill
+# it using shell control later.
+sudo -p "Enter sudo password for tcpdump: " true
+
+sudo tcpdump -q -i any -w trace.pcap udp port 4729 &
+TCPDUMP_PID=$!
+
+diag_import 0 0 $* | sed -n 's/^SQL://p' | sqlite3 ${DB}
+sleep 1
+sudo kill ${TCPDUMP_PID}
