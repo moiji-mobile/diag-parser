@@ -13,6 +13,7 @@ int main(int argc, char *argv[])
 	int len = 0;
 	char diag_hex[4096];
 	char *ptr = NULL;
+	unsigned unused1, unused2;
 
 	if (argc < 3) {
 		printf("Not enough arguments\n");
@@ -60,7 +61,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	diag_destroy();
+	diag_destroy(&unused1, &unused2);
 
 	return 0;
 }

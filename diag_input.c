@@ -59,9 +59,9 @@ void diag_init(unsigned start_sid, unsigned start_cid, char *filename)
 	cell_init(start_cid, _s[0].timestamp.tv_sec, callback_type);
 }
 
-void diag_destroy()
+void diag_destroy(unsigned *last_sid, unsigned *last_cid)
 {
-	session_destroy();
+	session_destroy(last_sid, last_cid);
 }
 
 inline

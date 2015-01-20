@@ -22,8 +22,8 @@ int main(int argc, char *argv[])
 {
 	uint8_t msg[4096]; 
 	unsigned len = 0;
-	FILE *infile = stdin;
-	char *infile_name = "-";
+	FILE *infile = NULL;
+	char *infile_name;
 	int bflag, ch, fd;
 	long sid = 0;
 	long cid = 0;
@@ -45,33 +45,48 @@ int main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (argc > 0)
+	if (argc == 0)
 	{
-		infile_name = strdup(argv[0]);
-		infile = fopen(infile_name, "rb");
-	}
-
-	if (!infile)
-	{
-		err(1, "Cannot open input file: %s", infile_name);
+		errx(1, "Invalid arguments");
 	}
 
 	printf("PARSER_OK\n");
 	fflush(stdout);
 
-	diag_init(cid, sid, infile_name);
-	for (;;) {
-		memset(msg, 0x2b, sizeof(msg));
-		len = fread_unescape(infile, msg, sizeof(msg));
+	while (argc > 0)
+	{
+		infile_name = strdup(argv[0]);
 
-		if (!len) {
-			break;
+		if (strcmp(infile_name, "-") == 0)
+		{
+			infile = stdin;
+		} else
+		{
+			infile = fopen(infile_name, "rb");
 		}
 
-		handle_diag(msg, len);
-	}
-	diag_destroy();
-	fclose(infile);
+		if (!infile)
+		{
+			err(1, "Cannot open input file: %s", infile_name);
+		}
+
+		diag_init(sid, cid, infile_name);
+		for (;;) {
+			memset(msg, 0x2b, sizeof(msg));
+			len = fread_unescape(infile, msg, sizeof(msg));
+
+			if (!len) {
+				break;
+			}
+
+			handle_diag(msg, len);
+		}
+		diag_destroy(&sid, &cid);
+		fclose(infile);
+
+		argc--;
+		argv++;
+	};
 
 	return 0;
 }

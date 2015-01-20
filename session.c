@@ -86,7 +86,7 @@ void session_init(unsigned start_sid, int console, int gsmtap, int callback)
 		net_init();
 }
 
-void session_destroy()
+void session_destroy(unsigned *last_sid, unsigned *last_cid)
 {
 	if (msg_verbose > 1) {
 		printf("session_destroy!\n");
@@ -95,9 +95,9 @@ void session_destroy()
 	session_reset(&_s[0], 0);
 	_s[1].new_msg = NULL;
 	session_reset(&_s[1], 0);
+	*last_sid = _s[1].id;
 
-	cell_destroy();
-
+	cell_destroy(last_cid);
 	net_destroy();
 
 	if (_s[0].sql_callback) {

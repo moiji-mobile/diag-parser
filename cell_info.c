@@ -239,9 +239,10 @@ void cell_init(unsigned start_id, uint32_t unix_time, int callback)
 	}
 }
 
-void cell_destroy()
+void cell_destroy(unsigned *last_cid)
 {
 	cell_and_paging_dump(0, 1, 1);
+	*last_cid = cell_info_id;
 }
 
 uint16_t get_mcc(uint8_t *digits)

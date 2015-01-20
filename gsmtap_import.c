@@ -170,6 +170,7 @@ void process_ethernet(u_char *arg, const struct pcap_pkthdr* pkt_hdr, const u_ch
 
 int main(int argc, char *argv[]) {
 	char errbuf[PCAP_ERRBUF_SIZE];
+	unsigned unused1, unused2;
 	pcap_t *read_fp;
 
 	if (argc < 4) {
@@ -192,7 +193,7 @@ int main(int argc, char *argv[]) {
 
 	pcap_loop(read_fp, -1, process_ethernet, NULL);
 
-	session_destroy();
+	session_destroy(&unused1, &unused2);
 
 	return 0;
 }
