@@ -40,7 +40,6 @@ ifeq ($(SQLITE),1)
 CFLAGS  += -DUSE_SQLITE
 LDFLAGS += -lsqlite3
 OBJ     += sqlite_api.o
-TOOLS   += db_import
 endif
 
 %.o: %.c %.h
