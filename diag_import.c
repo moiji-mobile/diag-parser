@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 	long sid = 0;
 	long cid = 0;
 
-	while ((ch = getopt(argc, argv, "sc")) != -1) {
+	while ((ch = getopt(argc, argv, "s:c:")) != -1) {
 		switch (ch) {
 			case 's':
 				sid = atol(optarg);
