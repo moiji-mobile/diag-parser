@@ -7,5 +7,5 @@ NEXT_CELL=`echo "select max(id)+1 from cell_info;" | mysql -uroot celldb -N`
 #NEXT_CELL=`echo "select max(id)+1 from cell_info;" | mysql -uroot session_meta_test -pmoth*echo5Sigma -N`
 
 echo "Importing $1"
-./diag_import $NEXT_SESSION $NEXT_CELL $1
+./diag_import -s $NEXT_SESSION -c $NEXT_CELL $1
 #gdb diag_import
