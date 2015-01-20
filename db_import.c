@@ -3,6 +3,26 @@
 #include <string.h>
 #include <mysql.h>
 
+#ifndef MYSQL_USER
+#define MYSQL_USER "root"
+#endif
+#ifndef MYSQL_PASS
+#define MYSQL_PASS ""
+#endif
+#ifndef MYSQL_DBNAME
+#define MYSQL_DBNAME "celldb"
+#endif
+
+#ifndef KDB_USER
+#define KDB_USER "root"
+#endif
+#ifndef KDB_PASS
+#define KDB_PASS ""
+#endif
+#ifndef KDB_DBNAME
+#define KDB_DBNAME "celldb"
+#endif
+
 #include <omp.h>
 #define __USE_XOPEN 1
 #include <time.h>
@@ -13,8 +33,6 @@
 #include "session.h"
 #include "cell_info.h"
 #include "process.h"
-
-#define START_ID 0
 
 int explore_session(int id)
 {
@@ -30,7 +48,7 @@ int explore_session(int id)
 
 	memset(&r_conn, 0, sizeof(r_conn));
 
-	test = mysql_real_connect(&r_conn, "10.0.0.1", "luca", "nooHah1Aes", "celldb", 3306, 0, 0);
+	test = mysql_real_connect(&r_conn, "10.0.0.1", KDB_USER, KDB_PASS, KDB_DBNAME, 3306, 0, 0);
 	if (test == 0) {
 		printf("Cannot connect to R-database\n");
 		return -1;
@@ -146,7 +164,7 @@ int explore_session(int id)
 
 	memset(&w_conn, 0, sizeof(w_conn));
 
-	test = mysql_real_connect(&w_conn, "127.0.0.1", "root", "moth*echo5Sigma", "session_meta_test", 3306, 0, 0);
+	test = mysql_real_connect(&w_conn, "127.0.0.1", MYSQL_USER, MYSQL_PASS, MYSQL_DBNAME, 3306, 0, 0);
 	if (test == 0) {
 		printf("Cannot connect to W-database\n");
 		return -1;
@@ -188,6 +206,7 @@ int main(int argc, char **argv)
 	unsigned int row_count;
 	char query[128];
 	int *session_id;
+	int start_id = 0;
 
 	session_init(0, 0, 0, CALLBACK_MYSQL);
 	cell_init(0, 0, CALLBACK_MYSQL);
@@ -206,17 +225,53 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
+	/* Find last process session id */
+
 	memset(&conn, 0, sizeof(conn));
 
-	//test = mysql_real_connect(&conn, "127.0.0.1", "root", "moth*echo5Sigma", "session_meta_test", 3306, 0, 0);
+	test = mysql_real_connect(&conn, "127.0.0.1", MYSQL_USER, MYSQL_PASS, MYSQL_DBNAME, 3306, 0, 0);
+	if (test == 0) {
+		printf("Cannot connect to database\n");
+		return -1;
+	}
+
+	snprintf(query, sizeof(query), "select max(id) from session_info where id < 8000000;");
+
+	ret = mysql_query(&conn, query);
+	if (ret != 0) {
+		printf("Cannot execute query: %s\n", query);
+		return -1;
+	}
+
+	result = mysql_use_result(&conn);
+	if (result == 0) {
+		printf("Cannot get query result\n");
+		return -1;
+	}
+
+	row = mysql_fetch_row(result);
+	if (!row) {
+		printf("Cannot get the starting session ID\n");
+		return -1;
+	}
+	if (row[0]) {
+		start_id = atoi(row[0]);
+	}
+
+	mysql_free_result(result);
+
+	mysql_close(&conn);
+
+	memset(&conn, 0, sizeof(conn));
+
+	/* Get all the missing session ids */
 	test = mysql_real_connect(&conn, "10.0.0.1", "luca", "nooHah1Aes", "celldb", 3306, 0, 0);
 	if (test == 0) {
 		printf("Cannot connect to database\n");
 		return -1;
 	}
 
-	//snprintf(query, sizeof(query), "select id from sms_meta where id < 8000000 and pid = 64 order by id;");
-	snprintf(query, sizeof(query), "select id from session where id > %d order by id;", START_ID);
+	snprintf(query, sizeof(query), "select id from session where id > %d order by id;", start_id);
 
 	ret = mysql_query(&conn, query);
 	if (ret != 0) {
@@ -252,12 +307,18 @@ int main(int argc, char **argv)
 	mysql_free_result(result);
 	mysql_close(&conn);
 
+	/* Read and process each session */
+
 	//#pragma omp parallel for num_threads (10)
 	for (i = 0; i < row_count; i++) {
 
 		printf("Session %d\n", session_id[i]);
 
-		explore_session(session_id[i]);
+		ret = explore_session(session_id[i]);
+		if (ret < 0) {
+			printf("Terminating.\n");
+			return -1;
+		}
 	}
 
 	free(session_id);
