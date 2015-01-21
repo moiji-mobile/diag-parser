@@ -46,10 +46,10 @@ static void console_callback(const char *sql)
 	fflush(stdout);
 }
 
-void session_init(unsigned start_sid, int console, int gsmtap, int callback)
+void session_init(unsigned start_sid, int console, const char *gsmtap_target, int callback)
 {
 	output_console = console;
-	output_gsmtap = gsmtap;
+	output_gsmtap = (gsmtap_target == NULL ? 0 : 1);
 
 	// Reset both domains
 	memset(_s, 0, sizeof(_s));
@@ -82,8 +82,10 @@ void session_init(unsigned start_sid, int console, int gsmtap, int callback)
 	_s[1].id = s_id++;
 	_s[1].domain = DOMAIN_PS;
 
-	if (gsmtap)
-		net_init();
+	if (gsmtap_target != NULL)
+	{
+		net_init(gsmtap_target);
+	}
 }
 
 void session_destroy(unsigned *last_sid, unsigned *last_cid)

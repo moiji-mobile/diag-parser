@@ -155,6 +155,7 @@ struct session_info {
 	struct rand_state other_sdcch;
 	struct rand_state other_sacch;
 	void (*sql_callback)(const char *);
+	int output_gsmtap;
 } __attribute__((packed));
 
 inline void link_to_msg_list(struct session_info* s, struct radio_message *m);
@@ -171,7 +172,7 @@ inline void link_to_msg_list(struct session_info* s, struct radio_message *m);
 
 #define APPEND_MSG_INFO(s, ...) snprintf((s)->new_msg->info+strlen((s)->new_msg->info), sizeof((s)->new_msg->info)-strlen((s)->new_msg->info), ##__VA_ARGS__);
 
-void session_init(unsigned start_sid, int console, int gsmtap, int callback);
+void session_init(unsigned start_sid, int console, const char *gsmtap_target, int callback);
 void session_destroy();
 struct session_info *session_create(int id, char* name, uint8_t *key, int mcc, int mnc, int lac, int cid, struct gsm_sysinfo_freq *ca);
 void session_close(struct session_info *s);
