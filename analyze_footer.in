@@ -10,6 +10,7 @@ sudo -p "Enter sudo password for tcpdump: " true
 sudo tcpdump -q -i any -w trace.pcap udp port 4729 &
 TCPDUMP_PID=$!
 
-diag_import $* | sed -n 's/^SQL://p' | sqlite3 ${DB}
-sleep 1
+sleep 2
+diag_import -g 127.0.0.1 $* | tee trace.log | sed -n 's/^SQL://p' | sqlite3 ${DB}
+sleep 2
 sudo kill ${TCPDUMP_PID}
