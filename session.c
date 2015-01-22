@@ -715,6 +715,9 @@ void session_reset(struct session_info *s, int forced_release)
 	if (old_s.rat != RAT_GSM) {
 		s->cid = old_s.cid;
 	}
+	if (strlen(old_s.imsi)) {
+		strncpy(s->imsi, old_s.imsi, sizeof(s->imsi));
+	}
 	s->sql_callback = old_s.sql_callback;
 
 	if (forced_release) {
@@ -795,9 +798,13 @@ int session_from_filename(const char *filename, struct session_info *s)
 	/* Next token */
 	token = strtok_r(0, ".", &ptr);
 
-	/* Check if MCC/MNC is present (new format) */
-	if ((strlen(token) == 6) && (sscanf(token, "%06d", &mcc_mnc) == 1)) {
-		// this information is not used yet
+	/* Check if filename has new IMSI field */
+	if (strlen(token) == 6) {
+		/* Check if actual MCC/MNC values are present */
+		if (sscanf(token, "%06d", &mcc_mnc) == 1) {
+			/* Save them as part of IMSI */
+			strncpy(s->imsi, token, sizeof(s->imsi));
+		}
 
 		/* Advance to next token */
 		token = strtok_r(0, ".", &ptr);
