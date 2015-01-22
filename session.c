@@ -97,7 +97,7 @@ void session_destroy(unsigned *last_sid, unsigned *last_cid)
 	session_reset(&_s[0], 0);
 	_s[1].new_msg = NULL;
 	session_reset(&_s[1], 0);
-	*last_sid = _s[1].id;
+	*last_sid = s_id;
 
 	cell_destroy(last_cid);
 	net_destroy();
