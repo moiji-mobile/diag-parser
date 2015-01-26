@@ -54,8 +54,10 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 
 	case (UL_DCCH_MessageType_PR_rrcConnectionReleaseComplete-1):
 		SET_MSG_INFO(s, "RRC Release Complete");
+		s[0].release = 1;
 		session_reset(&s[0], 0);
 		s[1].new_msg = NULL;
+		s[1].release = 1;
 		session_reset(&s[1], 0);
 		break;
 
@@ -152,6 +154,7 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 	uint8_t *nas = NULL;
 	int nas_len = 0;
 	int domain;
+	uint8_t msg_rel;
 	int c_algo = 0;
 	int i_algo = 0;
 
@@ -180,12 +183,27 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 	switch (msg_type) {
 		case (DL_DCCH_MessageType_PR_signallingConnectionRelease-1):
 			SET_MSG_INFO(s, "RRC Signalling Connection Release");
+			/* Extract fields skipping integrity if needed */
+			if (msg[0] & 0x80) {
+				msg_rel = (msg[5] & 0x3f) >> 4;
+				domain = (msg[5] >> 1) & 1;
+			} else {
+				msg_rel = msg[0] & 0x3;
+				domain = (msg[1] >> 5) & 1;
+			}
+			/* we only support message r3 */
+			if (msg_rel == 0) {
+				s[domain].release = 1;
+				//TODO: also reset single domain?
+			}
 			break;
 
 		case (DL_DCCH_MessageType_PR_rrcConnectionRelease-1):
 			SET_MSG_INFO(s, "RRC Connection Release");
+			s[0].release = 1;
 			session_reset(&s[0], 0);
 			s[1].new_msg = NULL;
+			s[1].release = 1;
 			session_reset(&s[1], 0);
 			break;
 
