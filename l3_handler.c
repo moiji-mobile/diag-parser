@@ -330,7 +330,7 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		break;
 	case 0x12:
 		// AUTH REQ
-		if ((dtap_len < 19) || (dtap->data[17] == 0x2b)) {
+		if ((dtap_len < 20) || (dtap->data[17] == 0x2b)) {
 			SET_MSG_INFO(s, "AUTH REQUEST (GSM)");
 			s->auth = 1;
 		} else {
@@ -1233,6 +1233,7 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 	if (mb->len == 0) {
 		memcpy(mb->data, &msg[3], data_len);
 		mb->len = data_len;
+		memset(&mb->data[mb->len], 0x2b, sizeof(mb->data)-data_len);
 	} else {
 		memcpy(&mb->data[mb->len], &msg[3], data_len);
 		mb->len += data_len;
