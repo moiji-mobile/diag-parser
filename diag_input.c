@@ -28,7 +28,7 @@ struct diag_packet {
 	uint8_t data[0];
 } __attribute__ ((packed));
 
-void diag_init(unsigned start_sid, unsigned start_cid, char *filename)
+void diag_init(unsigned start_sid, unsigned start_cid, const char *gsmtap_target, char *filename)
 {
 	int callback_type;
 
@@ -49,7 +49,7 @@ void diag_init(unsigned start_sid, unsigned start_cid, char *filename)
 	auto_timestamp = 0;
 #endif
 
-	session_init(start_sid, 0, 1, callback_type);
+	session_init(start_sid, 0, gsmtap_target, callback_type);
 
 	if (filename && (filename[0] != '-')) {
 		session_from_filename(filename, &_s[0]);

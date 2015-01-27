@@ -71,7 +71,7 @@ analyze.sh: analyze_header.in cell_info.sql si.sql sms.sql analyze_footer.in
 
 clean:
 	@rm -f *.o libmetagsm* *.so
-	@rm -f db_import gsmtap_import diag_import hex_import
+	@rm -f $(TOOLS)
 
 database:
 	@rm metadata.db

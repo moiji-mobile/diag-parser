@@ -12,9 +12,10 @@ static void usage(const char *progname, const char *reason)
 {
 	printf("%s\n", reason);
 	printf("Usage: %s [-s <id>] [-c <id>] <filename>\n", progname);
-	printf("	-s <id>    - First session_info ID to be used for SQL\n");
-	printf("	-c <id>    - First cell_info ID to be used for SQL\n");
-	printf("	<filename> - Read DIAG data from <filename>\n");
+	printf("	-s <id>     - First session_info ID to be used for SQL\n");
+	printf("	-c <id>     - First cell_info ID to be used for SQL\n");
+	printf("	-g <target> - Target host for GSMTAP UDP stream\n");
+	printf("	<filename>  - Read DIAG data from <filename>\n");
 	exit(1);
 }
 
@@ -24,17 +25,21 @@ int main(int argc, char *argv[])
 	unsigned len = 0;
 	FILE *infile = NULL;
 	char *infile_name;
+	char *gsmtap_target = NULL;
 	int bflag, ch, fd;
 	long sid = 0;
 	long cid = 0;
 
-	while ((ch = getopt(argc, argv, "s:c:")) != -1) {
+	while ((ch = getopt(argc, argv, "s:c:g:")) != -1) {
 		switch (ch) {
 			case 's':
 				sid = atol(optarg);
 				break;
 			case 'c':
 				cid = atol(optarg);
+				break;
+			case 'g':
+				gsmtap_target = strdup(optarg);
 				break;
 			case '?':
 			default:
@@ -70,7 +75,7 @@ int main(int argc, char *argv[])
 			err(1, "Cannot open input file: %s", infile_name);
 		}
 
-		diag_init(sid, cid, infile_name);
+		diag_init(sid, cid, gsmtap_target, infile_name);
 		for (;;) {
 			memset(msg, 0x2b, sizeof(msg));
 			len = fread_unescape(infile, msg, sizeof(msg));

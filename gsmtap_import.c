@@ -186,7 +186,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	session_init(atoi(argv[2]), 1, 1, CALLBACK_MYSQL);
+	session_init(atoi(argv[2]), 1, "127.0.0.1", CALLBACK_MYSQL);
 	//TODO: read timestamp from pcap header and replace the 0 below
 	cell_init(atoi(argv[3]), 0, CALLBACK_MYSQL);
 	//msg_verbose = 1;

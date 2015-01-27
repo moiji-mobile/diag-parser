@@ -9,9 +9,9 @@
 
 static struct gsmtap_inst *gti = NULL;
 
-void net_init()
+void net_init(const char *target)
 {
-	gti = gsmtap_source_init("127.0.0.1", GSMTAP_UDP_PORT, 0);
+	gti = gsmtap_source_init(target, GSMTAP_UDP_PORT, 0);
 	if (!gti) {
 		fprintf(stderr, "Cannot initialize GSMTAP\n");
 		abort();

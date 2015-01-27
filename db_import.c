@@ -208,7 +208,7 @@ int main(int argc, char **argv)
 	int *session_id;
 	int start_id = 0;
 
-	session_init(0, 0, 0, CALLBACK_MYSQL);
+	session_init(0, 0, NULL, CALLBACK_MYSQL);
 	cell_init(0, 0, CALLBACK_MYSQL);
 	auto_reset = 0;
 	auto_timestamp = 0;
