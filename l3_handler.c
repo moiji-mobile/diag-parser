@@ -122,7 +122,7 @@ void handle_cmreq(struct session_info *s, uint8_t *data)
 	s->started = 1;
 	s->closed = 0;
 
-	s->initial_seq = cm->cipher_key_seq;
+	s->initial_seq = cm->cipher_key_seq & 7;
 
 	handle_classmark(s, ((uint8_t *) &cm->classmark)+1, 2);
 
