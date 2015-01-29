@@ -417,7 +417,6 @@ void handle_diag(uint8_t *msg, unsigned len)
 {
 	struct diag_packet *dp = (struct diag_packet *) msg;
 	struct radio_message *m = NULL;
-	uint32_t unix_time;
 
 	if (dp->msg_class != 0x0010) {
 		if (dp->msg_class == 0x001d) {
@@ -433,9 +432,8 @@ void handle_diag(uint8_t *msg, unsigned len)
 
 	assert(len > 10);
 
-	unix_time = get_epoch(&msg[10]);
-
-	cell_and_paging_dump(unix_time, 0, 0);
+	now = get_epoch(&msg[10]);
+	cell_and_paging_dump(now, 0, 0);
 
 	switch(dp->msg_protocol) {
 	case 0x5071:
@@ -530,7 +528,7 @@ void handle_diag(uint8_t *msg, unsigned len)
 	}
 
 	if (m) {
-		m->timestamp.tv_sec = unix_time;
+		m->timestamp.tv_sec = now;
 
 		handle_radio_msg(_s, m);
 	}

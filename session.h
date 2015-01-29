@@ -189,4 +189,6 @@ extern uint8_t auto_reset;
 extern uint8_t auto_timestamp;
 extern struct session_info _s[2];
 
+extern uint32_t now;
+
 #endif
