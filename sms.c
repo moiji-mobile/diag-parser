@@ -16,8 +16,6 @@
 #include "session.h"
 #include "bit_func.h"
 
-#define DCS_COMPRESSED 0x80
-
 #define APPEND_INFO(sm, ...) snprintf((sm)->info+strlen((sm)->info), sizeof((sm)->info)-strlen((sm)->info), ##__VA_ARGS__);
 
 struct sec_header {
@@ -41,14 +39,6 @@ struct sec_header_rp {
 	uint8_t status;
 	uint8_t sign[8];
 	uint8_t sw[0];
-};
-
-enum sms_class {
-	CLASS_DISPLAY = 0,
-	CLASS_ME = 1,
-	CLASS_SIM = 2,
-	CLASS_TE = 3,
-	CLASS_NONE = 4
 };
 
 enum sms_class get_sms_class(uint8_t dcs)
@@ -163,67 +153,99 @@ void handle_sec_cp(struct sms_meta *sm, uint8_t *msg, unsigned len)
 	assert(sm != NULL);
 	assert(msg != NULL);
 
+	/* Counter type */
 	switch ((sh->spi1 >> 3) & 0x03) {
 	case 0:
 		APPEND_INFO(sm, "NO_CNTR ");
+		sm->ota_counter_type = OTA_CNTR_NONE;
 		break;
 	case 1:
 		APPEND_INFO(sm, "CNTR_AV ");
+		sm->ota_counter_type = OTA_CNTR_AVAILABLE;
 		break;
 	case 2:
 		APPEND_INFO(sm, "CNTR_HI ");
+		sm->ota_counter_type = OTA_CNTR_HIGHER_THAN_OLD;
 		break;
 	case 3:
 		APPEND_INFO(sm, "CNTR_+1 ");
+		sm->ota_counter_type = OTA_CNTR_OLD_PLUS_ONE;
 		break;
 
 	}
 
+	/* Encryption type */
 	if (sh->spi1 & 0x04) {
 		APPEND_INFO(sm, "ENC ");
+		sm->ota_enc = 1;
+
+		/* Algo family switch */
 		switch (sh->kic & 0x03) {
 		case 0:
 			APPEND_INFO(sm, "IMPLICIT ");
+			sm->ota_enc_algo = OTA_ALGO_IMPLICIT;
 			break;
 		case 1:
+			/* DES family */
 			switch((sh->kic>>2) & 0x03) {
 			case 0:
 				APPEND_INFO(sm, "1DES-CBC ");
+				sm->ota_enc_algo = OTA_ALGO_1DES_CBC;
 				break;
 			case 1:
 				APPEND_INFO(sm, "3DES-2K ");
+				sm->ota_enc_algo = OTA_ALGO_3DES_2K;
 				break;
 			case 2:
 				APPEND_INFO(sm, "3DES-3K ");
+				sm->ota_enc_algo = OTA_ALGO_3DES_3K;
 				break;
 			case 3:
 				APPEND_INFO(sm, "1DES-EBC ");
+				sm->ota_enc_algo = OTA_ALGO_1DES_ECB;
 				break;
 			}
 			break;
 		case 2:
-			APPEND_INFO(sm, "RESERVED ");
+			/* AES family */
+			switch((sh->kic>>2) & 0x03) {
+			case 0:
+				APPEND_INFO(sm, "AES-CBC ");
+				sm->ota_enc_algo = OTA_ALGO_AES_CBC;
+				break;
+			default:
+				APPEND_INFO(sm, "RESERVED ");
+				sm->ota_enc_algo = OTA_ALGO_RESERVED;
+			}
 			break;
 		case 3:
 			APPEND_INFO(sm, "PROPRIET ");
+			sm->ota_enc_algo = OTA_ALGO_PROPRIETARY;
 			break;
 		}
 	} else {
 		APPEND_INFO(sm, "NOENC ");
+		sm->ota_enc = 0;
+		sm->ota_enc_algo = OTA_ALGO_NONE;
 	}
 
+	/* Signature/integrity type */
 	switch (sh->spi1 & 0x03) {
 	case 0:
 		APPEND_INFO(sm, "NOCC ");
+		sm->ota_sign = OTA_SIGN_NONE;
 		break;
 	case 1:
 		APPEND_INFO(sm, "RC ");
+		sm->ota_sign = OTA_SIGN_REDUND_CHECK;
 		break;
 	case 2:
 		APPEND_INFO(sm, "CC ");
+		sm->ota_sign = OTA_SIGN_CRYPTO_CHECK;
 		break;
 	case 3:
 		APPEND_INFO(sm, "DS ");
+		sm->ota_sign = OTA_SIGN_DIGITAL_SIGN;
 		break;
 	}
 
@@ -231,39 +253,50 @@ void handle_sec_cp(struct sms_meta *sm, uint8_t *msg, unsigned len)
 		switch (sh->kid & 0x03) {
 		case 0:
 			APPEND_INFO(sm, "IMPLICIT ");
+			sm->ota_sign_algo = OTA_ALGO_IMPLICIT;
 			break;
 		case 1:
+			/* DES family */
 			switch((sh->kid>>2) & 0x03) {
 			case 0:
 				APPEND_INFO(sm, "1DES-CBC ");
+				sm->ota_sign_algo = OTA_ALGO_1DES_CBC;
 				break;
 			case 1:
 				APPEND_INFO(sm, "3DES-2K ");
+				sm->ota_sign_algo = OTA_ALGO_3DES_2K;
 				break;
 			case 2:
 				APPEND_INFO(sm, "3DES-3K ");
+				sm->ota_sign_algo = OTA_ALGO_3DES_3K;
 				break;
 			case 3:
 				APPEND_INFO(sm, "RESERVED ");
+				sm->ota_sign_algo = OTA_ALGO_RESERVED;
 				break;
 			}
 			break;
 		case 2:
 			APPEND_INFO(sm, "RESERVED ");
+			sm->ota_sign_algo = OTA_ALGO_RESERVED;
 			break;
 		case 3:
 			APPEND_INFO(sm, "PROPRIET ");
+			sm->ota_sign_algo = OTA_ALGO_PROPRIETARY;
 			break;
 		}
+	} else {
+		sm->ota_sign_algo = OTA_ALGO_NONE;
 	}
 
-	APPEND_INFO(sm, "TAR %02X%02X%02X ", sh->tar[0], sh->tar[1], sh->tar[2]);
+	strncpy(sm->ota_tar, osmo_hexdump_nospc(sh->tar, 3), sizeof(sm->ota_tar));
+
+	APPEND_INFO(sm, "TAR %s ", sm->ota_tar);
 
 	if (((sh->spi1 & 0x04) == 0)) {
-		APPEND_INFO(sm, "CNTR %02X%02X%02X%02X%02X ",
-				sh->cntr[0], sh->cntr[1],
-				sh->cntr[2], sh->cntr[3],
-				sh->cntr[4]);
+		strncpy(sm->ota_counter, osmo_hexdump_nospc(sh->cntr, 5), sizeof(sm->ota_counter));
+
+		APPEND_INFO(sm, "CNTR %s ", sm->ota_counter);
 	}
 }
 
@@ -272,8 +305,11 @@ void handle_sec_rp(struct sms_meta *sm, uint8_t *msg, unsigned len)
 	struct sec_header_rp *rp = (struct sec_header_rp *) msg;
 	uint8_t sign_len;
 
-	APPEND_INFO(sm, "TAR %02X%02X%02X ",
-		rp->tar[0], rp->tar[1], rp->tar[2]);
+	strncpy(sm->ota_tar, osmo_hexdump_nospc(rp->tar, 3), sizeof(sm->ota_tar));
+
+	APPEND_INFO(sm, "TAR %s ", sm->ota_tar);
+
+	sm->ota_por = rp->status;
 
 	APPEND_INFO(sm, "POR %02X ", rp->status);
 
@@ -301,6 +337,7 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 
 	if (len == 0) {
 		APPEND_INFO(sm, "NO DATA");	
+		sm->real_length = 0;
 		return;
 	}
 	header_len = msg[0];
@@ -314,6 +351,9 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 	/* Data offset */
 	user_data = msg + header_len + 1;
 	user_data_len = len - header_len - 1;
+
+	sm->udh_length = header_len;
+	sm->real_length = user_data_len;
 
 	/* Parse header elements (TLV) */
 	while (offset <= header_len) {
@@ -341,6 +381,8 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			}
 			APPEND_INFO(sm, "[%d/%d] ", this_frag, total_frags);	
 			sm->concat = 1;
+			sm->concat_frag = this_frag;
+			sm->concat_total = total_frags;
 			break;
 		case 0x01:
 			/* Special SMS indication */
@@ -355,9 +397,11 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_PORT8_HDR)");
 				return;
 			}
-			APPEND_INFO(sm, "PORT8 %d->%d ",
-				 msg[offset+1],
-				 msg[offset+0]);	
+
+			sm->src_port = msg[offset+1];
+			sm->dst_port = msg[offset+0];
+
+			APPEND_INFO(sm, "PORT8 %d->%d ", sm->src_port, sm->dst_port);	
 			break;
 		case 0x05:
 			/* Application address port, 16bit */
@@ -365,9 +409,11 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_PORT8_HDR)");
 				return;
 			}
-			APPEND_INFO(sm, "PORT16 %d->%d ",
-				 msg[offset+0]<<8|msg[offset+1],
-				 msg[offset+2]<<8|msg[offset+3]);	
+
+			sm->src_port = msg[offset+2]<<8|msg[offset+3];
+			sm->dst_port = msg[offset+0]<<8|msg[offset+1];
+
+			APPEND_INFO(sm, "PORT16 %d->%d ", sm->src_port, sm->dst_port);	
 			break;
 		case 0x06:
 			/* Service center control parameters */
@@ -397,6 +443,8 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			}
 			APPEND_INFO(sm, "[%d/%d] ", this_frag, total_frags);	
 			sm->concat = 1;
+			sm->concat_frag = this_frag;
+			sm->concat_total = total_frags;
 			break;
 		case 0x0a:
 			/* Text formatting (EMS) */
@@ -435,12 +483,20 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 		case 0x70:
 			/* OTA Command */
 			sm->ota = 1;
+			sm->ota_iei = 0x70;
 			ota_cmd = 1;
 			break;
 		case 0x71:
 			/* OTA Response */
 			sm->ota = 1;
+			sm->ota_iei = 0x71;
 			ota_cmd = 0;
+			break;
+		case 0x7f:
+			/* Non-standard OTA */
+			sm->ota = 1;
+			sm->ota_iei = 0x7f;
+			ota_cmd = 1;
 			break;
 		case 0xda:
 			/* SMSC-specific */
@@ -574,8 +630,8 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 	/* Data length sanity check */
 	if ((sm->dcs & 0xe0) != 0x20) {
 		if ((sm->length*7)/8 > (len - off)) {
-			if (msg_verbose > 1) {
-				printf("len %d off %d sm->len %d\n", len, off, sm->length);
+			if (msg_verbose) {
+				printf("len %d off %d sm->len %d sm->adjusted %d\n", len, off, sm->length, ((len-off)*8)/7);
 			}
 			APPEND_INFO(sm, "<TRUNCATED> ");
 
@@ -603,6 +659,7 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 		handle_udh(sm, &msg[off], sm->length);
 	} else {
 		handle_text(sm, &msg[off], sm->length);
+		sm->real_length = len-off;
 	}
 
 	//FIXME: discard normal sms, store only dcs = 192, 22, 246
@@ -785,6 +842,8 @@ void sms_make_sql(int sid, struct sms_meta *sm, char *query, unsigned len)
 	char *info;
 	char *data;
 	char *data_hex;
+	char *tar;
+	char *counter;
 
 	assert(sm != NULL);
 	assert(query != NULL);
@@ -792,6 +851,8 @@ void sms_make_sql(int sid, struct sms_meta *sm, char *query, unsigned len)
 	smsc = strescape_or_null(sm->smsc);
 	msisdn = strescape_or_null(sm->msisdn);
 	info = strescape_or_null(sm->info);
+	tar = strescape_or_null(sm->ota_tar);
+	counter = strescape_or_null(sm->ota_counter);
 	if (sm->length) { 
 		data_hex = strescape_or_null(osmo_hexdump_nospc(sm->data,sm->length));
 		data = malloc(strlen(data_hex)+2);
@@ -801,11 +862,21 @@ void sms_make_sql(int sid, struct sms_meta *sm, char *query, unsigned len)
 		data = strdup("'<NO DATA>'"); 
 	}
 
-	snprintf(query, len, "INSERT INTO sms_meta (id,sequence,from_network,"
-		"pid,dcs,alphabet,class,udhi,ota,concat,smsc,msisdn,info,length,data)"
-		" VALUES (%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%s,%s,%s,%d,%s);\n",
-		 sid, sm->sequence, sm->from_network, sm->pid, sm->dcs, sm->alphabet,
-		 sm->class, sm->udhi, sm->ota, sm->concat, smsc, msisdn, info, sm->length, data);
+	snprintf(query, len, "INSERT INTO sms_meta (id,sequence,from_network,pid,dcs,alphabet,"
+		"class,udhi,concat,concat_frag,concat_total,"
+		"src_port,dst_port,ota,ota_iei,ota_enc,ota_enc_algo,"
+		"ota_sign,ota_sign_algo,ota_counter,ota_counter_value,ota_tar,ota_por,"
+		"smsc,msisdn,info,length,udh_length,real_length,data)"
+		" VALUES (%d,%d,%d,%d,%d,%d,"
+		"%d,%d,%d,%d,%d,"
+		"%d,%d,%d,%d,%d,%d,"
+		"%d,%d,%d,%s,%s,%d,"
+		"%s,%s,%s,%d,%d,%d,%s);\n",
+		sid, sm->sequence, sm->from_network, sm->pid, sm->dcs, sm->alphabet,
+		sm->class, sm->udhi, sm->concat, sm->concat_frag, sm->concat_total,
+		sm->src_port, sm->dst_port, sm->ota, sm->ota_iei, sm->ota_enc, sm->ota_enc_algo,
+		sm->ota_sign, sm->ota_sign_algo, sm->ota_counter_type, counter, tar, sm->ota_por,
+		smsc, msisdn, info, sm->length, sm->udh_length, sm->real_length, data);
 
 	free(smsc);
 	free(msisdn);
