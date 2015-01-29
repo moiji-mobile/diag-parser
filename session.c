@@ -629,6 +629,13 @@ void session_close(struct session_info *s)
 
 			sm = sm->next;
 		}
+
+		if (s->appid) {
+			snprintf(sql_buffer, sizeof(sql_buffer),
+				 "INSERT INTO sid_appid VALUES (%d,'%08x');\n", s->id, s->appid); 
+
+			s->sql_callback(sql_buffer);
+		}
 	}
 
 	s->closed = 1;
@@ -706,6 +713,7 @@ void session_reset(struct session_info *s, int forced_release)
 	} else {
 		s->id = old_s.id;
 	}
+	s->appid = old_s.appid;
 	strncpy(s->name, old_s.name, sizeof(s->name));
 	s->domain = old_s.domain;
 	if (!auto_timestamp) {
@@ -756,6 +764,45 @@ void session_reset(struct session_info *s, int forced_release)
 	old_s.last_msg = NULL;
 }
 
+static uint32_t parse_appid(const char *filename)
+{
+	char *fn_copy;
+	char *ptr;
+	char *token;
+	uint32_t appid;
+
+	/* We need a copy, tokenizer is not const */
+	fn_copy = strdup(filename);
+
+	/* Match file name header */
+	ptr = strstr(fn_copy, "2__");
+	if (!ptr) {
+		return 0;
+	}
+
+	/* Skip first part */
+	ptr += 3;
+
+	/* Get and ignore first token */
+	token = strtok_r(ptr, "_", &ptr);
+	if (!token) {
+		return 0;
+	}
+
+	/* Match App ID string */
+	token = strtok_r(0, "_", &ptr);
+	if (strlen(token) != 8) {
+		return 0;
+	}
+
+	/* Parse and return value */
+	if (sscanf(token, "%08x", &appid) == 1) {
+		return appid;
+	}
+
+	return 0;
+}
+
 int session_from_filename(const char *filename, struct session_info *s)
 {
 	char *xgs_ptr;
@@ -764,6 +811,9 @@ int session_from_filename(const char *filename, struct session_info *s)
 	char *token;
 	unsigned mcc_mnc;
 	struct tm ts;
+
+	/* Try to extract application ID */
+	s->appid = parse_appid(filename);
 
 	/* Locate baseband type in filename */
 	xgs_ptr = strstr(filename, "_xgs.");

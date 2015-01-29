@@ -209,11 +209,9 @@ void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 
 	switch (dtap->msg_type & 0x3f) {
 	case 0x01:
-		// CALL ALERTING
 		SET_MSG_INFO(s, "CALL ALERTING");
 		break;
 	case 0x02:
-		// CALL PROCEEDING
 		SET_MSG_INFO(s, "CALL PROCEEDING");
 		if (s->cipher && !s->fc.enc_rand && !ul)
 			s->fc.predict++;
@@ -221,11 +219,9 @@ void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 			s->mo = 1;
 		break;
 	case 0x03:
-		// CALL PROGRESS
 		SET_MSG_INFO(s, "CALL PROGRESS");
 		break;
 	case 0x05:
-		// CALL SETUP 
 		SET_MSG_INFO(s, "CALL SETUP");
 		if (!ul)
 			s->mt = 1;
@@ -247,11 +243,9 @@ void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 
 		break;
 	case 0x07:
-		// CALL CONNECT
 		SET_MSG_INFO(s, "CALL CONNECT");
 		break;
 	case 0x08:
-		// CALL CONFIRMED
 		SET_MSG_INFO(s, "CALL CONFIRMED");
 		if (ul)
 			s->mt = 1;
@@ -259,27 +253,21 @@ void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 			s->mo = 1;
 		break;
 	case 0x0f:
-		// CALL CONNECT ACK
 		SET_MSG_INFO(s, "CALL CONNECT ACK");
 		break;
 	case 0x25:
-		// CALL DISCONNECT
 		SET_MSG_INFO(s, "CALL DISCONNECT");
 		break;
 	case 0x2a:
-		// CALL RELEASE COMPLETE
 		SET_MSG_INFO(s, "CALL RELEASE COMPLETE");
 		break;
 	case 0x2d:
-		// CALL RELEASE
 		SET_MSG_INFO(s, "CALL RELEASE");
 		break;
 	case 0x3a:
-		// CALL FACILITY
 		SET_MSG_INFO(s, "CALL FACILITY");
 		break;
 	case 0x3d:
-		// CALL STATUS
 		SET_MSG_INFO(s, "CALL STATUS");
 		break;
 	default:
@@ -297,7 +285,6 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 
 	switch (dtap->msg_type & 0x3f) {
 	case 0x01:
-		// IMSI DETACH
 		session_reset(s, 1);
 		s->started = 1;
 		SET_MSG_INFO(s, "IMSI DETACH");
@@ -306,12 +293,10 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		handle_detach(s, dtap->data);
 		break;
 	case 0x02:
-		// LOC UPD ACCEPT
 		SET_MSG_INFO(s, "LOC UPD ACCEPT");
 		handle_loc_upd_acc(s, dtap->data, dtap_len - 2);
 		break;
 	case 0x04:
-		// LOC UPD REJ
 		SET_MSG_INFO(s, "LOC UPD REJECT cause=%d", dtap->data[0]);
 		s->locupd = 1;
 		s->lu_reject = 1;
@@ -319,7 +304,6 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		s->mo = 1;
 		break;
 	case 0x08:
-		// LOC UPD REQ
 		session_reset(s, 1);
 		if (dtap_len < sizeof(struct gsm48_loc_upd_req)) {
 			SET_MSG_INFO(s, "FAILED SANITY CHECKS (LUR_DTAP_SIZE)");
@@ -329,7 +313,6 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		handle_loc_upd_req(s, dtap->data);
 		break;
 	case 0x12:
-		// AUTH REQ
 		if ((dtap_len < 20) || (dtap->data[17] == 0x2b)) {
 			SET_MSG_INFO(s, "AUTH REQUEST (GSM)");
 			s->auth = 1;
@@ -346,7 +329,6 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		}
 		break;
 	case 0x14:
-		// AUTH RESP
 		if ((dtap_len < 6) || (dtap->data[4] == 0x2b)) {
 			SET_MSG_INFO(s, "AUTH RESPONSE (GSM)");
 			s->auth = 1;
@@ -363,7 +345,6 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		}
 		break;
 	case 0x18:
-		// IDENTITY REQ
 		switch (dtap->data[0] & GSM_MI_TYPE_MASK) {
 		case GSM_MI_TYPE_IMSI:
 			SET_MSG_INFO(s, "IDENTITY REQUEST, IMSI");
@@ -385,7 +366,6 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		}
 		break;
 	case 0x19:
-		// IDENTITY RESP
 		handle_mi(s, &dtap->data[1], dtap->data[0], 0);
 		switch (dtap->data[1] & GSM_MI_TYPE_MASK) {
 		case GSM_MI_TYPE_IMSI:
@@ -408,29 +388,24 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		}
 		break;
 	case 0x1a:
-		// TMSI REALLOC COMMAND
 		SET_MSG_INFO(s, "TMSI REALLOC COMMAND");
 		s->tmsi_realloc = 1;
 		handle_lai(s, dtap->data, -1);
 		handle_mi(s, &dtap->data[6], dtap->data[5], 1);
 		break;
 	case 0x1b:
-		// TMSI REALLOC COMPLETE
 		SET_MSG_INFO(s, "TMSI REALLOC COMPLETE");
 		s->tmsi_realloc = 1;
 		break;
 	case 0x21:
-		// CM SERV ACCEPT
 		SET_MSG_INFO(s, "CM SERVICE ACCEPT");
 		s->mo = 1;
 		break;
 	case 0x23:
-		// CM SERV ABORT
 		SET_MSG_INFO(s, "CM SERVICE ABORT");
 		s->mo = 1;
 		break;
 	case 0x24:
-		// CM SERV REQ
 		SET_MSG_INFO(s, "CM SERVICE REQUEST");
 		session_reset(s, 1);
 		s->started = 1;
@@ -440,12 +415,10 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		handle_cmreq(s, dtap->data);
 		break;
 	case 0x29:
-		// ABORT
 		SET_MSG_INFO(s, "ABORT");
 		s->abort = 1;
 		break;
 	case 0x32:
-		// MM INFORMATION (Network name, Time)
 		SET_MSG_INFO(s, "MM INFORMATION");
 		break;
 	default:
@@ -654,7 +627,7 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		}
 		s->cipher_missing = -1;
 		break;
-	case 0x60: // UTRAN CLASSMARK
+	case 0x60:
 		SET_MSG_INFO(s, "UTRAN CLASSMARK");
 		break;
 	default:
@@ -676,15 +649,12 @@ void handle_ss(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 
 	switch (dtap->msg_type & 0x3f) {
 	case 0x2a:
-		// RELEASE COMPLETE
 		SET_MSG_INFO(s, "SS RELEASE COMPLETE");
 		break;
 	case 0x3a:
-		// FACILITY
 		SET_MSG_INFO(s, "SS FACILITY");
 		break;
 	case 0x3b:
-		// REGISTER
 		SET_MSG_INFO(s, "SS REGISTER");
 		break;
 	default:
@@ -735,7 +705,6 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 
 	switch (dtap->msg_type & 0x3f) {
 	case 0x01:
-		// ATTACH REQUEST
 		SET_MSG_INFO(s, "ATTACH REQUEST");
 		s->attach = 1;
 		s->started = 1;
@@ -747,30 +716,24 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		// extended cap
 		break;
 	case 0x02:
-		// ATTACH ACCEPT
 		SET_MSG_INFO(s, "ATTACH ACCEPT");
 		handle_attach_acc(s, dtap->data, len-2);
 		break;
 	case 0x03:
-		// ATTACH COMPLETE
 		SET_MSG_INFO(s, "ATTACH COMPLETE");
 		s->att_acc = 1;
 		break;
 	case 0x04:
-		// ATTACH REJECT
 		SET_MSG_INFO(s, "ATTACH REJECT");
 		break;
 	case 0x05:
-		// DETACH REQUEST 
 		SET_MSG_INFO(s, "DETACH REQUEST");
 		s->started = 1;
 		break;
 	case 0x06:
-		// DETACH ACCEPT
 		SET_MSG_INFO(s, "DETACH ACCEPT");
 		break;
 	case 0x08:
-		// ROUTING AREA UPDATE REQUEST
 		SET_MSG_INFO(s, "RA UPDATE REQUEST");
 		session_reset(s, 1);
 		s->raupd = 1;
@@ -780,21 +743,17 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		s->initial_seq = (dtap->data[0] >> 4) & 7;
 		break;
 	case 0x09:
-		// ROUTING AREA UPDATE ACCEPT
 		SET_MSG_INFO(s, "RA UPDATE ACCEPT");
 		handle_ra_upd_acc(s, dtap->data, len-2);
 		break;
 	case 0x0a:
-		// ROUTING AREA UPDATE COMPLETE
 		SET_MSG_INFO(s, "RA UPDATE COMPLETE");
 		s->raupd = 1;
 		break;
 	case 0x0b:
-		// ROUTING AREA UPDATE REJECT 
 		SET_MSG_INFO(s, "RA UPDATE REJECT");
 		break;
 	case 0x0c:
-		// SERVICE REQUEST
 		SET_MSG_INFO(s, "SERVICE REQUEST");
 		session_reset(s, 1);
 		s->started = 1;
@@ -803,50 +762,39 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		handle_serv_req(s, dtap->data);
 		break;
 	case 0x0d:
-		// SERVICE ACCEPT
 		SET_MSG_INFO(s, "SERVICE ACCEPT");
 		break;
 	case 0x0e:
-		// SERVICE REJECT
 		SET_MSG_INFO(s, "SERVICE REJECT");
 		break;
 	case 0x10:
-		// PTMSI REALLOC COMMAND
 		SET_MSG_INFO(s, "PTMSI REALLOC COMMAND");
 		break;
 	case 0x11:
-		// PTMSI REALLOC COMPLETE
 		SET_MSG_INFO(s, "PTMSI REALLOC COMPLETE");
 		break;
 	case 0x12:
-		// AUTH AND CIPHER REQUEST
 		SET_MSG_INFO(s, "AUTH AND CIPHER REQUEST");
 		s->auth = 1;
 		break;
 	case 0x13:
-		// AUTH AND CIPHER RESPONSE
 		SET_MSG_INFO(s, "AUTH AND CIPHER RESPONSE");
 		s->auth = 1;
 		break;
 	case 0x14:
-		// AUTH AND CIPHER REJECT
 		s->auth = 1;
 		SET_MSG_INFO(s, "AUTH AND CIPHER REJECT");
 		break;
 	case 0x15:
-		// IDENTITY REQUEST
 		SET_MSG_INFO(s, "IDENTITY REQUEST");
 		break;
 	case 0x16:
-		// IDENTITY RESPONSE
 		SET_MSG_INFO(s, "IDENTITY RESPONSE");
 		break;
 	case 0x20:
-		// GMM STATUS
 		SET_MSG_INFO(s, "GMM STATUS");
 		break;
 	case 0x21:
-		// GMM INFORMATION
 		SET_MSG_INFO(s, "GMM INFORMATION");
 		break;
 	default:
@@ -875,12 +823,10 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 
 	switch (dtap->msg_type & 0x3f) {
 	case 0x01:
-		// ACTIVATE PDP CTX REQUEST
 		SET_MSG_INFO(s, "ACTIVATE PDP REQUEST");
 		s->pdp_activate = 1;
 		break;
 	case 0x02:
-		// ACTIVATE PDP CTX ACCEPT
 		SET_MSG_INFO(s, "ACTIVATE PDP ACCEPT");
 		//sapi = dtap->data[0];
 		//qos_len = dtap->data[1];
@@ -888,27 +834,21 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		//TLV @ data[3+qos_len+1]
 		break;
 	case 0x06:
-		// DEACTIVATE PDP CTX REQUEST
 		SET_MSG_INFO(s, "DEACTIVATE PDP REQUEST");
 		break;
 	case 0x07:
-		// DEACTIVATE PDP CTX ACCEPT
 		SET_MSG_INFO(s, "DEACTIVATE PDP ACCEPT");
 		break;
 	case 0x08:
-		// MODIFY PDP CTX REQUEST
 		SET_MSG_INFO(s, "MODIFY PDP REQUEST");
 		break;
 	case 0x09:
-		// MODIFY PDP CTX ACCEPT
 		SET_MSG_INFO(s, "MODIFY PDP ACCEPT");
 		break;
 	case 0x0a:
-		// DEACTIVATE PDP CTX ACCEPT
 		SET_MSG_INFO(s, "DEACTIVATE PDP ACCEPT");
 		break;
 	case 0x15:
-		// SM STATUS
 		SET_MSG_INFO(s, "SM STATUS");
 		break;
 	default:

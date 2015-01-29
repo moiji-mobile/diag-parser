@@ -36,6 +36,7 @@ struct lapdm_buf {
 
 struct session_info {
 	int id;
+	uint32_t appid;
 	char name[1024];
 	struct timeval timestamp;
 	uint8_t rat;
