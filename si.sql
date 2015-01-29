@@ -100,3 +100,8 @@ CREATE TABLE session_info (
   ue_integrity_cap smallint DEFAULT NULL -- Supported integrity algorithms for UMTS
 );
 
+DROP TABLE IF EXISTS sid_appid;
+CREATE TABLE sid_appid (
+  sid integer primary key,	-- Transaction ID, incremental and unique in the db
+  appid integer			-- Transaction ID, incremental and unique in the db
+);
