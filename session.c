@@ -27,7 +27,13 @@
 uint8_t privacy = 0;
 uint8_t msg_verbose = MSG_VERBOSE;
 uint8_t auto_reset = 1;
-uint8_t auto_timestamp = 1;
+
+#ifdef USE_AUTOTIME
+	uint8_t auto_timestamp = 1;
+#else
+	uint8_t auto_timestamp = 0;
+#endif
+
 static uint8_t output_console = 1;
 static uint8_t output_gsmtap = 1;
 static uint8_t output_sqlite = 1;
@@ -37,6 +43,8 @@ static struct session_info *s_pointer = 0;
 pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct session_info _s[2];
+
+uint32_t now = 0;
 
 static void console_callback(const char *sql)
 {
@@ -136,6 +144,10 @@ struct session_info *session_create(int id, char* name, uint8_t *key, int mcc, i
 	/* Set timestamp */
 	if (auto_timestamp) {
 		gettimeofday(&ns->timestamp, 0);
+	} else
+	{
+		ns->timestamp.tv_sec  = now;
+		ns->timestamp.tv_usec = 0;
 	}
 
 	if (key) {
@@ -556,16 +568,17 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 
 void session_close(struct session_info *s)
 {
-	struct timeval t_now;
-
 	assert(s != NULL);
 
 	s->processing = 0;
 
 	/* Attach or update timestamp */
-	gettimeofday(&t_now, NULL);
-	if (!s->timestamp.tv_sec || auto_timestamp) {
-		s->timestamp = t_now;
+	if (auto_timestamp) {
+		gettimeofday(&s->timestamp, NULL);
+	} else
+	{
+		s->timestamp.tv_sec = now;
+		s->timestamp.tv_usec = 0;
 	}
 
 	/* Estimate transaction duration */
