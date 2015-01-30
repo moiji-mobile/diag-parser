@@ -11,26 +11,37 @@
 static void usage(const char *progname, const char *reason)
 {
 	printf("%s\n", reason);
-	printf("Usage: %s [-s <id>] [-c <id>] <filename>\n", progname);
-	printf("	-s <id>     - First session_info ID to be used for SQL\n");
-	printf("	-c <id>     - First cell_info ID to be used for SQL\n");
-	printf("	-g <target> - Target host for GSMTAP UDP stream\n");
-	printf("	<filename>  - Read DIAG data from <filename>\n");
+	printf("Usage: %s [-s <id>] [-c <id>] [-f <filelist>] [filenames]\n", progname);
+	printf("	-s <id>       - First session_info ID to be used for SQL\n");
+	printf("	-c <id>       - First cell_info ID to be used for SQL\n");
+	printf("	-g <target>   - Target host for GSMTAP UDP stream\n");
+	printf("	-f <filelist> - Read list of input files from <filelist>\n");
+	printf("	[filenames]   - Read DIAG data from [filenames]\n");
 	exit(1);
+}
+
+static void
+chop_newline(char *line)
+{
+	int newline_pos = strlen(line) - 1;
+	if (newline_pos >= 0 && line[newline_pos] == '\n')
+	{
+		line[newline_pos] = '\0';
+	}
 }
 
 int main(int argc, char *argv[])
 {
-	uint8_t msg[4096]; 
-	unsigned len = 0;
-	FILE *infile = NULL;
-	char *infile_name;
+	char infile_name[FILENAME_MAX];
+	FILE *filelist = NULL;
+	char *filelist_name = NULL;
 	char *gsmtap_target = NULL;
-	int bflag, ch, fd;
+	int ch;
 	long sid = 0;
 	long cid = 0;
+	int line = 0;
 
-	while ((ch = getopt(argc, argv, "s:c:g:")) != -1) {
+	while ((ch = getopt(argc, argv, "s:c:g:f:")) != -1) {
 		switch (ch) {
 			case 's':
 				sid = atol(optarg);
@@ -41,6 +52,9 @@ int main(int argc, char *argv[])
 			case 'g':
 				gsmtap_target = strdup(optarg);
 				break;
+			case 'f':
+				filelist_name = strdup(optarg);
+				break;
 			case '?':
 			default:
 				usage(argv[0], "Invalid arguments");
@@ -50,7 +64,7 @@ int main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	if (argc == 0)
+	if (filelist_name == NULL && argc == 0)
 	{
 		errx(1, "Invalid arguments");
 	}
@@ -58,41 +72,71 @@ int main(int argc, char *argv[])
 	printf("PARSER_OK\n");
 	fflush(stdout);
 
+	//  Handle files passed to command line first
 	while (argc > 0)
 	{
-		infile_name = strdup(argv[0]);
-
-		if (strcmp(infile_name, "-") == 0)
-		{
-			infile = stdin;
-		} else
-		{
-			infile = fopen(infile_name, "rb");
-		}
-
-		if (!infile)
-		{
-			err(1, "Cannot open input file: %s", infile_name);
-		}
-
-		diag_init(sid, cid, gsmtap_target, infile_name);
-		for (;;) {
-			memset(msg, 0x2b, sizeof(msg));
-			len = fread_unescape(infile, msg, sizeof(msg));
-
-			if (!len) {
-				break;
-			}
-
-			handle_diag(msg, len);
-		}
-		diag_destroy(&sid, &cid);
-		fclose(infile);
-
+		process_file(&sid, &cid, gsmtap_target, argv[0]);
 		argc--;
 		argv++;
 	};
 
+	//  Handle file list
+	if (filelist_name)
+	{
+		filelist = fopen(filelist_name, "rb");
+		if (!filelist)
+		{
+			err(1, "Cannot open file list: %s", filelist_name);
+		}
+
+		while (!feof(filelist))
+		{
+			fgets(infile_name, sizeof(infile_name), filelist);
+			++line;
+			if (ferror(filelist))
+			{
+				err(1, "Cannot open file in %s:%d", filelist_name, line);
+			}
+			chop_newline(infile_name);
+			process_file(&sid, &cid, gsmtap_target, infile_name);
+		}
+		fclose(filelist);
+	}
+
 	return 0;
 }
 
+void
+process_file(long *sid, long *cid, char *gsmtap_target, char *infile_name)
+{
+	uint8_t msg[4096];
+	FILE *infile = NULL;
+	unsigned len = 0;
+
+	if (strcmp(infile_name, "-") == 0)
+	{
+		infile = stdin;
+	} else
+	{
+		infile = fopen(infile_name, "rb");
+	}
+
+	if (!infile)
+	{
+		err(1, "Cannot open input file: %s", infile_name);
+	}
+
+	diag_init(*sid, *cid, gsmtap_target, infile_name);
+	for (;;) {
+		memset(msg, 0x2b, sizeof(msg));
+		len = fread_unescape(infile, msg, sizeof(msg));
+
+		if (!len) {
+			break;
+		}
+
+		handle_diag(msg, len);
+	}
+	diag_destroy(sid, cid);
+	fclose(infile);
+}
