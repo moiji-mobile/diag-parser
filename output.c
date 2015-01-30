@@ -22,6 +22,10 @@ void net_init(const char *target)
 void net_destroy()
 {
 	if (gti) {
+		// Found no counterpart to gsmtap_source_init that
+		// would free resources. Doing that by hand, otherwise
+		// we run out of file descriptors...
+		close(gti->wq.bfd.fd);
 		talloc_free(gti);
 	}
 }
