@@ -11,6 +11,7 @@ OBJ = \
 	chan_detect.o \
 	crc.o \
 	umts_rrc.o \
+	lte_eps.o \
 	diag_input.o \
 	gprs.o \
 	gsm_interleave.o \

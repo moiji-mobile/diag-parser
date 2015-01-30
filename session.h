@@ -2,6 +2,7 @@
 #define SESSION_H
 
 #include <stdint.h>
+#include <assert.h>
 #include <sys/time.h>
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 

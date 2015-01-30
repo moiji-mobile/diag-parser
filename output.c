@@ -114,6 +114,10 @@ void net_send_msg(struct radio_message *m)
 		msgb = gsmtap_makemsg_ex(GSMTAP_TYPE_UMTS_RRC, m->bb.arfcn[0], 0,
 				 gsmtap_channel, 0, 0, 0, 0, m->bb.data, m->msg_len);
 		break;
+	case RAT_LTE:
+		msgb = gsmtap_makemsg_ex(0x0e, m->bb.arfcn[0], 0,
+					 0, 0, 0, 0, 0, m->bb.data, m->msg_len);
+		break;
 	}
 
 	if (msgb) {

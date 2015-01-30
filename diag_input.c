@@ -169,25 +169,73 @@ struct radio_message * handle_3G(struct diag_packet *dp, unsigned len)
 
 struct radio_message * handle_4G(struct diag_packet *dp, unsigned len)
 {
+	unsigned payload_len;
+	struct radio_message *m;
+
+	if (len < 16) {
+		return 0;
+	}
+
+	payload_len = dp->len - 16;
+
+	if (payload_len > len - 16) {
+		return 0;
+	}
+
+	if (payload_len > sizeof(m->bb.data)) {
+		return 0;
+	}
+
+	m = (struct radio_message *) malloc(sizeof(struct radio_message));
+
+	memset(m, 0, sizeof(struct radio_message));
+
+	m->rat = RAT_LTE;
+
+	m->bb.fn[0] = get_fn(dp);
+
 	switch (dp->msg_protocol) {
 	case 0xb0c0: // LTE RRC
 		if (dp->data[0]) {
 			// Uplink
-			//(&dp->data[1], dp->len-16);
 		} else {
 			// Downlink
-			//(&dp->data[1], dp->len-16);
 		}
+		return 0;
 		break;
+	case 0xb0e0: // LTE NAS ESM DL (protected)
+	case 0xb0ea: // LTE NAS EMM DL (protected)
+		m->flags = MSG_SDCCH | MSG_CIPHERED;
+		m->bb.arfcn[0] = 0;
+		break;
+	case 0xb0e1: // LTE NAS ESM DL (protected)
+	case 0xb0eb: // LTE NAS EMM UL (protected)
+		m->flags = MSG_SDCCH | MSG_CIPHERED;
+		m->bb.arfcn[0] = ARFCN_UPLINK;
+		break;
+	case 0xb0e2: // LTE NAS ESM DL
 	case 0xb0ec: // LTE NAS EMM DL
-		//(&dp->data[1], dp->len-16);
+		m->flags = MSG_SDCCH;
+		m->bb.arfcn[0] = 0;
 		break;
+	case 0xb0e3: // LTE NAS ESM UL
 	case 0xb0ed: // LTE NAS EMM UL
-		//(&dp->data[1], dp->len-16);
+		m->flags = MSG_SDCCH;
+		m->bb.arfcn[0] = ARFCN_UPLINK;
 		break;
+	default:
+		if (msg_verbose > 1) {
+			printf("Discarding 4G message type=%d data=%s\n", dp->msg_type, osmo_hexdump_nospc(dp->data, payload_len));
+		}
+		free(m);
+		return 0;
 	}
 
-	return 0;
+	m->msg_len = payload_len;
+
+	memcpy(m->bb.data, &dp->data[1], payload_len);
+
+	return m;
 }
 
 struct radio_message * handle_nas(struct diag_packet *dp, unsigned len)
@@ -513,6 +561,12 @@ void handle_diag(uint8_t *msg, unsigned len)
 		break;
 
 	case 0xb0c0: // LTE RRC
+	case 0xb0e0: // LTE NAS ESM DL (protected)
+	case 0xb0e1: // LTE NAS ESM UL (protected)
+	case 0xb0e2: // LTE NAS ESM DL
+	case 0xb0e3: // LTE NAS ESM UL
+	case 0xb0ea: // LTE NAS EMM DL (protected)
+	case 0xb0eb: // LTE NAS EMM UL (protected)
 	case 0xb0ec: // LTE NAS EMM DL
 	case 0xb0ed: // LTE NAS EMM UL
 		if (msg_verbose > 1) {
