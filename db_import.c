@@ -268,7 +268,7 @@ int main(int argc, char **argv)
 	memset(&conn, 0, sizeof(conn));
 
 	/* Get all the missing session ids */
-	test = mysql_real_connect(&conn, "10.0.0.1", "luca", "nooHah1Aes", "celldb", 3306, 0, 0);
+	test = mysql_real_connect(&conn, "10.0.0.1", KDB_USER, KDB_PASS, KDB_DBNAME, 3306, 0, 0);
 	if (test == 0) {
 		printf("Cannot connect to database\n");
 		return -1;
