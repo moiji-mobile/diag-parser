@@ -28,7 +28,7 @@ struct diag_packet {
 	uint8_t data[0];
 } __attribute__ ((packed));
 
-void diag_init(unsigned start_sid, unsigned start_cid, const char *gsmtap_target, char *filename)
+void diag_init(unsigned start_sid, unsigned start_cid, const char *gsmtap_target, char *filename, uint32_t appid)
 {
 	int callback_type;
 
@@ -54,6 +54,12 @@ void diag_init(unsigned start_sid, unsigned start_cid, const char *gsmtap_target
 	if (filename && (filename[0] != '-')) {
 		session_from_filename(filename, &_s[0]);
 		session_from_filename(filename, &_s[1]);
+	}
+
+	if (appid)
+	{
+		_s[0].appid = appid;
+		_s[1].appid = appid;
 	}
 
 	cell_init(start_cid, _s[0].timestamp.tv_sec, callback_type);
