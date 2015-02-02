@@ -165,9 +165,11 @@ int explore_session(int id)
 	memset(&w_conn, 0, sizeof(w_conn));
 
 	test = mysql_real_connect(&w_conn, "127.0.0.1", MYSQL_USER, MYSQL_PASS, MYSQL_DBNAME, 3306, 0, 0);
-	if (test == 0) {
+	while (test == 0) {
 		printf("Cannot connect to W-database\n");
-		return -1;
+		sleep(1);
+		memset(&w_conn, 0, sizeof(w_conn));
+		test = mysql_real_connect(&w_conn, "127.0.0.1", MYSQL_USER, MYSQL_PASS, MYSQL_DBNAME, 3306, 0, 0);
 	}
 
 	snprintf(query, sizeof(query), "delete from session_info where id = %d", id);
@@ -287,7 +289,7 @@ int main(int argc, char **argv)
 
 	row_count = mysql_num_rows(result);
 
-	printf("Running over %d sessions...\n", row_count);
+	printf("Running from %d sessions from ID %d ...\n", row_count, start_id);
 
 	session_id = malloc(row_count*sizeof(*session_id));
 	if (!session_id) {

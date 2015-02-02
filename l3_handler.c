@@ -332,7 +332,10 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 	case 0x14:
 		if ((dtap_len < 6) || (dtap->data[4] == 0x2b)) {
 			SET_MSG_INFO(s, "AUTH RESPONSE (GSM)");
-			s->auth = 1;
+			/* Avoid downgrade due to truncated payload */
+			if (s->auth < 1) {
+				s->auth = 1;
+			}
 		} else {
 			SET_MSG_INFO(s, "AUTH RESPONSE (UMTS)");
 			s->auth = 2;
@@ -864,16 +867,6 @@ void update_counters(struct session_info *s, uint8_t *data, unsigned len, unsign
 	unsigned pad_len;
 	uint8_t *pad_data;
 
-	if (!s->first_fn) {
-		if (fn) {
-			s->first_fn = fn;
-		} else {
-			s->first_fn = GSM_MAX_FN;
-		}
-	}
-
-	s->last_fn = fn;
-
 	if (ul)
 		s->uplink++;
 
@@ -1219,6 +1212,28 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 	}
 }
 
+void update_timestamps(struct session_info *s)
+{
+	uint32_t fn;
+
+	assert(s != NULL);
+
+	if (!s->new_msg || !s->started)
+		return;
+
+	fn = s->new_msg->bb.fn[0];
+
+	if (!s->first_fn) {
+		if (fn) {
+			s->first_fn = fn;
+		} else {
+			s->first_fn = GSM_MAX_FN;
+		}
+	}
+
+	s->last_fn = fn;
+}
+
 void handle_radio_msg(struct session_info *s, struct radio_message *m)
 {
 	static int num_called  = 0;
@@ -1325,6 +1340,10 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 	}
 
 	if (s->new_msg) {
+		/* Keep fn timestamps updated */
+		assert(m->domain < 2);
+		update_timestamps(&s[m->domain]);
+
 		if (s->new_msg->flags & MSG_DECODED) {
 			assert(s->new_msg == m);
 			link_to_msg_list(&s[m->domain], m);
