@@ -314,12 +314,12 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		handle_loc_upd_req(s, dtap->data);
 		break;
 	case 0x12:
-		if ((dtap_len < 20) || (dtap->data[17] == 0x2b)) {
-			SET_MSG_INFO(s, "AUTH REQUEST (GSM)");
-			s->auth = 1;
-		} else {
+		if ((dtap_len > 19) && (dtap->data[17] == 0x20) && (dtap->data[18] == 0x10)) {
 			SET_MSG_INFO(s, "AUTH REQUEST (UMTS)");
 			s->auth = 2;
+		} else {
+			SET_MSG_INFO(s, "AUTH REQUEST (GSM)");
+			s->auth = 1;
 		}
 		if (!s->auth_req_fn) {
 			if (fn) {
@@ -628,6 +628,9 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		SET_MSG_INFO(s, "CIPHER MODE COMMAND, A5/%u", s->cipher);
 		if (dtap->data[0] & 0x10) {
 			s->cmc_imeisv = 1;
+
+			if (s->cipher && !s->fc.enc_rand)
+				s->fc.predict++;
 		}
 		s->cipher_missing = -1;
 		break;
