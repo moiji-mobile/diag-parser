@@ -144,8 +144,7 @@ struct session_info *session_create(int id, char* name, uint8_t *key, int mcc, i
 	/* Set timestamp */
 	if (auto_timestamp) {
 		gettimeofday(&ns->timestamp, 0);
-	} else
-	{
+	} else {
 		ns->timestamp.tv_sec  = now;
 		ns->timestamp.tv_usec = 0;
 	}
@@ -575,10 +574,11 @@ void session_close(struct session_info *s)
 	/* Attach or update timestamp */
 	if (auto_timestamp) {
 		gettimeofday(&s->timestamp, NULL);
-	} else
-	{
-		s->timestamp.tv_sec = now;
-		s->timestamp.tv_usec = 0;
+	} else {
+		if (now) {
+			s->timestamp.tv_sec = now;
+			s->timestamp.tv_usec = 0;
+		}
 	}
 
 	/* Estimate transaction duration */
