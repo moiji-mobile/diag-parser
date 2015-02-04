@@ -330,15 +330,16 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		}
 		break;
 	case 0x14:
-		if ((dtap_len < 6) || (dtap->data[4] == 0x2b)) {
-			SET_MSG_INFO(s, "AUTH RESPONSE (GSM)");
-			/* Avoid downgrade due to truncated payload */
-			if (s->auth < 1) {
-				s->auth = 1;
+		if ((dtap_len > 6) && (dtap->data[4] == 0x21) && (dtap->data[5] == 0x04)) {
+			SET_MSG_INFO(s, "AUTH RESPONSE (UMTS)");
+			if (!s->auth) {
+				s->auth = 2;
 			}
 		} else {
-			SET_MSG_INFO(s, "AUTH RESPONSE (UMTS)");
-			s->auth = 2;
+			SET_MSG_INFO(s, "AUTH RESPONSE (GSM)");
+			if (!s->auth) {
+				s->auth = 1;
+			}
 		}
 		if (!s->auth_resp_fn) {
 			if (fn) {
