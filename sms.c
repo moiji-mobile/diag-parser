@@ -510,7 +510,7 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 			printf("Unhandled UDH-IEI 0x%02x, vlen=%d\n", type, vlen);
 		}
 
-		offset += len;
+		offset += vlen;
 	}
 
 	/* Parse message content */
