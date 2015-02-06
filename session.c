@@ -545,7 +545,7 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 		s->avg_power, s->uplink, s->initial_seq, s->cipher_seq, s->auth, s->auth_req_fn, s->auth_resp_fn, s->auth_delta,
 		s->cipher_missing, s->cm_comp_first_fn, s->cm_comp_last_fn, s->cm_comp_count, s->cipher_delta, s->cipher,
 		s->integrity, s->cmc_imeisv, s->first_fn, s->last_fn, s->duration, s->mo, s->mt, s->pag_mi,
-		s->unknown, s->detach, s->locupd, s->lu_type, s->lu_acc, s->lu_reject, s->lu_rej_cause, s->lu_mcc, s->lu_mnc, s->lac,
+		s->unknown, s->detach, s->locupd, s->lu_type, s->lu_acc, s->lu_reject, s->lu_rej_cause, s->lu_mcc, s->lu_mnc, s->lu_lac,
 		s->abort, s->raupd, s->attach, s->att_acc, s->pdp_activate, pdpip, s->call, s->sms, s->ssa,
 		s->tmsi_realloc, s->release, s->rr_cause, s->have_gprs, s->iden_imsi_ac, s->iden_imsi_bc, s->iden_imei_ac, s->iden_imei_bc,
 		s->assignment, s->assign_complete, s->handover, s->forced_ho, s->ga.chan_nr&7, s->ga.chan_nr>>3, s->ga.tsc,
