@@ -6,6 +6,11 @@ drop table if exists risk_tracking;
 drop table if exists attack_component;
 drop table if exists attack_component_x4;
 drop table if exists sec_params;
+drop table if exists call_avg;
+drop table if exists sms_avg;
+drop table if exists loc_avg;
+drop table if exists entropy_cell;
+drop table if exists entropy;
 
 drop view if exists valid_op;
 drop view if exists valid_si;

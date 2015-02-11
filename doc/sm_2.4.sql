@@ -1,15 +1,13 @@
 -- security metrics v2.5beta
 
+/*!40101 SET storage_engine=MyISAM */;
+
 -- FIXME: The orignal avg_of_* functions had a different semantics, which
 -- resulted in NULL if both, a and b is NULL. Also, if a parameter is NULL the
 -- other parameters value is inherited.
 
 #define avg_of_2(a,b) ((IFNULL(a,0) + IFNULL(b,0)) / 2)
 #define avg_of_3(a,b,c) ((IFNULL(a,0) + IFNULL(b,0) + IFNULL(c,0)) / 3)
-
-#ifdef MYSQL
-SET storage_engine=MyISAM;
-#endif
 
 #ifdef SQLITE
 
@@ -19,51 +17,72 @@ SET storage_engine=MyISAM;
 
 #endif
 
-drop view if exists n_src;
-create view n_src as select * from mnc;
-
-drop view if exists c_src;
-create view c_src as select * from mcc;
-
--- "va" population
-delete from va;
-
-insert into va
+-- available valid operators population
+delete from valid_op;
+insert into valid_op
  select session_info.mcc     as mcc,
 	session_info.mnc     as mnc,
-	c_src.name           as country,
-	n_src.name           as network,
+	country              as country,
+	network              as network,
 	date(min(timestamp)) as oldest,
 	date(max(timestamp)) as latest,
 	0                    as cipher
- from session_info, n_src, c_src
- where c_src.mcc = n_src.mcc and n_src.mcc = session_info.mcc and n_src.mnc = session_info.mnc
- and ((t_locupd and (lu_acc or cipher > 1)) or
-      (t_sms and (t_release or cipher > 1)) or
-      (t_call and (assign or cipher > 1)))
- and (cipher > 0 or duration > 350) and rat = 0
+ from session_info, mnc
+ where	mnc.mcc = session_info.mcc and
+	mnc.mnc = session_info.mnc
+ and ((t_locupd and (lu_acc or cipher > 1 or rat > 0)) or
+      (t_sms and (t_release or cipher > 1 or rat > 0)) or
+      (t_call and (assign or cipher > 1 or rat > 0)))
+ and (duration > 350 or cipher > 0 or rat > 0)
  group by session_info.mcc, session_info.mnc
  order by session_info.mcc, session_info.mnc;
 
-delete from va
- where mcc >= 1000 or mnc >= 1000
- or (mcc = 262 and mnc = 10)
- or (mcc = 262 and mnc = 42)
- or (mcc = 204 and mnc = 21)
+-- Ignore test/reserved networks
+delete from valid_op
+ where mcc < 200 or mcc >= 1000
+ or mnc >= 1000;
+
+-- Ignore railway networks (GSM-R)
+delete from valid_op
+ where (mcc = 204 and mnc = 21)
+ or (mcc = 208 and mnc = 14)
+ or (mcc = 216 and mnc = 99)
  or (mcc = 222 and mnc = 30)
  or (mcc = 228 and mnc = 6)
+ or (mcc = 230 and mnc = 98)
+ or (mcc = 231 and mnc = 99)
+ or (mcc = 232 and mnc = 91)
+ or (mcc = 234 and mnc = 12)
+ or (mcc = 234 and mnc = 13)
+ or (mcc = 235 and mnc = 95)
+ or (mcc = 238 and mnc = 23)
+ or (mcc = 240 and mnc = 21)
+ or (mcc = 242 and mnc = 20)
+ or (mcc = 242 and mnc = 21)
  or (mcc = 244 and mnc = 17)
- or (mcc = 208 and mnc = 14)
- or (mcc = 901);
+ or (mcc = 246 and mnc = 5)
+ or (mcc = 262 and mnc = 10)
+ or (mcc = 262 and mnc = 60)
+ or (mcc = 284 and mnc = 7)
+ or (mcc = 420 and mnc = 21)
+ or (mcc = 460 and mnc = 20)
+ or (mcc = 505 and mnc = 13);
 
-insert into va select distinct mcc,mnc,country,network,oldest,latest,1 from va;
-insert into va select distinct mcc,mnc,country,network,oldest,latest,2 from va;
-insert into va select distinct mcc,mnc,country,network,oldest,latest,3 from va;
+-- Ignore non-stationary networks
+delete from valid_op
+ where (mcc = 901)
+ or (mcc = 262 and mnc = 42);
+
+-- Expand to every cipher configuration
+insert into valid_op select distinct mcc,mnc,country,network,oldest,latest,1 from valid_op;
+insert into valid_op select distinct mcc,mnc,country,network,oldest,latest,2 from valid_op;
+insert into valid_op select distinct mcc,mnc,country,network,oldest,latest,3 from valid_op;
 
 --
 
-drop view if exists call_avg;
-create view call_avg as
+-- Call averages
+delete from call_avg;
+insert into call_avg
   select mcc, mnc, lac, date_format(timestamp, "%Y-%m") as month, cipher,
 	 count(*) as count,
 	 sum(CASE WHEN mobile_orig THEN 1 ELSE 0 END) as mo_count,
@@ -84,8 +103,9 @@ create view call_avg as
   group by mcc, mnc, lac, month, cipher
   order by mcc, mnc, lac, month, cipher;
 
-drop view if exists sms_avg;
-create view sms_avg as
+-- SMS averages
+delete from sms_avg;
+insert into sms_avg
   select mcc, mnc, lac, date_format(timestamp, "%Y-%m") as month, cipher,
 	 count(*) as count,
 	 sum(CASE WHEN mobile_orig THEN 1 ELSE 0 END) as mo_count,
@@ -104,8 +124,9 @@ create view sms_avg as
   group by mcc, mnc, lac, month, cipher
   order by mcc, mnc, lac, month, cipher;
 
-drop view if exists loc_avg;
-create view loc_avg as
+-- LUR averages
+delete from loc_avg;
+insert into loc_avg
   select mcc, mnc, lac, date_format(timestamp, "%Y-%m") as month, cipher,
 	 count(*) as count,
 	 sum(CASE WHEN mobile_orig THEN 1 ELSE 0 END) as mo_count,
@@ -124,8 +145,9 @@ create view loc_avg as
   group by mcc, mnc, lac, month, cipher
   order by mcc, mnc, lac, month, cipher;
 
-drop view if exists en;
-create view en as
+-- Cell entropy averages
+delete from entropy_cell;
+insert into entropy_cell
   select mcc, mnc, lac, cid, date_format(timestamp, "%Y-%m") as month, cipher,
 	avg(a_ma_len + 1 - a_hopping) as a_len,
 	variance((a_ma_len + 1 - a_hopping)/64) as v_len,
@@ -138,8 +160,9 @@ create view en as
   (cipher > 0 or duration > 350)
   group by mcc, mnc, lac, cid, month, cipher;
 
-drop view if exists e;
-create view e as
+-- LAC entropy averages
+delete from entropy;
+insert into entropy
   select mcc, mnc, lac, month, cipher,
 	 avg(a_len) as ma_len,
 	 avg(v_len) as var_len,
@@ -147,13 +170,12 @@ create view e as
 	 avg(v_maio) as var_maio,
 	 avg(v_ts) as var_ts,
 	 avg(v_tsc) as var_tsc
-    from en
+    from entropy_cell
     group by mcc, mnc, lac, month, cipher
     order by mcc, mnc, lac, month, cipher;
 
 -- "sec_params" population
 delete from sec_params;
-
 insert into sec_params
  select
         va.mcc                         as mcc,
@@ -204,11 +226,11 @@ insert into sec_params
         h.rand_imsi                    as rand_imsi,
         h.home_routing                 as home_routing
  from
-        va
+        valid_op as va
         left outer join call_avg as c on (va.mcc = c.mcc and va.mnc = c.mnc and va.cipher = c.cipher)
         left outer join sms_avg  as s on (va.mcc = s.mcc and va.mnc = s.mnc and va.cipher = s.cipher and c.lac = s.lac and c.month = s.month)
         left outer join loc_avg  as l on (va.mcc = l.mcc and va.mnc = l.mnc and va.cipher = l.cipher and c.lac = l.lac and c.month = l.month)
-        left outer join             e on (va.mcc = e.mcc and va.mnc = e.mnc and va.cipher = e.cipher and c.lac = e.lac and c.month = e.month)
+        left outer join entropy  as e on (va.mcc = e.mcc and va.mnc = e.mnc and va.cipher = e.cipher and c.lac = e.lac and c.month = e.month)
         left outer join hlr_info as h on (va.mcc = h.mcc and va.mnc = h.mnc)
  where c.lac <> 0 and c.month <> ""
  order by mcc, mnc, lac, month, cipher; 
@@ -369,7 +391,6 @@ insert into risk_intercept
 
 -- "risk_impersonation" population
 delete from risk_impersonation;
-
 insert into risk_impersonation
  select mcc, mnc, lac, month,
 	avg_of_2(offline_crack, key_reuse_mo) as make_calls,
@@ -381,7 +402,6 @@ insert into risk_impersonation
 
 -- "risk_tracking" population
 delete from risk_tracking;
-
 insert into risk_tracking
  select mcc, mnc, lac, month,
 	track_tmsi as local_track,
@@ -393,7 +413,6 @@ insert into risk_tracking
 
 -- "risk_category" population
 delete from risk_category;
-
 insert into risk_category
  select inter.mcc, inter.mnc, inter.lac, inter.month,
 

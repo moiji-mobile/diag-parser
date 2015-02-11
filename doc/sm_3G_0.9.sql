@@ -2,34 +2,6 @@
 #define date_format(x,y) strftime(y,x)
 #endif
 
---  Valid operators
-DROP VIEW IF EXISTS valid_op;
-CREATE VIEW valid_op AS
-SELECT
-	si.mcc,
-	si.mnc,
-	c.name as country,
-	n.name as operator
-FROM
-	session_info as si,
-	mnc as n,
-	mcc as c
-WHERE
-	si.mcc = n.mcc AND
-	si.mnc = n.mnc AND
-	c.mcc = n.mcc  AND
- 	NOT (si.mcc >= 1000 or si.mnc >= 1000) AND
- 	NOT (si.mcc = 0 or si.mnc = 0)         AND
- 	NOT (si.mcc = 262 and si.mnc = 10)     AND
-	NOT (si.mcc = 204 and si.mnc = 21)     AND
-	NOT (si.mcc = 228 and si.mnc = 6)      AND
-	NOT (si.mcc = 244 and si.mnc = 17)     AND
-	NOT (si.mcc = 208 and si.mnc = 14)     AND
-	NOT (si.mcc = 901)
-GROUP BY
-	si.mcc,
-	si.mnc;
-
 --  Valid 3G sessions
 --  FIXME: Looks like we see not t_release for 3G???
 DROP VIEW IF EXISTS valid_si;
@@ -43,7 +15,7 @@ SELECT
 	CASE WHEN auth > 0                                                 THEN 1 ELSE 0 END as is_auth,
 	CASE WHEN mobile_term AND NOT mobile_orig                          THEN 1 ELSE 0 END as is_mt,
 	CASE WHEN mobile_orig AND NOT mobile_term                          THEN 1 ELSE 0 END as is_mo,
-	CASE WHEN substr(imsi, 1, 3) = mcc                                  THEN 1 ELSE 0 END as is_homeuser
+	CASE WHEN substr(imsi, 1, 3) = mcc                                 THEN 1 ELSE 0 END as is_homeuser
 FROM
 	session_info
 WHERE
@@ -53,12 +25,10 @@ WHERE
 DELETE FROM risk_3G;
 INSERT INTO risk_3G
 SELECT
-	valid_si.mcc,
-	valid_si.mnc,
-	date_format(valid_si.timestamp, "%Y-%m") as month,
+	mcc,
+	mnc,
+	date_format(timestamp, "%Y-%m") as month,
 	lac,
-	valid_op.country,
-	valid_op.operator,
 	count(*) as total_samples,
 	sum(is_call OR is_sms) as intercept_samples,
 	sum(is_mo AND (is_call OR is_sms)) as impersonation_samples,
@@ -80,15 +50,15 @@ SELECT
 				      ELSE 0.0  -- No authentication
 		END)/count(*) as impersonation3G
 FROM
-	valid_op, valid_si
+	valid_si
 WHERE
-	valid_op.mcc = valid_si.mcc AND
-	valid_op.mnc = valid_si.mnc AND
 	(is_call OR is_sms OR is_lu)
 GROUP BY
-	valid_si.mcc,
-	valid_si.mnc,
-	month, lac;
+	mcc, mnc, month, lac;
+
+-- Clean up invalid operators
+DELETE FROM risk_3G
+WHERE (mcc, mnc) NOT IN (SELECT DISTINCT mcc, mnc FROM valid_op);
 
 -- Round up scores close to 100%
 UPDATE risk_3G set intercept3G = 1.0 where intercept3G > 0.3;
