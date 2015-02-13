@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <osmocom/core/utils.h>
 
 #include "lte_eps.h"

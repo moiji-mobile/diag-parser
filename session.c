@@ -824,6 +824,8 @@ int session_from_filename(const char *filename, struct session_info *s)
 	char *token;
 	unsigned mcc_mnc;
 	struct tm ts;
+	struct timeval now;
+	int ret;
 
 	/* Try to extract application ID */
 	s->appid = parse_appid(filename);
@@ -862,9 +864,23 @@ int session_from_filename(const char *filename, struct session_info *s)
 
 	/* Next token */
 	token = strtok_r(0, ".", &ptr);
+	if (!token)
+		goto parse_error;
+
+	ret = strlen(token);
+
+	/* Some model might include version with a dot */
+	if (ret == 1 || ret == 2) {
+		/* Advance to next token */
+		token = strtok_r(0, ".", &ptr);
+		if (!token)
+			goto parse_error;
+
+		ret = strlen(token);
+	}
 
 	/* Check if filename has new IMSI field */
-	if (strlen(token) == 6) {
+	if (ret == 5 || ret == 6) {
 		/* Check if actual MCC/MNC values are present */
 		if (sscanf(token, "%06d", &mcc_mnc) == 1) {
 			/* Save them as part of IMSI */
@@ -873,45 +889,71 @@ int session_from_filename(const char *filename, struct session_info *s)
 
 		/* Advance to next token */
 		token = strtok_r(0, ".", &ptr);
+		if (!token)
+			goto parse_error;
 	}
 
+	gettimeofday(&now, NULL);
 	memset(&ts, 0, sizeof(ts));
 
 	/* Timestamp */
-	if (!token || sscanf(token, "%04d%02d%02d-%02d%02d%02d", &ts.tm_year, &ts.tm_mon, &ts.tm_mday, &ts.tm_hour, &ts.tm_min, &ts.tm_sec) != 6) {
+	ret = sscanf(token, "%04d%02d%02d-%02d%02d%02d",
+			&ts.tm_year, &ts.tm_mon, &ts.tm_mday,
+			&ts.tm_hour, &ts.tm_min, &ts.tm_sec);
+	if (ret != 6) {
 		fprintf(stderr, "unknown timestamp format %s\n", (token?token:"(null)"));
-		gettimeofday(&s->timestamp, NULL);
+		goto parse_error;
 	} else {
 		ts.tm_year -= 1900;
 		ts.tm_mon -= 1;
 		s->timestamp.tv_sec = mktime(&ts);
+		/* Allow timestamps with 12h in advance */
+		if (s->timestamp.tv_sec > (now.tv_sec + 43200)) {
+			s->timestamp = now;
+			fprintf(stderr, "timestamp %s is in the future! using current timestamp\n", token);
+		}
 	}
 
 	/* Network type */
 	token = strtok_r(0, ".", &ptr);
 	if (!token)
-		return -1;
+		goto parse_error;
+
 	if (!strcmp(token, "UMTS") ||
 	    !strcmp(token, "3G")||
 	    !strcmp(token, "WCDMA")) {
-		s->rat = 1;
-	} else if (!strcmp(token, "GSM")) {
-		s->rat = 0;
+		s->rat = RAT_UMTS;
+	} else if (!strcmp(token, "GSM") ||
+		   !strcmp(token, "UNKNOWN") ||
+		   !strcmp(token, "UNKNWON") ||
+		   !strcmp(token, "null")) {
+		s->rat = RAT_GSM;
+	} else if (!strcmp(token, "LTE")) {
+		s->rat = RAT_LTE;
 	} else {
 		// unknown
 		fprintf(stderr, "unknown network type %s\n", token);
-		return -1;
+		goto parse_error;
 	}
 
 	/* Cell ID */
 	token = strtok_r(0, ".", &ptr);
-	if (sscanf(token, "%03hu%03hu-%hx-%x", &s->mcc, &s->mnc, &s->lac, &s->cid) != 4) {
-		fprintf(stderr, "unknown cellid format %s\n", (token?token:"(null)"));
-		s->mcc = 65535;
-		s->mnc = 65535;
+	if (!token)
+		goto parse_error;
+
+	ret = sscanf(token, "%03hu%03hu-%hx-%x", &s->mcc, &s->mnc, &s->lac, &s->cid);
+	if (ret < 4) {
+		/* Sometimes LAC/CID is set to "null" */
 		s->lac = 65535;
 		s->cid = 65535;
-		return -1;
+
+		if (ret < 2) {
+			/* We couldn't parse even the MCC/MNC */
+			fprintf(stderr, "unknown cellid format %s\n", token);
+			s->mcc = 65535;
+			s->mnc = 65535;
+			goto parse_error;
+		}
 	}
 
 	return 0;
