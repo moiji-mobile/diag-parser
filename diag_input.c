@@ -158,6 +158,12 @@ struct radio_message * handle_3G(struct diag_packet *dp, unsigned len)
 		m->flags = MSG_SDCCH;
 		m->bb.arfcn[0] = 0;
 		break;
+#if 0
+	case 4: /* DL-BCCH */
+		m->flags = MSG_BCCH;
+		m->bb.arfcn[0] = 0;
+		break;
+#endif
 	default:
 		if (msg_verbose > 1) {
 			printf("Discarding 3G message type=%d data=%s\n", dp->msg_type, osmo_hexdump_nospc(dp->data, payload_len));
@@ -253,6 +259,8 @@ struct radio_message * handle_nas(struct diag_packet *dp, unsigned len)
 	if (!dp->msg_subtype)
 		return 0;
 
+	printf("handle_nas rx_len=%d data=%s\n", len, osmo_hexdump_nospc(dp, len));
+
 	return new_l3(&dp->data[2], dp->msg_subtype, RAT_GSM, DOMAIN_CS, get_fn(dp), dp->msg_type, MSG_SDCCH);
 }
 
@@ -315,7 +323,6 @@ void handle_gsm_l1_txlev_timing_advance(struct diag_packet *dp, unsigned len)
 	}
 
 	if (msg_verbose > 1) {
-		printf("x gsm_l1_txlev_timing_advance\n");
 		//printf("x %s\n", osmo_hexdump_nospc(&dp->msg_type, len-16) );
 		printf("x -> arfcn: %d\n", get_arfcn_from_arfcn_and_band(decoded->arfcn_and_band));
 		printf("x -> band: %d\n", get_band_from_arfcn_and_band(decoded->arfcn_and_band));
@@ -340,12 +347,14 @@ void handle_gsm_l1_surround_cell_ba_list(struct diag_packet *dp, unsigned len)
 		int i;
 
 		for (i = 0; i < cl->cell_count; i++) {
-			printf("neighbor cell arfcn %u band: %u rx_power %d frame_number_offset: %u\n",
-				get_arfcn_from_arfcn_and_band(ntohs(sc[i].bcch_arfcn_and_band)),
-				get_band_from_arfcn_and_band(ntohs(sc[i].bcch_arfcn_and_band)),
-				sc[i].rx_power,
-				sc[i].frame_number_offset
-			);
+			uint8_t band = get_band_from_arfcn_and_band(ntohs(sc[i].bcch_arfcn_and_band));
+			if (band == 8 || band == 9) {
+				printf("arfcn neighbor %u %d %u\n",
+					get_arfcn_from_arfcn_and_band(ntohs(sc[i].bcch_arfcn_and_band)),
+					sc[i].rx_power,
+					sc[i].frame_number_offset
+				);
+			}
 		}
 	}
 }
@@ -364,18 +373,15 @@ void handle_gsm_l1_burst_metrics(struct diag_packet *dp, unsigned len)
 	if (msg_verbose > 1) {
 		int i;
 
-		printf("x gsm_l1_burst_metrics\n");
-		printf("x -> channel: %u\n", dat->channel);
-
 		for (i = 0; i < 4; i++) {
-			printf("burst metric arfcn %u band: %u frame_number: %u rssi: %u rx_power: %d\n",
-				get_arfcn_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band)),
-				get_band_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band)),
-				dat->metrics[i].frame_number,
-				dat->metrics[i].rssi,
-				dat->metrics[i].rx_power
-				//,ntohl(sc[i].frame_number_offset)
-			);
+			uint8_t band = get_band_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band));
+			if (band == 8 || band == 9) {
+				printf("arfcn burst %u %d %u\n",
+					get_arfcn_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band)),
+					dat->metrics[i].rx_power,
+					dat->metrics[i].frame_number
+				);
+			}
 		}
 	}
 }
@@ -394,15 +400,16 @@ void handle_gsm_l1_neighbor_cell_auxiliary_measurments(struct diag_packet *dp, u
 	if (msg_verbose > 1) {
 		int i;
 
-		printf("x gsm_l1_neighbor_cell_auxiliary_measurments\n");
-
 		for (i = 0; i < cl->cell_count; i++) {
 			struct cell* c = cl->cells + i;
-			printf("neighbor cell arfcn %u band: %u rx_power %d\n",
-				get_arfcn_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
-				get_band_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
-				c[i].rx_power
-			);
+			uint8_t band = get_band_from_arfcn_and_band(ntohs(c[i].arfcn_and_band));
+
+			if (band == 8 || band == 9) {
+				printf("arfcn neighbor %u %d\n",
+					get_arfcn_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
+					c[i].rx_power
+				);
+			}
 		}
 	}
 }
@@ -421,16 +428,16 @@ void handle_gsm_monitor_bursts_v2(struct diag_packet *dp, unsigned len)
 	if (msg_verbose > 1) {
 		int i;
 
-		printf("x gsm_monitor_bursts_v2\n");
-
 		for (i = 0; i < cl->number_of_records; i++) {
 			struct monitor_record* c = cl->records + i;
-			printf("monitor burst arfcn %u band: %u frame no %d rx_power %d\n",
-				get_arfcn_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
-				get_band_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
-				c[i].frame_number,
-				c[i].rx_power
-			);
+			uint8_t band = get_band_from_arfcn_and_band(ntohs(c[i].arfcn_and_band));
+			if (band == 8 || band == 9) {
+				printf("arfcn monitor %u %d %d\n",
+					get_arfcn_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
+					c[i].rx_power,
+					c[i].frame_number
+				);
+			}
 		}
 	}
 }

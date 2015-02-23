@@ -645,7 +645,7 @@ void handle_tpdu(struct session_info *s, uint8_t *msg, const unsigned len, uint8
 		}
 	}
 
-	if (off >= len) {
+	if (off > len) {
 		APPEND_MSG_INFO(s, " <TRUNCATED>");
 		free(sm);
 		return;

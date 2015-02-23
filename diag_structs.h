@@ -96,7 +96,7 @@ struct  gsm_l1_neighbor_cell_auxiliary_measurments  {
 struct  monitor_record  {
 	uint32_t  frame_number;
 	uint16_t arfcn_and_band;
-	uint16_t  rx_power;
+	int16_t  rx_power;
 	uint32_t  rssi;
 	uint8_t   gain_state;
 } __attribute__((packed));
