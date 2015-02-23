@@ -1,6 +1,20 @@
-CC      = gcc
-CFLAGS  = -Wall -O3 -ggdb -I. -I/usr/include/asn1c -fPIC $(EXTRA_CFLAGS)
-LDFLAGS = -losmocore -losmogsm -lasn1c -lm -losmo-asn1-rrc $(EXTRA_LDFLAGS)
+PREFIX ?= /usr
+
+CFLAGS  = \
+	-Wall \
+	-ggdb \
+	-fPIC \
+	-I. \
+	-I$(PREFIX)/include \
+	-I$(PREFIX)/include/asn1c
+
+LDFLAGS = \
+	-L$(PREFIX)/lib \
+	-losmocore \
+	-losmogsm \
+	-lasn1c \
+	-lm \
+	-losmo-asn1-rrc
 
 OBJ = \
 	address.o \
@@ -28,9 +42,49 @@ OBJ = \
 	tch.o \
 	viterbi.o
 
-TOOLS = diag_import hex_import gsmtap_import analyze.sh
+TOOLS = diag_import
+
+ifeq ($(TARGET),host)
+
+CC       = gcc
+AR       = ar
+TOOLS   += hex_import gsmtap_import analyze.sh
+CFLAGS  += -O3 
+
+else ($(TARGET),android)
+
+CC      = $(CROSS_COMPILE)-gcc
+AR      = $(CROSS_COMPILE)-ar
+
+CFLAGS += \
+	-O2 \
+	-fPIE \
+	-nostdlib \
+	--sysroot=$(SYSROOT) \
+	-DUSE_AUTOTIME=1 \
+	-DMSG_VERBOSE=1 \
+	-DRATE_LIMIT=1 \
+
+LDFLAGS += \
+	-fPIE \
+	-pie \
+	-lcompat \
+	--sysroot $(SYSROOT) \
+	-L.
+
+LIBRARIES += \
+	libcompat.so
+
+else 
+$(error Unsupported target: $(TARGET))
+endif
 
 ifeq ($(MYSQL),1)
+
+ifneq ($(TARGET),host)
+$(error MYSQL supported for host builds only)
+endif
+
 CFLAGS  += -DUSE_MYSQL $(shell mysql_config --cflags)
 LDFLAGS += $(shell mysql_config --libs)
 OBJ     += mysql_api.o
@@ -38,6 +92,11 @@ TOOLS   += db_import
 endif
 
 ifeq ($(SQLITE),1)
+
+ifneq ($(TARGET),host)
+$(error SQLITE supported for host builds only)
+endif
+
 CFLAGS  += -DUSE_SQLITE
 LDFLAGS += -lsqlite3
 OBJ     += sqlite_api.o
@@ -46,19 +105,37 @@ endif
 %.o: %.c %.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
+%.o: %.c
+	$(CC) -c -o $@ $< $(CFLAGS)
+
 all: $(TOOLS)
+
+install: $(TOOLS) $(LIBRARIES) sm_2g.sql sm_3g.sql doc/data/mcc.sql doc/data/mnc.sql doc/data/hlr_info.sql doc/sm.sql
+	install -d $(DESTDIR)
+	install $^ $(DESTDIR)
+
+sm_2g.sql: doc/sm_2.4.sql
+	cpp -DSQLITE -w $< | grep -ve "^#" > $@.tmp
+	mv $@.tmp $@
+
+sm_3g.sql: doc/sm_3G_0.9.sql
+	cpp -DSQLITE -w $< | grep -ve "^#" > $@.tmp
+	mv $@.tmp $@
 
 libmetagsm.so: $(OBJ)
 	$(CC) -o $@ $^ -shared -fPIC $(LDFLAGS)
 
+libcompat.so: compat.o
+	$(CC) -o $@ $^ -shared -fPIC --sysroot $(SYSROOT) -lc
+
 libmetagsm.a: $(OBJ)
-	ar rcs $@ $^
+	$(AR) rcs $@ $^
 
 hex_import: hex_import.o libmetagsm.a
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-diag_import: diag_import.o libmetagsm.a
-	$(CC) -o $@ $^ $(LDFLAGS)
+diag_import: diag_import.o libmetagsm.a $(LIBRARIES)
+	$(CC) -o $@  diag_import.o libmetagsm.a $(LDFLAGS)
 
 gsmtap_import: gsmtap_import.o libmetagsm.a
 	$(CC) -o $@ $^ $(LDFLAGS) -lpcap
