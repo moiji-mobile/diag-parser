@@ -1001,6 +1001,11 @@ void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite)
 		return;
 	}
 
+	// paging_info entries are not always unique and may result in an SQL
+	// error. We disable them for now, as we don't use them and this info
+	// should be integrated into session_info anyway.
+	return;
+
 	/* Format timestamp according to db */
 	if (sqlite) {
 		snprintf(paging_ts, sizeof(paging_ts), "datetime(%u, 'unixepoch')", epoch_now);
