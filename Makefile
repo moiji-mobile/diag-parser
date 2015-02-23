@@ -104,6 +104,8 @@ LDFLAGS += -lsqlite3
 OBJ     += sqlite_api.o
 endif
 
+CFLAGS  += $(EXTRA_CFLAGS)
+
 %.o: %.c %.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
