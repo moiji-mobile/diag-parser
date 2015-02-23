@@ -41,9 +41,14 @@ SELECT
 	(sum((is_auth AND is_mt)+0.0))/sum(is_mt+0.0) as auth_mt_perc,
 	(sum((is_auth AND is_homeuser AND auth = 2)+0.0))/sum((is_auth AND is_homeuser)+0.0) as auth_aka_perc,
 	(sum((t_tmsi_realloc AND (is_call OR is_sms))+0.0))/sum((is_call OR is_sms)+0.0) as tmsi_realloc_perc,
-	sum(CASE
-		WHEN cipher = 0 THEN 0.0
-	                    ELSE 1.0 END)/count(*) as intercept3G,
+	0.10*sum((t_tmsi_realloc AND (is_call OR is_sms))+0.0)/sum((is_call OR is_sms)+0.0)
+	+ 0.90*(CASE
+			WHEN  sum(CASE
+				WHEN cipher = 0 THEN 0.0
+	        		            ELSE 1.0 END)/count(*) > 0.5
+					THEN 1.0
+					ELSE 0.0
+		END) as intercept3G,
 	sum(CASE
 		WHEN auth = 2 THEN 1.0	-- UMTS authentication
 		WHEN auth = 1 THEN 0.7  -- GSM authentication
@@ -61,5 +66,4 @@ DELETE FROM risk_3G
 WHERE (mcc, mnc) NOT IN (SELECT DISTINCT mcc, mnc FROM valid_op);
 
 -- Round up scores close to 100%
-UPDATE risk_3G set intercept3G = 1.0 where intercept3G > 0.3;
-UPDATE risk_3G set enc_perc = 1.0 where enc_perc > 0.3;
+UPDATE risk_3G set enc_perc = 1.0 where enc_perc > 0.5;
