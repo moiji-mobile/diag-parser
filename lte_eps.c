@@ -30,19 +30,27 @@ void handle_eps(struct session_info *s, uint8_t *data, unsigned len)
 		break;
 	case 1: // Integrity protected
 		SET_MSG_INFO(s, "EPS integrity: %s", osmo_hexdump_nospc(data, len));
-		s->new_msg->flags &= ~MSG_DECODED;
+		if (msg_verbose < 2) {
+			s->new_msg->flags &= ~MSG_DECODED;
+		}
 		break;
 	case 2: // Integrity and ciphering
 		SET_MSG_INFO(s, "EPS ciphered: %s", osmo_hexdump_nospc(data, len));
-		s->new_msg->flags &= ~MSG_DECODED;
+		if (msg_verbose < 2) {
+			s->new_msg->flags &= ~MSG_DECODED;
+		}
 		break;
 	case 3: // Integrity with new EPS context
 		SET_MSG_INFO(s, "EPS integrity_new: %s", osmo_hexdump_nospc(data, len));
-		s->new_msg->flags &= ~MSG_DECODED;
+		if (msg_verbose < 2) {
+			s->new_msg->flags &= ~MSG_DECODED;
+		}
 		break;
 	case 4: // Integrity and ciphering with new EPS context
 		SET_MSG_INFO(s, "EPS ciphered_new: %s", osmo_hexdump_nospc(data, len));
-		s->new_msg->flags &= ~MSG_DECODED;
+		if (msg_verbose < 2) {
+			s->new_msg->flags &= ~MSG_DECODED;
+		}
 		break;
 	case 12: // Special case for service request
 	default: // not used, but treated as 12
