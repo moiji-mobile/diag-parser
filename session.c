@@ -634,6 +634,10 @@ void session_close(struct session_info *s)
 
 		s->sql_callback(sql_buffer);
 
+		paging_make_sql(s->id, sql_buffer, sizeof(sql_buffer), output_sqlite);
+
+		s->sql_callback(sql_buffer);
+
 		sm = s->sms_list;
 		while (sm) {
 			sms_make_sql(s->id, sm, sql_buffer, sizeof(sql_buffer));

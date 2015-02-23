@@ -326,7 +326,7 @@ int main(int argc, char **argv)
 
 	free(session_id);
 
-	cell_and_paging_dump(0, 1, 1);
+	cell_dump(0, 1, 1);
 
 	return 0;
 }

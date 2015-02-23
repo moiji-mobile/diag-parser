@@ -114,7 +114,6 @@ struct cell_info {
 
 void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite);
 void arfcn_list_make_sql(struct cell_info *ci, enum si_index index, char *query, unsigned len, int sqlite);
-void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite);
 
 static void paging_reset()
 {
@@ -125,7 +124,7 @@ static void paging_reset()
 	paging_tmsi = 0;
 }
 
-void cell_and_paging_dump(uint32_t timestamp, int forced, int on_destroy)
+void cell_dump(uint32_t timestamp, int forced, int on_destroy)
 {
 	char query[8192];
 	struct cell_info *ci, *ci2;
@@ -167,16 +166,6 @@ void cell_and_paging_dump(uint32_t timestamp, int forced, int on_destroy)
                  * investigated further.
                  */
 		// free(ci);
-	}
-
-	/* dump paging info */
-	if (timestamp) {
-		paging_make_sql(timestamp, query, sizeof(query), output_sqlite);
-	} else {
-		paging_make_sql(previous_ts, query, sizeof(query), output_sqlite);
-	}
-	if (s.sql_callback && strlen(query)) {
-		(*s.sql_callback)(query);
 	}
 
 	/* Destroy event */
@@ -241,7 +230,7 @@ void cell_init(unsigned start_id, uint32_t unix_time, int callback)
 
 void cell_destroy(unsigned *last_cid)
 {
-	cell_and_paging_dump(0, 1, 1);
+	cell_dump(0, 1, 1);
 	*last_cid = cell_info_id;
 }
 
@@ -990,35 +979,24 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 	}
 }
 
-void paging_make_sql(unsigned epoch_now, char *query, unsigned len, int sqlite)
+void paging_make_sql(int sid, char *query, unsigned len, int sqlite)
 {
 	char paging_ts[40];
 	float time_delta;
 
 	assert(query != NULL);
 
-	if (!len) {
+	query[0] = 0;
+
+	if (!len || sid < 0) {
 		return;
 	}
 
-	/* Format timestamp according to db */
-	if (sqlite) {
-		snprintf(paging_ts, sizeof(paging_ts), "datetime(%u, 'unixepoch')", epoch_now);
-	} else {
-		snprintf(paging_ts, sizeof(paging_ts), "FROM_UNIXTIME(%u)", epoch_now);
-	}
-
-	time_delta = (float) (epoch_now-previous_ts);
-
-	if (time_delta > 0.0) {
-		snprintf(query, len, "INSERT INTO paging_info VALUES (%s, %f, %f, %f, %f, %f);",
-				paging_ts,
-				(float)paging_count[0]/time_delta,
-				(float)paging_count[1]/time_delta,
-				(float)paging_count[2]/time_delta,
-				(float)paging_imsi/time_delta,
-				(float)paging_tmsi/time_delta);
-	} else {
-		query[0] = 0;
-	}
+	snprintf(query, len, "INSERT INTO paging_info VALUES (%d, %u, %u, %u, %u, %u);",
+			sid,
+			paging_count[0],
+			paging_count[1],
+			paging_count[2],
+			paging_imsi,
+			paging_tmsi);
 }

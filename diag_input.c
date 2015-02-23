@@ -259,8 +259,6 @@ struct radio_message * handle_nas(struct diag_packet *dp, unsigned len)
 	if (!dp->msg_subtype)
 		return 0;
 
-	printf("handle_nas rx_len=%d data=%s\n", len, osmo_hexdump_nospc(dp, len));
-
 	return new_l3(&dp->data[2], dp->msg_subtype, RAT_GSM, DOMAIN_CS, get_fn(dp), dp->msg_type, MSG_SDCCH);
 }
 
@@ -494,7 +492,7 @@ void handle_diag(uint8_t *msg, unsigned len)
 	assert(len > 10);
 
 	now = get_epoch(&msg[10]);
-	cell_and_paging_dump(now, 0, 0);
+	cell_dump(now, 0, 0);
 
 	switch(dp->msg_protocol) {
 	case 0x5071:
