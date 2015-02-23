@@ -51,7 +51,8 @@ AR       = ar
 TOOLS   += hex_import gsmtap_import analyze.sh
 CFLAGS  += -O3 
 
-else ($(TARGET),android)
+else
+ifeq ($(TARGET),android)
 
 CC      = $(CROSS_COMPILE)-gcc
 AR      = $(CROSS_COMPILE)-ar
@@ -77,6 +78,7 @@ LIBRARIES += \
 
 else 
 $(error Unsupported target: $(TARGET))
+endif
 endif
 
 ifeq ($(MYSQL),1)
