@@ -565,6 +565,36 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 	free(pdpip);
 }
 
+void session_make_rand_sql(struct session_info *s, char *query, unsigned q_len)
+{
+	char si5_ratio[8];
+	char si5bis_ratio[8];
+	char si5ter_ratio[8];
+	char si6_ratio[8];
+	char null_ratio[8];
+	char sdcch_ratio[8];
+	char sacch_ratio[8];
+
+	assert(s != NULL);
+	assert(query != NULL);
+	assert(q_len > 0);
+
+	query[0] = 0;
+
+	strfloat_or_null(si5_ratio, 8, s->si5.rand_count, s->si5.byte_count);
+	strfloat_or_null(si5bis_ratio, 8, s->si5bis.rand_count, s->si5bis.byte_count);
+	strfloat_or_null(si5ter_ratio, 8, s->si5ter.rand_count, s->si5ter.byte_count);
+	strfloat_or_null(si6_ratio, 8, s->si6.rand_count, s->si6.byte_count);
+	strfloat_or_null(null_ratio, 8, s->null.rand_count, s->null.byte_count);
+	strfloat_or_null(sdcch_ratio, 8, s->other_sdcch.rand_count, s->other_sdcch.byte_count);
+	strfloat_or_null(sacch_ratio, 8, s->other_sacch.rand_count, s->other_sacch.byte_count);
+
+	snprintf(query, q_len,
+		"INSERT INTO rand_check VALUES (%d,%s,%s,%s,%s,%s,%s,%s);",
+		s->id, si5_ratio, si5bis_ratio, si5ter_ratio, si6_ratio,
+		null_ratio, sdcch_ratio, sacch_ratio);
+}
+
 void session_close(struct session_info *s)
 {
 	assert(s != NULL);
@@ -631,17 +661,19 @@ void session_close(struct session_info *s)
 		struct sms_meta *sm;
 
 		session_make_sql(s, sql_buffer, sizeof(sql_buffer), output_sqlite);
-
 		s->sql_callback(sql_buffer);
 
-		paging_make_sql(s->id, sql_buffer, sizeof(sql_buffer), output_sqlite);
+		if ((s->rat == RAT_GSM) && (s->domain == DOMAIN_CS)) {
+			session_make_rand_sql(s, sql_buffer, sizeof(sql_buffer));
+			s->sql_callback(sql_buffer);
+		}
 
+		paging_make_sql(s->id, sql_buffer, sizeof(sql_buffer));
 		s->sql_callback(sql_buffer);
 
 		sm = s->sms_list;
 		while (sm) {
 			sms_make_sql(s->id, sm, sql_buffer, sizeof(sql_buffer));
-
 			s->sql_callback(sql_buffer);
 
 			sm = sm->next;
@@ -649,7 +681,8 @@ void session_close(struct session_info *s)
 
 		if (s->appid) {
 			snprintf(sql_buffer, sizeof(sql_buffer),
-				 "INSERT INTO sid_appid VALUES (%d,'%08x');\n", s->id, s->appid); 
+				 "INSERT INTO sid_appid VALUES (%d,'%08x');\n",
+				 s->id, s->appid); 
 
 			s->sql_callback(sql_buffer);
 		}

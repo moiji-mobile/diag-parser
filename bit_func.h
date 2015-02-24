@@ -19,6 +19,7 @@ int bcd2str(uint8_t *bcd, char *s, unsigned len, unsigned off);
 int is_printable(const char *str, unsigned len);
 
 unsigned hamming_distance(uint8_t *v1, uint8_t *v2, unsigned len);
+void strfloat_or_null(char *str, int len, int a, int b);
 char * strescape_or_null(char *str);
 unsigned fread_unescape(FILE *f, uint8_t *msg, unsigned len);
 char * sgets(char *str, unsigned len, const char **input);

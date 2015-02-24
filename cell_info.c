@@ -979,12 +979,10 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 	}
 }
 
-void paging_make_sql(int sid, char *query, unsigned len, int sqlite)
+void paging_make_sql(int sid, char *query, unsigned len)
 {
-	char paging_ts[40];
-	float time_delta;
-
 	assert(query != NULL);
+	assert(len > 0);
 
 	query[0] = 0;
 

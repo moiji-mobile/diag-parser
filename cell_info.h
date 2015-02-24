@@ -10,7 +10,7 @@ struct session_info;
 void cell_init(unsigned start_id, uint32_t unix_time, int callback);
 void cell_destroy();
 void cell_dump(uint32_t timestamp, int forced, int on_destroy);
-void paging_make_sql(int sid, char *query, unsigned len, int sqlite);
+void paging_make_sql(int sid, char *query, unsigned len);
 uint16_t get_mcc(uint8_t *digits);
 uint16_t get_mnc(uint8_t *digits);
 void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len);

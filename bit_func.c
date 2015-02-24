@@ -222,6 +222,19 @@ unsigned fread_unescape(FILE *f, uint8_t *msg, unsigned len)
 	return i;
 }
 
+void strfloat_or_null(char *str, int len, int a, int b)
+{
+	if (!str) {
+		return;
+	}
+
+	if (b) {
+		snprintf(str, len, "%.3f", (float)a / (float)b);
+	} else {
+		strncpy(str, "NULL", len);
+	}
+}
+
 char * strescape_or_null(char *str)
 {
 	char *escaped;
