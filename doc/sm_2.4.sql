@@ -80,6 +80,9 @@ insert into valid_op select distinct mcc,mnc,country,network,oldest,latest,3 fro
 
 --
 
+-- Clean up invalid rand values
+delete from rand_check where sid >= 8000000;
+
 -- Call averages
 delete from call_avg;
 insert into call_avg
@@ -87,8 +90,8 @@ insert into call_avg
 	 count(*) as count,
 	 sum(CASE WHEN mobile_orig THEN 1 ELSE 0 END) as mo_count,
 	 avg(cracked) as success,
-	 avg(CASE WHEN enc_null THEN enc_null_rand / enc_null ELSE NULL END) as rand_null_perc,
-	 avg(CASE WHEN enc_si   THEN enc_si_rand   / enc_si   ELSE NULL END) as rand_si_perc,
+	 avg(nullframe) as rand_null_perc,
+	 avg_of_2(avg_of_2(si5, si5bis), avg_of_2(si5ter, si6)) as rand_si_perc,
 	 avg(enc_null - enc_null_rand) as nulls,
 	 avg(predict) as pred,
 	 avg(cmc_imeisv) as imeisv,
@@ -96,7 +99,7 @@ insert into call_avg
 	 avg(CASE WHEN mobile_orig THEN CASE WHEN auth > 0 THEN 1 ELSE 0 END ELSE NULL END) as auth_mo,
 	 avg(t_tmsi_realloc) as tmsi,
 	 avg(iden_imsi_bc) as imsi
-  from session_info
+  from session_info as s left outer join rand_check as r on (s.id = r.sid and r.sid < 8000000)
   where rat = 0 and ((t_call or (mobile_term and t_sms = 0)) and
 	(call_presence or (cipher=1 and cracked=0) or cipher>1)) and
 	(cipher > 0 or duration > 350)
@@ -110,8 +113,8 @@ insert into sms_avg
 	 count(*) as count,
 	 sum(CASE WHEN mobile_orig THEN 1 ELSE 0 END) as mo_count,
 	 avg(cracked) as success,
-	 avg(CASE WHEN enc_null THEN enc_null_rand / enc_null ELSE NULL END) as rand_null_perc,
-	 avg(CASE WHEN enc_si   THEN enc_si_rand   / enc_si   ELSE NULL END) as rand_si_perc,
+	 avg(nullframe) as rand_null_perc,
+	 avg_of_2(avg_of_2(si5, si5bis), avg_of_2(si5ter, si6)) as rand_si_perc,
 	 avg(enc_null - enc_null_rand) as nulls,
 	 avg(predict) as pred,
 	 avg(cmc_imeisv) as imeisv,
@@ -119,7 +122,7 @@ insert into sms_avg
 	 avg(CASE WHEN mobile_orig THEN CASE WHEN auth > 0 THEN 1 ELSE 0 END ELSE NULL END) as auth_mo,
 	 avg(t_tmsi_realloc) as tmsi,
 	 avg(iden_imsi_bc) as imsi
-  from session_info
+  from session_info as s left outer join rand_check as r on (s.id = r.sid and r.sid < 8000000)
   where rat = 0 and (t_sms and (sms_presence or (cipher=1 and cracked=0) or cipher>1))
   group by mcc, mnc, lac, month, cipher
   order by mcc, mnc, lac, month, cipher;
@@ -131,8 +134,8 @@ insert into loc_avg
 	 count(*) as count,
 	 sum(CASE WHEN mobile_orig THEN 1 ELSE 0 END) as mo_count,
 	 avg(cracked) as success,
-	 avg(CASE WHEN enc_null THEN enc_null_rand / enc_null ELSE NULL END) as rand_null_perc,
-	 avg(CASE WHEN enc_si   THEN enc_si_rand   / enc_si   ELSE NULL END) as rand_si_perc,
+	 avg(nullframe) as rand_null_perc,
+	 avg_of_2(avg_of_2(si5, si5bis), avg_of_2(si5ter, si6)) as rand_si_perc,
 	 avg(enc_null - enc_null_rand) as nulls,
 	 avg(predict) as pred,
 	 avg(cmc_imeisv) as imeisv,
@@ -140,7 +143,7 @@ insert into loc_avg
 	 avg(CASE WHEN mobile_orig THEN CASE WHEN auth > 0 THEN 1 ELSE 0 END ELSE NULL END) as auth_mo,
 	 avg(t_tmsi_realloc) as tmsi,
 	 avg(iden_imsi_bc) as imsi
-  from session_info
+  from session_info as s left outer join rand_check as r on (s.id = r.sid and r.sid < 8000000)
   where rat = 0 and t_locupd and (lu_acc or cipher > 1)
   group by mcc, mnc, lac, month, cipher
   order by mcc, mnc, lac, month, cipher;
