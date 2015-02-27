@@ -455,6 +455,9 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 		case 0x14:
 			/* Extended object (EMS) */
 			break;
+		case 0x16:
+			/* Compression control (EMS) */
+			break;
 		case 0x22:
 			/* Alternate reply address */
 			if (vlen < (msg[offset]/2 + 1)) {
@@ -504,7 +507,6 @@ void handle_udh(struct sms_meta *sm, uint8_t *msg, unsigned len)
 				APPEND_INFO(sm, "SANITY CHECK FAILED (SMS_SMSC_SPECIFIC)");
 				return;
 			}
-			printf("SMSC-specific %s\n", osmo_hexdump_nospc(&msg[offset], vlen));
 			break;
 		default:
 			printf("Unhandled UDH-IEI 0x%02x, vlen=%d\n", type, vlen);
