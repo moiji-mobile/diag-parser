@@ -235,6 +235,28 @@ void strfloat_or_null(char *str, int len, int a, int b)
 	}
 }
 
+int basic_sanitize(char *str)
+{
+	if (!str)
+		return -1;
+
+	/* scan the whole string */
+	while (*str) {
+		/* match and replace with space */
+		switch (*str) {
+		case '\\':
+		case '\'':
+		case '`':
+		case '"':
+		case '%':
+			*str = ' ';
+		}
+		str++;
+	}
+
+	return 0;
+}
+
 char * strescape_or_null(char *str)
 {
 	char *escaped;
@@ -249,6 +271,8 @@ char * strescape_or_null(char *str)
 	str = strdup(escaped);
 	sqlite3_free(escaped);
 	return str;
+#else
+	basic_sanitize(str);
 #endif
 
 	len = strlen(str);
