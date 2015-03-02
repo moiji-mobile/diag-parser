@@ -115,7 +115,7 @@ struct cell_info {
 void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite);
 void arfcn_list_make_sql(struct cell_info *ci, enum si_index index, char *query, unsigned len, int sqlite);
 
-static void paging_reset()
+void paging_reset()
 {
 	paging_count[0] = 0;
 	paging_count[1] = 0;
@@ -175,9 +175,6 @@ void cell_dump(uint32_t timestamp, int forced, int on_destroy)
 			free(ci);
 		}
 	}
-
-	/* reset counters */
-	paging_reset();
 
 	previous_ts = timestamp;
 }

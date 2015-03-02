@@ -688,6 +688,9 @@ void session_close(struct session_info *s)
 		}
 	}
 
+	/* reset counters */
+	paging_reset();
+
 	s->closed = 1;
 }
 
