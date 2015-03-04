@@ -1322,6 +1322,8 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 			} else {
 				handle_ccch_dl(s, m->bb.data, m->msg_len);
 			}
+		} else if (m->flags & MSG_BCCH) {
+			// handle_bch
 		} else {
 			assert(0);
 		}

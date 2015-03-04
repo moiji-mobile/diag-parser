@@ -111,6 +111,8 @@ void net_send_msg(struct radio_message *m)
 			} else {
 				gsmtap_channel = GSMTAP_RRC_SUB_DL_CCCH_Message;
 			}
+		} else if (m->flags & MSG_BCCH) {
+			gsmtap_channel = GSMTAP_RRC_SUB_BCCH_BCH_Message;
 		} else {
 			/* no other types defined */
 			return;

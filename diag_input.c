@@ -158,12 +158,13 @@ struct radio_message * handle_3G(struct diag_packet *dp, unsigned len)
 		m->flags = MSG_SDCCH;
 		m->bb.arfcn[0] = 0;
 		break;
-#if 0
 	case 4: /* DL-BCCH */
 		m->flags = MSG_BCCH;
 		m->bb.arfcn[0] = 0;
+		if (dp->data_len < payload_len) {
+			payload_len = dp->data_len;
+		}
 		break;
-#endif
 	default:
 		if (msg_verbose > 1) {
 			printf("Discarding 3G message type=%d data=%s\n", dp->msg_type, osmo_hexdump_nospc(dp->data, payload_len));
