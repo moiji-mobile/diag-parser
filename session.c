@@ -593,7 +593,7 @@ void session_make_rand_sql(struct session_info *s, char *query, unsigned q_len)
 	strfloat_or_null(sacch_ratio, 8, s->other_sacch.rand_count, s->other_sacch.byte_count);
 
 	snprintf(query, q_len,
-		"INSERT INTO rand_check VALUES (%d,%s,%s,%s,%s,%s,%s,%s);",
+		"INSERT INTO rand_check VALUES (%d,%s,%s,%s,%s,%s,%s,%s);\n",
 		s->id, si5_ratio, si5bis_ratio, si5ter_ratio, si6_ratio,
 		null_ratio, sdcch_ratio, sacch_ratio);
 }

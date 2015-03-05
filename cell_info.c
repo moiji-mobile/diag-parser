@@ -1026,7 +1026,7 @@ void paging_make_sql(int sid, char *query, unsigned len)
 		return;
 	}
 
-	snprintf(query, len, "INSERT INTO paging_info VALUES (%d, %u, %u, %u, %u, %u);",
+	snprintf(query, len, "INSERT INTO paging_info VALUES (%d, %u, %u, %u, %u, %u);\n",
 			sid,
 			paging_count[0],
 			paging_count[1],
