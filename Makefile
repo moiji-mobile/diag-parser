@@ -81,8 +81,6 @@ $(error Unsupported target: $(TARGET))
 endif
 endif
 
-endif
-
 ifeq ($(MYSQL),1)
 
 ifneq ($(TARGET),host)
