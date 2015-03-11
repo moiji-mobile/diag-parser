@@ -1,6 +1,6 @@
 -- security metrics v2.5beta
 
-/*!40101 SET storage_engine=MyISAM */;
+/*!40101 SET storage_engine=MyISAM */
 
 -- FIXME: The orignal avg_of_* functions had a different semantics, which
 -- resulted in NULL if both, a and b is NULL. Also, if a parameter is NULL the
