@@ -315,6 +315,34 @@ uint8_t si_mask(enum si_index index)
 	return 0;
 }
 
+struct cell_info * get_from_arfcn(struct session_info *s, uint8_t msg_type)
+{
+	struct cell_info *ci = NULL;
+	int index;
+
+	assert(s != NULL);
+
+	index = si_index(msg_type);
+	if (index < 0) {
+		return 0;
+	}
+
+	llist_for_each_entry(ci, &cell_list, entry) {
+		/* Match ARFCN */
+		if (ci->bcch_arfcn == s->arfcn) {
+			/* and last timestamp not older than 10 sec */
+			if (ci->last_seen.tv_sec + 10 > s->new_msg->timestamp.tv_sec) {
+				/* and this SI was not seen before */
+				if (ci->si_counter[index] == 0) {
+					return ci;
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+
 struct cell_info * get_from_si(uint8_t msg_type, uint8_t *data, uint8_t len)
 {
 	struct cell_info *ci = NULL;
@@ -328,7 +356,7 @@ struct cell_info * get_from_si(uint8_t msg_type, uint8_t *data, uint8_t len)
 		return 0;
 	}
 
-	llist_for_each_entry(ci, &cell_list, entry) {
+	llist_for_each_entry_reverse(ci, &cell_list, entry) {
 		if (!memcmp(ci->si_data[index], data, len)) {
 			return ci;
 		}
@@ -529,6 +557,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	unsigned data_len;
 	int index;
 	int append = 1;
+	int parse = 1;
 
 	assert(s != NULL);
 	assert(dtap != NULL);
@@ -559,14 +588,21 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		data_len = 20;
 	}
 
-	/* Find cell in list */
+	/* Find cell by SI payload */
 	ci = get_from_si(dtap->msg_type, dtap->data, data_len);
+	if (!ci) {
+		/* Try again by recent ARFCN */
+		ci = get_from_arfcn(s, dtap->msg_type);
+	} else {
+		/* Payload was already parsed */
+		parse = 0;
+	}
 	if (ci) {
+		/* Found reference */
+		append = 0;
 		if (msg_verbose > 1) {
 			fprintf(stderr, "handle_sysinfo-> Found reference cell\n");
 		}
-		/* Found reference */
-		append = 0;
 	} else {
 		/* Allocate new cell */
 		if (msg_verbose > 1) {
@@ -578,7 +614,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 
 	switch (dtap->msg_type) {
 	case GSM48_MT_RR_SYSINFO_1:
-		if (!append)
+		if (!parse)
 			break;
 		si1 = (struct gsm48_system_information_type_1 *) ((uint8_t *)dtap - 1);
 		gsm48_decode_freq_list(	ci->arfcn_list, si1->cell_channel_description,
@@ -586,7 +622,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		break;
 
 	case GSM48_MT_RR_SYSINFO_2:
-		if (!append)
+		if (!parse)
 			break;
 		si2 = (struct gsm48_system_information_type_2 *) ((uint8_t *)dtap - 1);
 		gsm48_decode_freq_list(	ci->arfcn_list, si2->bcch_frequency_list,
@@ -594,7 +630,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		break;
 
 	case GSM48_MT_RR_SYSINFO_2bis:
-		if (!append)
+		if (!parse)
 			break;
 		si2b = (struct gsm48_system_information_type_2bis *) ((uint8_t *)dtap - 1);
 		gsm48_decode_freq_list(	ci->arfcn_list, si2b->bcch_frequency_list,
@@ -602,7 +638,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		break;
 
 	case GSM48_MT_RR_SYSINFO_2ter:
-		if (!append)
+		if (!parse)
 			break;
 		si2t = (struct gsm48_system_information_type_2ter *) ((uint8_t *)dtap - 1);
 		gsm48_decode_freq_list(	ci->arfcn_list, si2t->ext_bcch_frequency_list,
@@ -610,13 +646,13 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		break;
 
 	case GSM48_MT_RR_SYSINFO_2quater:
-		if (!append)
+		if (!parse)
 			break;
 		si2q = (struct gsm48_system_information_type_2quater *) ((uint8_t *)dtap - 1);
 		break;
 
 	case GSM48_MT_RR_SYSINFO_3:
-		if (!append)
+		if (!parse)
 			break;
 		si3 = (struct gsm48_system_information_type_3 *) ((uint8_t *)dtap - 1);
 		ci->mcc = get_mcc(si3->lai.digits);
@@ -638,7 +674,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		break;
 
 	case GSM48_MT_RR_SYSINFO_4:
-		if (!append)
+		if (!parse)
 			break;
 		si4 = (struct gsm48_system_information_type_4 *) ((uint8_t *)dtap - 1);
 		ci->mcc = get_mcc(si4->lai.digits);
@@ -710,7 +746,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		break;
 
 	case GSM48_MT_RR_SYSINFO_13:
-		if (!append)
+		if (!parse)
 			break;
 		si13 = (struct gsm48_system_information_type_13 *) ((uint8_t *)dtap - 1);
 		break;
@@ -723,13 +759,16 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 
 	/* Fill or update structure fields */
 	ci->last_seen = s->new_msg->timestamp;
-	ci->bcch_arfcn = s->new_msg->bb.arfcn[0];
+	if (ci->bcch_arfcn == 65535) {
+		ci->bcch_arfcn = s->arfcn;
+	}
 	ci->si_counter[index]++;
 	ci->a_count[index] = arfcn_count(ci, index);
 	memcpy(ci->si_data[index], dtap->data, data_len);
 
 	/* Append to cell list */
 	if (append) {
+		ci->bcch_arfcn = s->arfcn;
 		ci->first_seen = s->new_msg->timestamp;
 		ci->id = cell_info_id++;
 		llist_add(&ci->entry, &cell_list);
@@ -904,7 +943,7 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 
 	if (ci->stored == 0) {
 		snprintf(query, len, "INSERT INTO cell_info ("
-			"id,first_seen,last_seen,mcc,mnc,lac,cid,"
+			"id,first_seen,last_seen,mcc,mnc,lac,cid,bcch_arfcn,"
 			"msc_ver,combined,agch_blocks,pag_mframes,t3212,dtx,"
 			"cro,temp_offset,pen_time,pwr_offset,gprs,"
 			"ba_len,neigh_2,neigh_2b,neigh_2t,"
@@ -914,7 +953,7 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 			"count_si4,count_si5,count_si5b,"
 			"count_si5t,count_si6,count_si13,"
 			"si1,si2,si2b,si2t,si2q,si3,si4,si5,si5b,si5t,si6,si13) VALUES ("
-			"%d,%s,%s,%d,%d,%d,%d,"
+			"%d,%s,%s,%d,%d,%d,%d,%d,"
 			"%d,%d,%d,%d,%d,%d,"
 			"%d,%d,%d,%d,%d,"
 			"%u,%u,%u,%u,"
@@ -926,7 +965,7 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 			"%s,%s,%s,%s,"
 			"%s,%s,%s,%s,"
 			"%s,%s,%s,%s);",
-			ci->id, first_ts, last_ts, ci->mcc, ci->mnc, ci->lac, ci->cid,
+			ci->id, first_ts, last_ts, ci->mcc, ci->mnc, ci->lac, ci->cid, ci->bcch_arfcn,
 			ci->msc_ver, ci->combined, ci->agch_blocks, ci->pag_mframes, ci->t3212, ci->dtx,
 			ci->cro, ci->temp_offset, ci->pen_time, ci->pwr_offset, ci->gprs,
 			ci->a_count[SI1], ci->a_count[SI2], ci->a_count[SI2b], ci->a_count[SI2t],
@@ -941,7 +980,7 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 			);
 	} else {
 		snprintf(query, len, "UPDATE cell_info SET "
-			"first_seen=%s,last_seen=%s,mcc=%d,mnc=%d,lac=%d,cid=%d,"
+			"first_seen=%s,last_seen=%s,mcc=%d,mnc=%d,lac=%d,cid=%d,bcch_arfcn=%d,"
 			"msc_ver=%d,combined=%d,agch_blocks=%d,pag_mframes=%d,t3212=%d,dtx=%d,"
 			"cro=%d,temp_offset=%d,pen_time=%d,pwr_offset=%d,gprs=%d,"
 			"ba_len=%u,neigh_2=%u,neigh_2b=%u,neigh_2t=%u,"
@@ -953,7 +992,7 @@ void cell_make_sql(struct cell_info *ci, char *query, unsigned len, int sqlite)
 			"si1=%s,si2=%s,si2b=%s,si2t=%s,si2q=%s,si3=%s,"
 			"si4=%s,si5=%s,si5b=%s,si5t=%s,si6=%s,si13=%s "
 			"WHERE id = %d;",
-			first_ts, last_ts, ci->mcc, ci->mnc, ci->lac, ci->cid,
+			first_ts, last_ts, ci->mcc, ci->mnc, ci->lac, ci->cid, ci->bcch_arfcn,
 			ci->msc_ver, ci->combined, ci->agch_blocks, ci->pag_mframes, ci->t3212, ci->dtx,
 			ci->cro, ci->temp_offset, ci->pen_time, ci->pwr_offset, ci->gprs,
 			ci->a_count[SI1], ci->a_count[SI2], ci->a_count[SI2b], ci->a_count[SI2t],

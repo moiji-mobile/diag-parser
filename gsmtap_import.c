@@ -62,7 +62,7 @@ void chantype_from_gsmtap(struct radio_message *m, uint8_t gsmtap_chantype, uint
 		return;
 	}
 
-	m->chan_nr = (rsl_type << 3) | timeslot;
+	m->chan_nr = rsl_type | timeslot;
 }
 
 void process_gsmtap(const struct pcap_pkthdr* pkt_hdr, const u_char* pkt_data, uint32_t offset)
@@ -87,8 +87,6 @@ void process_gsmtap(const struct pcap_pkthdr* pkt_hdr, const u_char* pkt_data, u
 
 	memset(m, 0, sizeof(*m));
 
-	m->bb.fn[0] = ntohl(gh->frame_number);
-	m->bb.arfcn[0] = ntohs(gh->arfcn);
 	m->msg_len = pkt_hdr->len - offset;
 
 	switch (gh->type) {
@@ -110,11 +108,20 @@ void process_gsmtap(const struct pcap_pkthdr* pkt_hdr, const u_char* pkt_data, u
 		return;
 	}
 
+	m->bb.fn[0] = ntohl(gh->frame_number);
+	m->bb.arfcn[0] = ntohs(gh->arfcn);
+	if (m->flags & MSG_BCCH) {
+		_s[0].arfcn = m->bb.arfcn[0];
+		_s[1].arfcn = m->bb.arfcn[0];
+	}
+
 	if (m->flags) {
 		_s->timestamp = pkt_hdr->ts;
 		m->timestamp = pkt_hdr->ts;
 		handle_radio_msg(_s, m);
 	}
+
+	cell_dump(pkt_hdr->ts.tv_sec, 0, 0);
 }
 
 void process_udp(const struct pcap_pkthdr* pkt_hdr, const u_char* pkt_data, uint32_t offset)
@@ -172,6 +179,8 @@ int main(int argc, char *argv[]) {
 	char errbuf[PCAP_ERRBUF_SIZE];
 	unsigned unused1, unused2;
 	pcap_t *read_fp;
+	struct pcap_pkthdr pkt_hdr;
+	const u_char* pkt_data;
 
 	if (argc < 4) {
 		printf("Not enough arguments\n");
@@ -186,10 +195,17 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
+	pkt_data = pcap_next(read_fp, &pkt_hdr);
+	if (!pkt_data) {
+		printf("Cannot read first packet\n");
+		return 1;
+	}
+
 	session_init(atoi(argv[2]), 1, "127.0.0.1", CALLBACK_MYSQL);
-	//TODO: read timestamp from pcap header and replace the 0 below
-	cell_init(atoi(argv[3]), 0, CALLBACK_MYSQL);
-	//msg_verbose = 1;
+	cell_init(atoi(argv[3]), pkt_hdr.ts.tv_sec, CALLBACK_MYSQL);
+	msg_verbose = 0;
+
+	process_ethernet(0, &pkt_hdr, pkt_data);
 
 	pcap_loop(read_fp, -1, process_ethernet, NULL);
 

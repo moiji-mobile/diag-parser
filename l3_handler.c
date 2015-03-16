@@ -206,7 +206,6 @@ void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 	struct tlv_parsed tp;
 
 	s->call = 1;
-	s->call_presence = 1;
 
 	switch (dtap->msg_type & 0x3f) {
 	case 0x01:
@@ -223,6 +222,7 @@ void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		SET_MSG_INFO(s, "CALL PROGRESS");
 		break;
 	case 0x05:
+		s->call_presence = 1;
 		SET_MSG_INFO(s, "CALL SETUP");
 		if (!ul)
 			s->mt = 1;
@@ -1323,7 +1323,7 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 				handle_ccch_dl(s, m->bb.data, m->msg_len);
 			}
 		} else if (m->flags & MSG_BCCH) {
-			// handle_bch
+			handle_umts_bcch(s, m->bb.data, m->msg_len);
 		} else {
 			assert(0);
 		}

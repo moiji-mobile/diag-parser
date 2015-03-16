@@ -361,6 +361,8 @@ void handle_gsm_l1_surround_cell_ba_list(struct diag_packet *dp, unsigned len)
 void handle_gsm_l1_burst_metrics(struct diag_packet *dp, unsigned len)
 {
 	struct gsm_l1_burst_metrics *dat = (struct gsm_l1_burst_metrics *)&dp->msg_type;
+	uint16_t s_arfcn;
+	int i;
 
 	if (len-16-2 != sizeof(struct gsm_l1_burst_metrics)) {
 		if (msg_verbose > 1) {
@@ -369,9 +371,26 @@ void handle_gsm_l1_burst_metrics(struct diag_packet *dp, unsigned len)
 		return;
 	}
 
-	if (msg_verbose > 1) {
-		int i;
+	/* store first arfcn measurement */
+	s_arfcn = get_arfcn_from_arfcn_and_band(ntohs(dat->metrics[0].arfcn_and_band));
 
+	/* check subsequent to detect if hopping */
+	for (i = 1; i < 4; i++) {
+		uint8_t band = get_band_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band));
+		uint16_t n_arfcn = get_arfcn_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band));
+		if (band == 8 || band == 9) {
+			if (s_arfcn != n_arfcn) {
+				break;
+			}
+		}
+	}
+	/* set serving arfcn in session_info */
+	if (i == 4) {
+		_s[0].arfcn = s_arfcn;
+		_s[1].arfcn = s_arfcn;
+	}
+
+	if (msg_verbose > 1) {
 		for (i = 0; i < 4; i++) {
 			uint8_t band = get_band_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band));
 			if (band == 8 || band == 9) {
@@ -519,7 +538,7 @@ void handle_diag(uint8_t *msg, unsigned len)
 
 	case 0x507A:
 		// GSM L1 Serving Auxiliary Measurments
-		// not yet parsed
+		// not really interesting
 		break;
 
 	case 0x507B:
