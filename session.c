@@ -89,8 +89,6 @@ void session_init(unsigned start_sid, int console, const char *gsmtap_target, in
 	_s[0].id = s_id++;
 	_s[1].id = s_id++;
 	_s[1].domain = DOMAIN_PS;
-	_s[0].arfcn = 65535;
-	_s[1].arfcn = 65535;
 
 	if (gsmtap_target != NULL)
 	{
@@ -161,7 +159,6 @@ struct session_info *session_create(int id, char* name, uint8_t *key, int mcc, i
 	ns->mnc = mnc;
 	ns->lac = lac;
 	ns->cid = cid;
-	ns->arfcn = 65535;
 
 	/* Store cell ARFCNs */
 	if (ca)
@@ -781,9 +778,7 @@ void session_reset(struct session_info *s, int forced_release)
 	if (old_s.rat != RAT_GSM) {
 		s->cid = old_s.cid;
 	}
-	if (old_s.arfcn < 65535) {
-		s->arfcn = old_s.arfcn;
-	}
+	s->arfcn = old_s.arfcn;
 	if (strlen(old_s.imsi)) {
 		strncpy(s->imsi, old_s.imsi, sizeof(s->imsi));
 	}

@@ -315,21 +315,43 @@ uint8_t si_mask(enum si_index index)
 	return 0;
 }
 
+int single_arfcn(struct radio_message *m)
+{
+	int i, arfcn;
+
+	arfcn = m->bb.arfcn[0];
+
+	for (i = 1; i < 4; i++) {
+		if (m->bb.arfcn[i] != arfcn) {
+			return 0;
+		}
+	}
+
+	return arfcn;
+}
+
 struct cell_info * get_from_arfcn(struct session_info *s, uint8_t msg_type)
 {
 	struct cell_info *ci = NULL;
 	int index;
+	uint16_t arfcn;
 
 	assert(s != NULL);
+	assert(s->new_msg != NULL);
 
 	index = si_index(msg_type);
 	if (index < 0) {
 		return 0;
 	}
 
-	llist_for_each_entry(ci, &cell_list, entry) {
+	arfcn = single_arfcn(s->new_msg);
+	if (!arfcn) {
+		return 0;
+	}
+
+	llist_for_each_entry_reverse(ci, &cell_list, entry) {
 		/* Match ARFCN */
-		if (ci->bcch_arfcn == s->arfcn) {
+		if (ci->bcch_arfcn == arfcn) {
 			/* and last timestamp not older than 10 sec */
 			if (ci->last_seen.tv_sec + 10 > s->new_msg->timestamp.tv_sec) {
 				/* and this SI was not seen before */
@@ -610,6 +632,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		}
 		ci = (struct cell_info *) malloc(sizeof(struct cell_info));
 		memset(ci, 0, sizeof(*ci));
+		ci->bcch_arfcn = single_arfcn(s->new_msg);
 	}
 
 	switch (dtap->msg_type) {
@@ -696,6 +719,9 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		} else {
 			s->ci = ci;
 		}
+		if (ci->bcch_arfcn) {
+			s->arfcn = ci->bcch_arfcn;
+		}
 		si5 = (struct gsm48_system_information_type_5 *) dtap;
 		gsm48_decode_freq_list(	ci->arfcn_list, si5->bcch_frequency_list,
 					sizeof(si5->bcch_frequency_list), 0xff, MASK_NEIGH_5);
@@ -709,6 +735,9 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 			append = 0;
 		} else {
 			s->ci = ci;
+		}
+		if (ci->bcch_arfcn) {
+			s->arfcn = ci->bcch_arfcn;
 		}
 		si5b = (struct gsm48_system_information_type_5bis *) dtap;
 		gsm48_decode_freq_list(	ci->arfcn_list, si5b->bcch_frequency_list,
@@ -724,6 +753,9 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		} else {
 			s->ci = ci;
 		}
+		if (ci->bcch_arfcn) {
+			s->arfcn = ci->bcch_arfcn;
+		}
 		si5t = (struct gsm48_system_information_type_5ter *) dtap;
 		gsm48_decode_freq_list(	ci->arfcn_list, si5t->bcch_frequency_list,
 					sizeof(si5t->bcch_frequency_list), 0xff, MASK_NEIGH_5t);
@@ -737,6 +769,9 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 			append = 0;
 		} else {
 			s->ci = ci;
+		}
+		if (ci->bcch_arfcn) {
+			s->arfcn = ci->bcch_arfcn;
 		}
 		si6 = (struct gsm48_system_information_type_6 *) dtap;
 		ci->mcc = get_mcc(si6->lai.digits);
@@ -759,8 +794,8 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 
 	/* Fill or update structure fields */
 	ci->last_seen = s->new_msg->timestamp;
-	if (ci->bcch_arfcn == 65535) {
-		ci->bcch_arfcn = s->arfcn;
+	if (!ci->bcch_arfcn) {
+		ci->bcch_arfcn = single_arfcn(s->new_msg);
 	}
 	ci->si_counter[index]++;
 	ci->a_count[index] = arfcn_count(ci, index);
@@ -768,7 +803,6 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 
 	/* Append to cell list */
 	if (append) {
-		ci->bcch_arfcn = s->arfcn;
 		ci->first_seen = s->new_msg->timestamp;
 		ci->id = cell_info_id++;
 		llist_add(&ci->entry, &cell_list);
