@@ -2,12 +2,8 @@
 
 /*!40101 SET storage_engine=MyISAM */
 
--- FIXME: The orignal avg_of_* functions had a different semantics, which
--- resulted in NULL if both, a and b is NULL. Also, if a parameter is NULL the
--- other parameters value is inherited.
-
-#define avg_of_2(a,b) ((IFNULL(a,0) + IFNULL(b,0)) / 2)
-#define avg_of_3(a,b,c) ((IFNULL(a,0) + IFNULL(b,0) + IFNULL(c,0)) / 3)
+#define avg_of_3(a,b,c) (CASE WHEN c is NULL THEN avg_of_2(a,b) ELSE CASE WHEN a is NULL THEN avg_of_2(b,c) ELSE CASE WHEN b is NULL THEN avg_of_2(a,c) ELSE (a+b+c)/3 END END END)
+#define avg_of_2(a,b) ((CASE WHEN a is NULL THEN b ELSE a END + CASE WHEN b is NULL THEN a ELSE b END) / 2)
 
 #ifdef SQLITE
 
