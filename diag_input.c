@@ -28,6 +28,13 @@ struct diag_packet {
 	uint8_t data[0];
 } __attribute__ ((packed));
 
+struct burst_info {
+	uint32_t fn;
+	uint16_t arfcn[4];
+} last_burst;
+
+struct radio_message *last_m = NULL;
+
 void diag_init(unsigned start_sid, unsigned start_cid, const char *gsmtap_target, char *filename, uint32_t appid)
 {
 	int callback_type;
@@ -48,6 +55,8 @@ void diag_init(unsigned start_sid, unsigned start_cid, const char *gsmtap_target
 #else
 	auto_timestamp = 0;
 #endif
+
+	memset(&last_burst, 0, sizeof(last_burst));
 
 	session_init(start_sid, 0, gsmtap_target, callback_type);
 
@@ -361,7 +370,6 @@ void handle_gsm_l1_surround_cell_ba_list(struct diag_packet *dp, unsigned len)
 void handle_gsm_l1_burst_metrics(struct diag_packet *dp, unsigned len)
 {
 	struct gsm_l1_burst_metrics *dat = (struct gsm_l1_burst_metrics *)&dp->msg_type;
-	uint16_t s_arfcn;
 	int i;
 
 	if (len-16-2 != sizeof(struct gsm_l1_burst_metrics)) {
@@ -371,33 +379,28 @@ void handle_gsm_l1_burst_metrics(struct diag_packet *dp, unsigned len)
 		return;
 	}
 
-	/* store first arfcn measurement */
-	s_arfcn = get_arfcn_from_arfcn_and_band(ntohs(dat->metrics[0].arfcn_and_band));
+	last_burst.fn = get_fn(dp);
 
-	/* check subsequent to detect if hopping */
-	for (i = 1; i < 4; i++) {
+	/* log burst information */
+	for (i = 0; i < 4; i++) {
 		uint8_t band = get_band_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band));
 		uint16_t n_arfcn = get_arfcn_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band));
 		if (band == 8 || band == 9) {
-			if (s_arfcn != n_arfcn) {
-				break;
-			}
+			last_burst.arfcn[i] = n_arfcn;
+		} else {
+			last_burst.arfcn[i] = last_burst.arfcn[0];
 		}
-	}
-	/* set serving arfcn in session_info */
-	if (i == 4) {
-		_s[0].arfcn = s_arfcn;
-		_s[1].arfcn = s_arfcn;
 	}
 
 	if (msg_verbose > 1) {
 		for (i = 0; i < 4; i++) {
 			uint8_t band = get_band_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band));
 			if (band == 8 || band == 9) {
-				printf("arfcn burst %u %d %u\n",
+				printf("arfcn burst %u %d %u %u\n",
 					get_arfcn_from_arfcn_and_band(ntohs(dat->metrics[i].arfcn_and_band)),
 					dat->metrics[i].rx_power,
-					dat->metrics[i].frame_number
+					dat->metrics[i].frame_number,
+					get_fn(dp)
 				);
 			}
 		}
@@ -450,10 +453,11 @@ void handle_gsm_monitor_bursts_v2(struct diag_packet *dp, unsigned len)
 			struct monitor_record* c = cl->records + i;
 			uint8_t band = get_band_from_arfcn_and_band(ntohs(c[i].arfcn_and_band));
 			if (band == 8 || band == 9) {
-				printf("arfcn monitor %u %d %d\n",
+				printf("arfcn monitor %u %d %d %u\n",
 					get_arfcn_from_arfcn_and_band(ntohs(c[i].arfcn_and_band)),
 					c[i].rx_power,
-					c[i].frame_number
+					c[i].frame_number,
+					get_fn(dp)
 				);
 			}
 		}
@@ -489,6 +493,18 @@ void handle_gprs_grr_cell_reselection_measurements(struct diag_packet *dp, unsig
 				c[i].neighbor_cell_rx_level_average
 			);
 		}
+	}
+}
+
+void handle_sacch_report(struct diag_packet *dp, unsigned len)
+{
+	uint16_t b_arfcn = (uint16_t)(dp->msg_type) << 8 | dp->msg_subtype;
+	uint16_t old_arfcn = _s[0].arfcn;
+
+	_s[1].arfcn = _s[0].arfcn = get_arfcn_from_arfcn_and_band(b_arfcn);
+
+	if (old_arfcn != _s[0].arfcn) {
+		printf("SACCH report old=%d new=%d\n", old_arfcn, _s[0].arfcn);
 	}
 }
 
@@ -555,6 +571,13 @@ void handle_diag(uint8_t *msg, unsigned len)
 		handle_gsm_monitor_bursts_v2(dp, len);
 		break;
 
+	case 0x513A:
+		if (msg_verbose > 1) {
+			fprintf(stderr, "handle_sacch_report\n");
+		}
+		handle_sacch_report(dp, len);
+		break;
+
 	case 0x51FC:
 		if (msg_verbose > 1) {
 			fprintf(stderr, "handle_gprs_grr_cell_reselection_measurements\n");
@@ -613,7 +636,29 @@ void handle_diag(uint8_t *msg, unsigned len)
 	}
 
 	if (m) {
+		/* Attach timestamp */
 		m->timestamp.tv_sec = now;
+		if (m->bb.fn[0] > last_burst.fn) {
+			struct radio_message *z;
+			/* Swap m */
+			z = m;
+			m = last_m;
+			last_m = z;
+		}
+	} else {
+		/* Deliver delayed message */
+		m = last_m;
+		last_m = NULL;
+	}
+
+	if (m) {
+		/* Attach ARFCN */
+		if (m->bb.fn[0] == last_burst.fn) {
+			int i;
+			for (i = 0; i < 4; i++) {
+				m->bb.arfcn[i] = last_burst.arfcn[i];
+			}
+		}
 
 		handle_radio_msg(_s, m);
 	}
