@@ -17,6 +17,7 @@ static void usage(const char *progname, const char *reason)
 	printf("	-g <target>   - Target host for GSMTAP UDP stream\n");
 	printf("	-f <filelist> - Read list of input files from <filelist>\n");
 	printf("	-a <appid>    - Set appid to <appid> (in hex)\n");
+	printf("	-v            - Verbose messages\n");
 	printf("	[filenames]   - Read DIAG data from [filenames]\n");
 	exit(1);
 }
@@ -43,7 +44,11 @@ int main(int argc, char *argv[])
 	long cid = 0;
 	int line = 0;
 
-	while ((ch = getopt(argc, argv, "s:c:g:f:a:")) != -1) {
+	extern int msg_verbose;
+
+	msg_verbose = 0;
+
+	while ((ch = getopt(argc, argv, "s:c:g:f:a:v")) != -1) {
 		switch (ch) {
 			case 's':
 				sid = atol(optarg);
@@ -59,6 +64,9 @@ int main(int argc, char *argv[])
 				break;
 			case 'a':
 				appid = strtol(optarg, (char **)NULL, 16);
+				break;
+			case 'v':
+				msg_verbose++;
 				break;
 			case '?':
 			default:
