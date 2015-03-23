@@ -419,7 +419,7 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		if (s->started && s->last_msg &&
 			!(s->last_msg->flags & MSG_BCCH) &&
 			(s->new_msg->timestamp.tv_sec - s->last_msg->timestamp.tv_sec <= 1)) {
-			if (verbose > 0) {
+			if (msg_verbose > 0) {
 				printf("New service request in already started transaction!\n");
 			}
 		} else {
