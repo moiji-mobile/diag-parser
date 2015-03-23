@@ -271,6 +271,9 @@ void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 	case 0x3d:
 		SET_MSG_INFO(s, "CALL STATUS");
 		break;
+	case 0x3e:
+		SET_MSG_INFO(s, "CALL NOTIFY");
+		break;
 	default:
 		SET_MSG_INFO(s, "UNKNOWN CC (%02x)", dtap->msg_type & 0x3f);
 		s->unknown = 1;
@@ -412,7 +415,16 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		break;
 	case 0x24:
 		SET_MSG_INFO(s, "CM SERVICE REQUEST");
-		session_reset(s, 1);
+		/* Handle subsequent request without starting a new session */
+		if (s->started && s->last_msg &&
+			!(s->last_msg->flags & MSG_BCCH) &&
+			(s->new_msg->timestamp.tv_sec - s->last_msg->timestamp.tv_sec <= 1)) {
+			if (verbose > 0) {
+				printf("New service request in already started transaction!\n");
+			}
+		} else {
+			session_reset(s, 1);
+		}
 		s->started = 1;
 		s->closed = 0;
 		s->serv_req = 1;

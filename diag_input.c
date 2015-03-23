@@ -279,7 +279,8 @@ struct radio_message * handle_bcch_and_rr(struct diag_packet *dp, unsigned len)
 	dtap_len = len - 2 - sizeof(struct diag_packet);
 
 	switch (dp->msg_type) {
-	case 0: // SDCCH UL RR
+	case 0x00:
+	case 0x05: // SDCCH UL RR
 		switch (dp->msg_subtype) {
 		case 22: // Classmark change
 		case 23: // Channel mode modification
@@ -294,7 +295,7 @@ struct radio_message * handle_bcch_and_rr(struct diag_packet *dp, unsigned len)
 			print_common(dp, len);
 		}
 		break;
-	case 4: // SACCH UL
+	case 0x04: // SACCH UL
 		switch (dp->msg_subtype) {
 		case 21: // Measurement report
 			return new_l3(dp->data, dtap_len, RAT_GSM, DOMAIN_CS, get_fn(dp), 1, MSG_SACCH);
@@ -302,13 +303,14 @@ struct radio_message * handle_bcch_and_rr(struct diag_packet *dp, unsigned len)
 			print_common(dp, len);
 		}
 		break;
-	case 128: /* SDCCH DL RR */
+	case 0x80:
+	case 0x85: /* SDCCH DL RR */
 		return new_l3(dp->data, dtap_len, RAT_GSM, DOMAIN_CS, get_fn(dp), 0, MSG_SDCCH);
-	case 129: /* BCCH */
+	case 0x81: /* BCCH */
 		return new_l2(dp->data, dp->data_len, RAT_GSM, DOMAIN_CS, get_fn(dp), 0, MSG_BCCH);
-	case 131: /* CCCH */
+	case 0x83: /* CCCH */
 		return new_l2(dp->data, dp->data_len, RAT_GSM, DOMAIN_CS, get_fn(dp), 0, MSG_BCCH);
-	case 132: /* SACCH DL RR */
+	case 0x84: /* SACCH DL RR */
 		return new_l3(dp->data, dtap_len, RAT_GSM, DOMAIN_CS, get_fn(dp), 0, MSG_SACCH);
 	default:
 		print_common(dp, len);
@@ -625,6 +627,9 @@ void handle_diag(uint8_t *msg, unsigned len)
 			fprintf(stderr, "-> Handling 4G\n");
 		}
 		m = handle_4G(dp, len);
+		break;
+
+	case 0xb0f3: // unknown LTE
 		break;
 
 	default:
