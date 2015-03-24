@@ -416,7 +416,9 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 	case 0x24:
 		SET_MSG_INFO(s, "CM SERVICE REQUEST");
 		/* Handle subsequent request without starting a new session */
-		if (s->started && s->last_msg &&
+		if ((s->started || s->call_presence || s->sms_presence || s->lu_acc) &&
+			!s->closed &&
+			s->last_msg &&
 			!(s->last_msg->flags & MSG_BCCH) &&
 			(s->new_msg->timestamp.tv_sec - s->last_msg->timestamp.tv_sec <= 1)) {
 			if (msg_verbose > 0) {

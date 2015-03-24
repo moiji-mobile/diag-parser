@@ -281,28 +281,9 @@ struct radio_message * handle_bcch_and_rr(struct diag_packet *dp, unsigned len)
 	switch (dp->msg_type) {
 	case 0x00:
 	case 0x05: // SDCCH UL RR
-		switch (dp->msg_subtype) {
-		case 22: // Classmark change
-		case 23: // Channel mode modification
-		case 39: // Paging response
-		case 41: // Assignment complete
-		case 44: // Handover complete
-		case 50: // Ciphering mode complete
-		case 52: // GPRS susp. request
-		case 96: // UTRAN classmark change
-			return new_l3(dp->data, dtap_len, RAT_GSM, DOMAIN_CS, get_fn(dp), 1, MSG_SDCCH);
-		default:
-			print_common(dp, len);
-		}
-		break;
+		return new_l3(dp->data, dtap_len, RAT_GSM, DOMAIN_CS, get_fn(dp), 1, MSG_SDCCH);
 	case 0x04: // SACCH UL
-		switch (dp->msg_subtype) {
-		case 21: // Measurement report
-			return new_l3(dp->data, dtap_len, RAT_GSM, DOMAIN_CS, get_fn(dp), 1, MSG_SACCH);
-		default:
-			print_common(dp, len);
-		}
-		break;
+		return new_l3(dp->data, dtap_len, RAT_GSM, DOMAIN_CS, get_fn(dp), 1, MSG_SACCH);
 	case 0x80:
 	case 0x85: /* SDCCH DL RR */
 		return new_l3(dp->data, dtap_len, RAT_GSM, DOMAIN_CS, get_fn(dp), 0, MSG_SDCCH);
