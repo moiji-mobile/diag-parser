@@ -284,6 +284,11 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 				goto dl_end;
 			}
 
+			/* Sanity check */
+			if (domain > DOMAIN_PS) {
+				error = 1;
+				goto dl_end;
+			}
 			if (s[domain].cipher) {
 				printf("Transaction was already ciphered!\n");
 				error = 1;
