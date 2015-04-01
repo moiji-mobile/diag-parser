@@ -10,9 +10,9 @@ OP_EXIT_ON_ERROR=1	# 1=Stop immedeiately on error, 0=Ignore all errors
 
 ## DATABASE HANDLING ##########################################################
 
-# Table that will accumulate the catcher results
-read -d '' TABLE_CATCHERS <<"EOF"
-CREATE TABLE main.catchers
+# Table that will accumulate the event results
+read -d '' TABLE_EVENTS <<"EOF"
+CREATE TABLE main.events
 (
 	incident varchar(255),
 	id integer,
@@ -50,7 +50,7 @@ EOF
 function create_db {
 	echo "Creating a new results database at: $OUTPUT_DB"
 	rm -f $OUTPUT_DB
-	echo $TABLE_CATCHERS | sqlite3 $OUTPUT_DB
+	echo $TABLE_EVENTS | sqlite3 $OUTPUT_DB
 	if [ $? -ne 0 ]; then
 		echo "Error: Sqlite operation failed (create table), aborting..." >&2
 		exiterr
@@ -131,7 +131,7 @@ do
 
 	# Merge catcher data
 	echo "Merging: $DATABASE"
-	echo 'attach '\"$DATABASE\"' as incident; insert into main.catchers select '\"$INCIDENT\"', * from incident.catcher; detach incident;' | sqlite3 $OUTPUT_DB
+	echo 'attach '\"$DATABASE\"' as incident; insert into main.events select '\"$INCIDENT\"', * from incident.catcher; detach incident;' | sqlite3 $OUTPUT_DB
 	if [ $? -ne 0 ]; then
 		echo "Error: Sqlite operation failed (merging), aborting..." >&2
 		exiterr
