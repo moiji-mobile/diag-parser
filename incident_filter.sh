@@ -1,14 +1,14 @@
 #!/bin/bash
 
 # Incident filter script:
-# This scripts analyses and filters incidents from the traces input directory
+# This scripts analyzes and filters incidents from the traces input directory
 # All traces that match the incident criteria (at least 1 entry in the cater
 # table) will be stored in the outut directory. 
 
 # Options (please set up before use)
 INPUT_DIR="" 		# Default input path
 OUTPUT_DIR=""		# Default output path
-SS_DIR=/home/luca/dev/gsm/snoopsnitch # Path to your snoopsnitch installation
+SS_DIR=/home/dexter/snoopsnitch # Path to your snoopsnitch installation
 OP_EXIT_ON_ERROR=1	# 1=Stop immedeiately on error, 0=Ignore all errors
 OP_STOPWATCH=0		# 1=Monitor processing times, 0=Do not monitor times
 DUPAVOID_DB=""		# Default path to your duplicate work avoidance db
@@ -22,7 +22,6 @@ GP_DIR=$SS_DIR/contrib/gsm-parser
 # Relative pathes (please do not change)
 WORKING_DIR=$PWD	# Don't change unless you have a good reason
 TEMP_DB=metadata.db	# Don't change unless you change it in gsm-parser too
-
 
 ## STOPWATCH ##################################################################
 
@@ -167,15 +166,12 @@ function create_pcap {
 	stopwatch_start
 	echo "creating pcap..."
 	sudo -p "Enter sudo password for tcpdump: " true
-	sudo tcpdump -q -i any -w trace.pcap -U udp port 4729 &
+	sudo tcpdump -q -i any -w trace.pcap udp port 4729 &
 	TCPDUMP_PID=$!
 	sleep 1
 	diag_import -g 127.0.0.1 $* > /dev/null
-	sleep 1
-	sudo sync
-	sudo kill -TERM ${TCPDUMP_PID}
-	sleep 1
-	sudo kill -KILL ${TCPDUMP_PID} &> /dev/null
+	sleep 2
+	sudo kill ${TCPDUMP_PID}
 	stopwatch_stop
 }
 
@@ -237,7 +233,7 @@ function perform_analysis {
 }
 
 # Perform inicident analysis
-function analyse {
+function analyze {
 	INCIDENT=$1
 
 	echo "Analyzing incident: $INCIDENT"
@@ -273,9 +269,9 @@ function analyse {
 			exiterr
 		fi
 
-		# Check if the incident has already been analysed, if so, just do the analysis again
+		# Check if the incident has already been analyzed, if so, just do the analysis again
 		if [ -e $INCIDENT.log ]; then
-			echo "Warning: The current incident has been analysed before, results will be overwritten!"
+			echo "Warning: The current incident has been analyzed before, results will be overwritten!"
 		fi
 
 		# Create a fresh database
@@ -317,7 +313,7 @@ function analyse {
 		fi
 		cleanup
 	else
-		echo "Info: This incident has been analysed before and no new uploads were"
+		echo "Info: This incident has been analyzed before and no new uploads were"
 		echo "      detected. Because of this, the incident will be excluded from"
 		echo "      any further analysis until new uploads are detected."
 	fi
@@ -331,7 +327,7 @@ function analyse {
 
 # Display usage (help) information and exit
 function usage {
-	echo "usage: $0 -i input_dir -o output_dir [-a app_id] [-d dupavoid_db]" >&2
+	echo "usage: $0 -i input_dir -o output_dir [-a app_id] [-d dupavoid_db] [-D dupavoid_db]" >&2
 	echo "Note: There are more parameters (static pathes) to" >&2
 	echo "      set inside the the script file." >&2
 	echo ""
@@ -356,6 +352,10 @@ function usage {
 	echo "   $0 -i ./incidents -a 1b561ccd"
 	exit 1
 }
+
+# Display banner
+echo "SNOOPSNITCH INCIDENT FILTER UTILITY"
+echo "==================================="
 
 # Parse options
 while getopts "hi:o:d:D:a:" ARG; do
@@ -382,9 +382,6 @@ while getopts "hi:o:d:D:a:" ARG; do
 
 	esac
 done
-
-echo "SNOOPSNITCH INCIDENT FILTER UTILITY"
-echo "==================================="
 
 # Check if valid input and output directorys are set
 if [ -z "$INPUT_DIR" ]; then
@@ -425,7 +422,7 @@ echo ""
 if [ -z $APP_ID ]; then
 	for INCIDENT in $(ls $INPUT_DIR)
 	do
-		analyse $INCIDENT
+		analyze $INCIDENT
 	done
 else
 	# Make sure the duplication avoidance feature is disabled,
@@ -434,7 +431,7 @@ else
 	# future automated analysis.
 	DUPAVOID_DB="" 
 
-	analyse $APP_ID
+	analyze $APP_ID
 fi
 
 echo "all done!"
