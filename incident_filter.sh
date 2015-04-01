@@ -190,8 +190,7 @@ function process_files {
 	echo "info: Number of files processed: $NUMBER_OF_PROCESSED_FILES"
 	stopwatch_stop
 
-	# Update duplicate work avoidance database
-	dupavoid_update_db $INCIDENT $NUMBER_OF_PROCESSED_FILES 
+	return $NUMBER_OF_PROCESSED_FILES
 }
 
 # Perform analysis operations on the database
@@ -280,6 +279,7 @@ function analyze {
 
 		# Process input files
 		process_files
+		NUMBER_OF_PROCESSED_FILES=$?
 
 		# Apply extended analysis (Sqlite operations)
 		perform_analysis
@@ -312,6 +312,9 @@ function analyze {
 			exiterr
 		fi
 		cleanup
+
+		# Update duplicate work avoidance database
+		dupavoid_update_db $INCIDENT $NUMBER_OF_PROCESSED_FILES 
 	else
 		echo "Info: This incident has been analyzed before and no new uploads were"
 		echo "      detected. Because of this, the incident will be excluded from"
