@@ -14,7 +14,7 @@ OP_EXIT_ON_ERROR=1	# 1=Stop immedeiately on error, 0=Ignore all errors
 read -d '' TABLE_EVENTS <<"EOF"
 CREATE TABLE main.events
 (
-	incident varchar(255),
+	appid char(8) NOT NULL,
 	id integer,
 	mcc integer,
 	mnc integer,

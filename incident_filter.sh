@@ -165,13 +165,13 @@ function create_db {
 function create_pcap {
 	stopwatch_start
 	echo "creating pcap..."
-	sudo -p "Enter sudo password for tcpdump: " true
-	sudo tcpdump -q -i any -w trace.pcap udp port 4729 &
-	TCPDUMP_PID=$!
+	dumpcap -q -i lo -w trace.pcap -f "udp port 4729" &
+	DUMPCAP_PID=$!
 	sleep 1
 	diag_import -g 127.0.0.1 $* > /dev/null
-	sleep 2
-	sudo kill ${TCPDUMP_PID}
+	sleep 1
+	sync
+	kill -TERM ${DUMPCAP_PID}
 	stopwatch_stop
 }
 
