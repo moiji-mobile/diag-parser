@@ -4,11 +4,13 @@
 # This script takes the sqlite databases which were created with the incident filter
 # utility and merges them into one results database.
 
-INPUT_DIR="./incidents_out"
-OUTPUT_DB="./output.db"
+INPUT_DIR=""		# Input directory where the .sqlite files can be found
+OUTPUT_DB=""		# Output database
 OP_EXIT_ON_ERROR=1	# 1=Stop immedeiately on error, 0=Ignore all errors
 
+## DATABASE HANDLING ##########################################################
 
+# Table that will accumulate the catcher results
 read -d '' TABLE_CATCHERS <<"EOF"
 CREATE TABLE main.catchers
 (
@@ -44,13 +46,7 @@ CREATE TABLE main.catchers
 );
 EOF
 
-
-
-## DATABASE HANDLING ##########################################################
-# Note: When the path to the database ($DUPAVOID_DB) is set to an empty
-#       string, then the dupavoid-feature is disabled.
-
-# Create a new database to store the info for the work thats already done
+# Create a new database to store the output data
 function create_db {
 	echo "Creating a new results database at: $OUTPUT_DB"
 	rm -f $OUTPUT_DB
@@ -107,20 +103,42 @@ while getopts "hi:o:d:D:a:" ARG; do
 	esac
 done
 
+# Check if valid input and output directorys are set
+if [ -z "$INPUT_DIR" ]; then
+	echo "Error: No input folder supplied, aborting..." >&2
+	usage
+fi
+
+if ! [ -e $OUTPUT_DB ]; then
+	echo "Error: No output database supplied, aborting..." >&2
+	exit 1
+fi	
 
 
+INPUT_DIR=`realpath $INPUT_DIR`
+OUTPUT_DB=`realpath $OUTPUT_DB`
+echo "Input directory: $INPUT_DIR"
+echo "Output database: $OUTPUT_DB"
+echo ""
 
-
-echo $TABLE_CATCHERS
-
+echo "Merging incidents:"
+echo "=============================================================================================="
 for DATABASE in $(ls $INPUT_DIR/*.sqlite)
 do
-	echo $DATABASE
+	# Derive app_id from the filename
+	FILENAME=`basename $DATABASE`
+	INCIDENT=${FILENAME%.*}
+
+	# Merge catcher data
+	echo "Merging: $DATABASE"
+	echo 'attach '\"$DATABASE\"' as incident; insert into main.catchers select '\"$INCIDENT\"', * from incident.catcher; detach incident;' | sqlite3 $OUTPUT_DB
+	if [ $? -ne 0 ]; then
+		echo "Error: Sqlite operation failed (merging), aborting..." >&2
+		exiterr
+	fi
+
 done
 
-
-
-
-
-
+echo ""
+echo "all done!"
 
