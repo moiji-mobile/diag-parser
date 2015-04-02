@@ -10,24 +10,24 @@ OUTPUT_REP=""		# HTML-Report filename
 OP_EXIT_ON_ERROR=1	# 1=Stop immedeiately on error, 0=Ignore all errors
 
 # Fine tuning for the expected score range for each column
-SCORE_COLUMN_MAX[0]=3	# a1
-SCORE_COLUMN_MAX[1]=3	# a2
-SCORE_COLUMN_MAX[2]=3	# a4
-SCORE_COLUMN_MAX[3]=3	# a5
-SCORE_COLUMN_MAX[4]=3	# k1
-SCORE_COLUMN_MAX[5]=3	# k2
-SCORE_COLUMN_MAX[6]=3	# c1
-SCORE_COLUMN_MAX[7]=3	# c2
-SCORE_COLUMN_MAX[8]=3	# c3
-SCORE_COLUMN_MAX[9]=3	# c4
-SCORE_COLUMN_MAX[10]=3	# c5
-SCORE_COLUMN_MAX[11]=3	# t1
-SCORE_COLUMN_MAX[12]=3	# t3
-SCORE_COLUMN_MAX[13]=3	# t4
-SCORE_COLUMN_MAX[14]=3	# r1
-SCORE_COLUMN_MAX[15]=3	# r2
-SCORE_COLUMN_MAX[16]=3	# f1
-SCORE_COLUMN_MAX[17]=7	# score
+SCORE_COLUMN_MAX[0]=1	# a1
+SCORE_COLUMN_MAX[1]=1	# a2
+SCORE_COLUMN_MAX[2]=1	# a4
+SCORE_COLUMN_MAX[3]=1	# a5
+SCORE_COLUMN_MAX[4]=1	# k1
+SCORE_COLUMN_MAX[5]=1	# k2
+SCORE_COLUMN_MAX[6]=1	# c1
+SCORE_COLUMN_MAX[7]=1	# c2
+SCORE_COLUMN_MAX[8]=0.57 # c3
+SCORE_COLUMN_MAX[9]=6	# c4
+SCORE_COLUMN_MAX[10]=2	# c5
+SCORE_COLUMN_MAX[11]=1.5 # t1
+SCORE_COLUMN_MAX[12]=1	# t3
+SCORE_COLUMN_MAX[13]=1	# t4
+SCORE_COLUMN_MAX[14]=1	# r1
+SCORE_COLUMN_MAX[15]=1	# r2
+SCORE_COLUMN_MAX[16]=1	# f1
+SCORE_COLUMN_MAX[17]=8	# score
 
 
 ## DATABASE HANDLING ##########################################################
@@ -83,22 +83,15 @@ function create_db {
 
 
 ## REPORT GENERATION ##########################################################
-function gen_report {
+
+function gen_table {
+	QUERY=$1
+	PRINT_VALUES=$2
 	DB=$OUTPUT_DB
 	TMPFILE=/var/tmp/incident_merge_tmp.$$;
-	PRINT_VALUES=$1
 
-	echo "Generating HTML report:"
-	echo "=============================================================================================="
+	echo $QUERY | sqlite3 $DB > $TMPFILE
 
-	echo "select mcc, mnc, avg(a1), avg(a2), avg(a4), avg(a5), avg(k1), avg(k2), avg(c1), avg(c2), avg(c3), avg(c4), avg(c5), avg(t1), avg(t3), avg(t4), avg(r1), avg(r2), avg(f1), avg(score) from events group by mcc,mnc;" | sqlite3 $DB > $TMPFILE
-
-	rm -f $OUTPUT_REP
-	
-	echo "<html><head></head><body>" >> $OUTPUT_REP
-
-
-	echo "Average over all scores per MCC/MNC<br>" >> $OUTPUT_REP
 	echo "<table border=\"1\" cellspacing=\"0\" bgcolor=\"#C0C0C0\">" >> $OUTPUT_REP
 	echo "<tr>" >> $OUTPUT_REP
 	echo "<td>MCC</td><td>MNC</td> <td>a1</td><td>a2</td><td>a4</td><td>a5</td> <td>k1</td><td>k2</td> <td>c1</td><td>c2</td><td>c3</td><td>c4</td><td>c5</td>  <td>t1</td><td>t3</td><td>t4</td> <td>r1</td><td>r2</td> <td>f1</td>  <td>score</td>" >> $OUTPUT_REP
@@ -112,7 +105,7 @@ function gen_report {
 
 		echo "<td>$MCC</td><td>$MNC</td>"  >> $OUTPUT_REP
 
-		echo "Processing operator: $MCC, $MNC"
+		echo "-Processing operator: $MCC, $MNC"
 
 		for k in $(seq 3 20); do 
 
@@ -123,19 +116,27 @@ function gen_report {
 			VALUE=`echo $i | cut -d '|' -f $k`
 			COLORVALUE=`echo $VALUE $MAX_SCORE | awk '{printf "%i\n", $1*255/$2}'`
 
-			#Clip color value
+			#Detect when one of the score values exceeds its valid range
+			CLIPPED=0
 			if [ $COLORVALUE -gt 255 ]; then
-				COLORVALUE=255
+				CLIPPED=1
 			fi
-			if [ $COLORVALUE -le 0 ]; then
-				COLORVALUE=0
+			if [ $COLORVALUE -lt 0 ]; then
+				CLIPPED=2
 			fi
 
 			# Draw table row
-			COLOR=`echo $COLORVALUE | awk '{printf "#%02x%02x%02x\n", 255-$1, 255-$1, 255-$1}'`
+			if [ $CLIPPED -eq 0 ]; then
+				COLOR=`echo $COLORVALUE | awk '{printf "#%02x%02x%02x\n", 255-$1, 255-$1, 255-$1}'`
+			elif [ $CLIPPED -eq 1 ]; then
+				COLOR=`echo $COLORVALUE | awk '{printf "#%02x%02x%02x\n", 255, 0, 0}'`	
+			else
+				COLOR=`echo $COLORVALUE | awk '{printf "#%02x%02x%02x\n", 0, 0, 255}'`	
+			fi
+
 			echo "<td bgcolor=\"$COLOR\">" >> $OUTPUT_REP
 
-			if [ $COLORVALUE -gt 100 ]; then
+			if [ $COLORVALUE -gt 150 ]; then
 				echo "<font color=\"white\">" >> $OUTPUT_REP
 			elif [ $COLORVALUE -eq 0 ]; then
 				echo "<font color=\"grey\">" >> $OUTPUT_REP
@@ -156,9 +157,36 @@ function gen_report {
 	done;
 
 	echo "</table>" >> $OUTPUT_REP
+	rm $TMPFILE
+}
+
+
+function gen_report {
+	DB=$OUTPUT_DB
+	TMPFILE=/var/tmp/incident_merge_tmp.$$;
+	PRINT_VALUES=$1
+
+	echo "Generating HTML report:"
+	echo "=============================================================================================="
+	rm -f $OUTPUT_REP
+
+	AVG_QUERY="select mcc, mnc, avg(a1), avg(a2), avg(a4), avg(a5), avg(k1), avg(k2), avg(c1), avg(c2), avg(c3), avg(c4), avg(c5), avg(t1), avg(t3), avg(t4), avg(r1), avg(r2), avg(f1), avg(score) from events group by mcc,mnc;" 
+	MAX_QUERY="select mcc, mnc, max(a1), max(a2), max(a4), max(a5), max(k1), max(k2), max(c1), max(c2), max(c3), max(c4), max(c5), max(t1), max(t3), max(t4), max(r1), max(r2), max(f1), max(score) from events group by mcc,mnc;" 
+
+	echo "<html><head></head><body>" >> $OUTPUT_REP
+
+	echo "Average..."
+	echo "Average over all scores per MCC/MNC<br>" >> $OUTPUT_REP
+	gen_table "$AVG_QUERY" $PRINT_VALUES
+
+	echo "<br><br><br><br>" >> $OUTPUT_REP
+
+	echo "Maximum..."
+	echo "Maximum over all scores per MCC/MNC<br>" >> $OUTPUT_REP
+	gen_table "$MAX_QUERY" $PRINT_VALUES
+
 	echo "</body>" >> $OUTPUT_REP
 
-	rm $TMPFILE
 	echo ""
 }
 ###############################################################################
