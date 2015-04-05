@@ -6,6 +6,7 @@
 
 #include "diag_input.h"
 #include "bit_func.h"
+#include "session.h"
 #include <stdlib.h>
 
 static void usage(const char *progname, const char *reason)
@@ -43,8 +44,6 @@ int main(int argc, char *argv[])
 	long sid = 0;
 	long cid = 0;
 	int line = 0;
-
-	extern int msg_verbose;
 
 	msg_verbose = 0;
 
