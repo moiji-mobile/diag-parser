@@ -168,7 +168,7 @@ function create_pcap {
 	dumpcap -q -i lo -w trace.pcap -f "udp port 4729" &
 	DUMPCAP_PID=$!
 	sleep 1
-	diag_import -g 127.0.0.1 $* > /dev/null
+	$GP_DIR/diag_import -g 127.0.0.1 $* > /dev/null
 	sleep 1
 	sync
 	kill -TERM ${DUMPCAP_PID}
