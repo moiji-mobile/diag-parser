@@ -312,7 +312,7 @@ function analyze {
 		# Look into the events table to see if any suspicious events (SMS, Paging) were detected
 		EVENTS=`echo 'select * from events;' | sqlite3 ./$TEMP_DB`
 		if [ $? -ne 0 ]; then
-			echo "Error: Sqlite operation failed ('select * from catcher;' on temporary file trace.sqlite), aborting..." >&2
+			echo "Error: Sqlite operation failed ('select * from events;' on temporary file trace.sqlite), aborting..." >&2
 			exiterr
 		fi
 
