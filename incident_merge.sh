@@ -29,6 +29,29 @@ SCORE_COLUMN_MAX[15]=1	# r2
 SCORE_COLUMN_MAX[16]=1	# f1
 SCORE_COLUMN_MAX[17]=8	# score
 
+# Full text description for each score
+MAX_TEXTLEN=450
+A1='[A1] Different LAC/CID for the same ARFCN'
+A2='[A2] Inconsistent LAC'
+A3='[A3] Only 2G available'
+A4='[A4] Same LAC/CID on different ARFCNs'
+A5='[A5] Single LAC occurrence'
+K1='[K1] No neighboring cells'
+K2='[K2] High cell reselect offset'
+C1='[C1] Encryption Downgrade'
+C2='[C2] Delayed CIPHER MODE COMPLETE ack.'
+C3='[C3] CIPHER MODE CMD msg. without IMEISV'
+C4='[C4] ID requests during location update'
+C5='[C5] Cipher setting out of average'
+T1='[T1] Low registration timer'
+T3='[T3] Paging without transaction'
+T4='[T4] Orphaned traffic channel'
+T7='[T7] MS sends on high power'
+R1='[R1] Inconsistent neighbor list'
+R2='[R2] High number of paging groups'
+F1='[F1] Few paging requests'
+SCORE='final score'
+
 
 ## DATABASE HANDLING ##########################################################
 
@@ -90,11 +113,37 @@ function gen_table {
 	DB=$OUTPUT_DB
 	TMPFILE=/var/tmp/incident_merge_tmp.$$;
 
+	PRE='<td valign="bottom"><div class="rot"><nobr>&nbsp;&nbsp;&nbsp;'
+	POS='</nobr></div></td>'
+
 	echo $QUERY | sqlite3 $DB > $TMPFILE
 
 	echo "<table border=\"1\" cellspacing=\"0\" bgcolor=\"#C0C0C0\">" >> $OUTPUT_REP
-	echo "<tr>" >> $OUTPUT_REP
-	echo "<td>MCC</td><td>MNC</td> <td>a1</td><td>a2</td><td>a4</td><td>a5</td> <td>k1</td><td>k2</td> <td>c1</td><td>c2</td><td>c3</td><td>c4</td><td>c5</td>  <td>t1</td><td>t3</td><td>t4</td> <td>r1</td><td>r2</td> <td>f1</td>  <td>score</td>" >> $OUTPUT_REP
+	echo "<tr height=\"$MAX_TEXTLEN\">" >> $OUTPUT_REP
+
+	# Table column descriptions: begin
+	echo $PRE MCC $POS >> $OUTPUT_REP
+	echo $PRE MNC $POS >> $OUTPUT_REP
+	echo $PRE $A1 $POS >> $OUTPUT_REP
+	echo $PRE $A2 $POS >> $OUTPUT_REP
+	echo $PRE $A4 $POS >> $OUTPUT_REP
+	echo $PRE $A5 $POS >> $OUTPUT_REP
+	echo $PRE $K1 $POS >> $OUTPUT_REP
+	echo $PRE $K2 $POS >> $OUTPUT_REP
+	echo $PRE $C1 $POS >> $OUTPUT_REP
+	echo $PRE $C2 $POS >> $OUTPUT_REP
+	echo $PRE $C3 $POS >> $OUTPUT_REP
+	echo $PRE $C4 $POS >> $OUTPUT_REP
+	echo $PRE $C5 $POS >> $OUTPUT_REP
+	echo $PRE $T1 $POS >> $OUTPUT_REP
+	echo $PRE $T3 $POS >> $OUTPUT_REP
+	echo $PRE $T4 $POS >> $OUTPUT_REP
+	echo $PRE $R1 $POS >> $OUTPUT_REP
+	echo $PRE $R2 $POS >> $OUTPUT_REP
+	echo $PRE $F1 $POS >> $OUTPUT_REP
+	echo $PRE $SCORE $POS >> $OUTPUT_REP
+	# Table column descriptions: end
+
 	echo "</tr>" >> $OUTPUT_REP
 
 	for i in $(cat $TMPFILE); do
@@ -173,7 +222,7 @@ function gen_report {
 	AVG_QUERY="select mcc, mnc, avg(a1), avg(a2), avg(a4), avg(a5), avg(k1), avg(k2), avg(c1), avg(c2), avg(c3), avg(c4), avg(c5), avg(t1), avg(t3), avg(t4), avg(r1), avg(r2), avg(f1), avg(score) from events group by mcc,mnc;" 
 	MAX_QUERY="select mcc, mnc, max(a1), max(a2), max(a4), max(a5), max(k1), max(k2), max(c1), max(c2), max(c3), max(c4), max(c5), max(t1), max(t3), max(t4), max(r1), max(r2), max(f1), max(score) from events group by mcc,mnc;" 
 
-	echo "<html><head></head><body>" >> $OUTPUT_REP
+	echo '<html><head><style type="text/css">.rot {transform: rotate(-90deg); width:2em;} </style></head><body>' >> $OUTPUT_REP
 
 	echo "Average..."
 	echo "Average over all scores per MCC/MNC<br>" >> $OUTPUT_REP
