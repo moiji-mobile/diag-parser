@@ -228,6 +228,17 @@ function perform_analysis {
 		exiterr
 	fi
 	cd $LOCALDIR
+
+	cd $SS_PREBUILT_DIR
+	sqlite3 $LOCALDIR/$TEMP_DB < ./event_analysis.sql 
+	if [ $? -ne 0 ]; then
+		echo "Error: Sqlite operation failed (event_analysis.sql), aborting..." >&2
+		exiterr
+	fi
+	cd $LOCALDIR
+
+
+
 	stopwatch_stop
 }
 
@@ -291,15 +302,22 @@ function analyze {
 		# Apply extended analysis (Sqlite operations)
 		perform_analysis
 
-		# Look into the cater table to see if any catchers were detected, if so, store
-		# all data into the output dir
+		# Look into the catcher table to see if any catchers were detected
 		CATCHER=`echo 'select * from catcher;' | sqlite3 ./$TEMP_DB`
 		if [ $? -ne 0 ]; then
 			echo "Error: Sqlite operation failed ('select * from catcher;' on temporary file trace.sqlite), aborting..." >&2
 			exiterr
 		fi
 
-		if [ -n "$CATCHER" ]; then
+		# Look into the events table to see if any suspicious events (SMS, Paging) were detected
+		EVENTS=`echo 'select * from events;' | sqlite3 ./$TEMP_DB`
+		if [ $? -ne 0 ]; then
+			echo "Error: Sqlite operation failed ('select * from catcher;' on temporary file trace.sqlite), aborting..." >&2
+			exiterr
+		fi
+
+		# Store files 
+		if [ -n "$CATCHER" ] || [ -n "$EVENTS" ] ; then
 			echo "==> ALARM: Incident detected, storing data..."
 			# Rename files
 			# cp ./trace.log $INCIDENT.log # Log file is not needed, so we omit it
