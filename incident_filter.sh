@@ -238,8 +238,15 @@ function analyze {
 	echo "Analyzing incident: $INCIDENT"
 	echo "=============================================================================================="
 
+	# Check if we got an app id and not an empty string
 	if [ -z $INCIDENT ]; then
 		echo "Error: App-Id missing, aborting..."
+		exiterr
+	fi
+
+	# Check if the desired app-id folder exists 
+	if ! [ -d $INPUT_DIR/$INCIDENT ]; then
+		echo "Error: No such App-Id, aborting..."
 		exiterr
 	fi
 
@@ -401,6 +408,11 @@ fi
 if [ -z "$OUTPUT_DIR" ]; then
 	echo "Warning: No output folder supplied, results will be written to local directory..." >&2
 	OUTPUT_DIR=./
+fi
+
+if ! [ -d "$OUTPUT_DIR" ]; then
+	echo "Warning: Output directory does not exist, creating one..." >&2
+	mkdir $OUTPUT_DIR
 fi
 
 INPUT_DIR=`realpath $INPUT_DIR`
