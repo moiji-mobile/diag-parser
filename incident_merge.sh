@@ -208,6 +208,19 @@ function usage {
 	echo "usage: $0 -i input_dir -d output_db [-D new_output_db] [-r html_report -n ]" >&2
 	echo "Note: There are more parameters (static pathes) to" >&2
 	echo "      set inside the the script file." >&2
+	echo "Note: Option -n adds numeric values to the report display"
+	echo ""
+	echo "Description:"
+	echo " * This tool walks through the filtered incident database files and"
+	echo "   merges each of it into one large database. After the merging"
+	echo "   the collected results are analyzed and presented as an HTML file"
+	echo ""
+	echo "Examples:"
+	echo " * Create a new database:"
+	echo "   $0 -D /path/to/my/db.sqlite"
+	echo " * Perform analysis:"
+	echo "   $0 -i ../inputfiles/ -d /path/to/my/db.sqlite -r ./report.html"
+	echo "   $0 -i ../inputfiles/ -d /path/to/my/db.sqlite -r ./report.html -n"
 	echo ""
 	exit 1
 }

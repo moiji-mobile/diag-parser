@@ -353,6 +353,7 @@ function usage {
 	echo "   $0 -D workdone.db"
 	echo " * Looking at a specific incident:"
 	echo "   $0 -i ./incidents -a 1b561ccd"
+	echo ""
 	exit 1
 }
 
