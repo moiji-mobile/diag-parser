@@ -107,6 +107,7 @@ function create_db {
 
 ## REPORT GENERATION ##########################################################
 
+# Generate HTML table
 function gen_table {
 	QUERY=$1
 	PRINT_VALUES=$2
@@ -209,10 +210,9 @@ function gen_table {
 	rm $TMPFILE
 }
 
-
+# Generate HTML-Report
 function gen_report {
 	DB=$OUTPUT_DB
-	TMPFILE=/var/tmp/incident_merge_tmp.$$;
 	PRINT_VALUES=$1
 
 	echo "Generating HTML report:"

@@ -22,6 +22,49 @@ GP_DIR=$SS_DIR/contrib/gsm-parser
 # Relative pathes (please do not change)
 WORKING_DIR=$PWD	# Don't change unless you have a good reason
 TEMP_DB=metadata.db	# Don't change unless you change it in gsm-parser too
+OUTPUT_REP=trace.html	# Default filename for the generated html report
+
+# Fine tuning for the expected score range for each column
+SCORE_COLUMN_MAX[0]=1	# a1
+SCORE_COLUMN_MAX[1]=1	# a2
+SCORE_COLUMN_MAX[2]=1	# a4
+SCORE_COLUMN_MAX[3]=1	# a5
+SCORE_COLUMN_MAX[4]=1	# k1
+SCORE_COLUMN_MAX[5]=1	# k2
+SCORE_COLUMN_MAX[6]=1	# c1
+SCORE_COLUMN_MAX[7]=1	# c2
+SCORE_COLUMN_MAX[8]=0.57 # c3
+SCORE_COLUMN_MAX[9]=6	# c4
+SCORE_COLUMN_MAX[10]=2	# c5
+SCORE_COLUMN_MAX[11]=1.5 # t1
+SCORE_COLUMN_MAX[12]=1	# t3
+SCORE_COLUMN_MAX[13]=1	# t4
+SCORE_COLUMN_MAX[14]=1	# r1
+SCORE_COLUMN_MAX[15]=1	# r2
+SCORE_COLUMN_MAX[16]=1	# f1
+
+# Full text description for each score
+MAX_TEXTLEN=450
+A1='[A1] Different LAC/CID for the same ARFCN'
+A2='[A2] Inconsistent LAC'
+A3='[A3] Only 2G available'
+A4='[A4] Same LAC/CID on different ARFCNs'
+A5='[A5] Single LAC occurrence'
+K1='[K1] No neighboring cells'
+K2='[K2] High cell reselect offset'
+C1='[C1] Encryption Downgrade'
+C2='[C2] Delayed CIPHER MODE COMPLETE ack.'
+C3='[C3] CIPHER MODE CMD msg. without IMEISV'
+C4='[C4] ID requests during location update'
+C5='[C5] Cipher setting out of average'
+T1='[T1] Low registration timer'
+T3='[T3] Paging without transaction'
+T4='[T4] Orphaned traffic channel'
+T7='[T7] MS sends on high power'
+R1='[R1] Inconsistent neighbor list'
+R2='[R2] High number of paging groups'
+F1='[F1] Few paging requests'
+SCORE='final score'
 
 ## STOPWATCH ##################################################################
 
@@ -104,7 +147,153 @@ function dupavoid_checkwork {
 ###############################################################################
 
 
-## FILTER #####################################################################
+## HTML REPORT GENERATOR ######################################################
+
+# Generate html view for catcher table
+function gen_catcher_table {
+	PRINT_VALUES=$1
+	DB=$TEMP_DB
+	TMPFILE=/var/tmp/incident_filter_tmp.$$;
+
+	echo "CATCHER:<br>" >> $OUTPUT_REP
+	
+	PRE='<td valign="bottom"><div class="rot"><nobr>&nbsp;&nbsp;&nbsp;'
+	POS='</nobr></div></td>'
+
+	echo 'select * from catcher;' | sqlite3 $DB > $TMPFILE
+
+	echo "<table border=\"1\" cellspacing=\"0\" bgcolor=\"#C0C0C0\">" >> $OUTPUT_REP
+	echo "<tr height=\"$MAX_TEXTLEN\">" >> $OUTPUT_REP
+
+	# Table column descriptions: begin
+	echo $PRE ID $POS >> $OUTPUT_REP
+	echo $PRE MCC $POS >> $OUTPUT_REP
+	echo $PRE MNC $POS >> $OUTPUT_REP
+	echo $PRE LAC $POS >> $OUTPUT_REP
+	echo $PRE CID $POS >> $OUTPUT_REP
+	echo $PRE Timestamp $POS >> $OUTPUT_REP
+	echo $PRE Duration $POS >> $OUTPUT_REP
+	echo $PRE $A1 $POS >> $OUTPUT_REP
+	echo $PRE $A2 $POS >> $OUTPUT_REP
+	echo $PRE $A4 $POS >> $OUTPUT_REP
+	echo $PRE $A5 $POS >> $OUTPUT_REP
+	echo $PRE $K1 $POS >> $OUTPUT_REP
+	echo $PRE $K2 $POS >> $OUTPUT_REP
+	echo $PRE $C1 $POS >> $OUTPUT_REP
+	echo $PRE $C2 $POS >> $OUTPUT_REP
+	echo $PRE $C3 $POS >> $OUTPUT_REP
+	echo $PRE $C4 $POS >> $OUTPUT_REP
+	echo $PRE $C5 $POS >> $OUTPUT_REP
+	echo $PRE $T1 $POS >> $OUTPUT_REP
+	echo $PRE $T3 $POS >> $OUTPUT_REP
+	echo $PRE $T4 $POS >> $OUTPUT_REP
+	echo $PRE $R1 $POS >> $OUTPUT_REP
+	echo $PRE $R2 $POS >> $OUTPUT_REP
+	echo $PRE $F1 $POS >> $OUTPUT_REP
+	echo $PRE Longitude $POS >> $OUTPUT_REP
+	echo $PRE Latitude $POS >> $OUTPUT_REP
+	echo $PRE valid $POS >> $OUTPUT_REP
+	echo $PRE $SCORE $POS >> $OUTPUT_REP
+	# Table column descriptions: end
+
+	echo "</tr>" >> $OUTPUT_REP
+
+	while read i; do
+
+		echo "-Processing line: $i"
+
+		echo "<tr>" >> $OUTPUT_REP
+		ID=`echo $i | cut -d '|' -f 1`
+		MCC=`echo $i | cut -d '|' -f 2`
+		MNC=`echo $i | cut -d '|' -f 3`
+		LAC=`echo $i | cut -d '|' -f 4`
+		CID=`echo $i | cut -d '|' -f 5`
+		TIMESTAMP=`echo $i | cut -d '|' -f 6`
+		DURATION=`echo $i | cut -d '|' -f 7`
+
+		echo "<td>$ID</td><td>$MCC</td><td>$MNC</td><td>$LAC</td><td>$CID</td><td>$TIMESTAMP</td><td>$DURATION</td>" >> $OUTPUT_REP
+		
+		for k in $(seq 8 24); do 
+
+			MAX_SCORE_INDEX=`echo $k | awk '{printf "%i\n", $1-8}'`
+			MAX_SCORE=${SCORE_COLUMN_MAX[$MAX_SCORE_INDEX]}
+
+			#Compute rounded values and the color value
+			VALUE=`echo $i | cut -d '|' -f $k`
+			COLORVALUE=`echo $VALUE $MAX_SCORE | awk '{printf "%i\n", $1*255/$2}'`
+
+			#Detect when one of the score values exceeds its valid range
+			CLIPPED=0
+			if [ $COLORVALUE -gt 255 ]; then
+				CLIPPED=1
+			fi
+			if [ $COLORVALUE -lt 0 ]; then
+				CLIPPED=2
+			fi
+
+			# Draw table row
+			if [ $CLIPPED -eq 0 ]; then
+				COLOR=`echo $COLORVALUE | awk '{printf "#%02x%02x%02x\n", 255-$1, 255-$1, 255-$1}'`
+			elif [ $CLIPPED -eq 1 ]; then
+				COLOR=`echo $COLORVALUE | awk '{printf "#%02x%02x%02x\n", 255, 0, 0}'`	
+			else
+				COLOR=`echo $COLORVALUE | awk '{printf "#%02x%02x%02x\n", 0, 0, 255}'`	
+			fi
+
+			echo "<td bgcolor=\"$COLOR\">" >> $OUTPUT_REP
+
+			if [ $COLORVALUE -gt 150 ]; then
+				echo "<font color=\"white\">" >> $OUTPUT_REP
+			elif [ $COLORVALUE -eq 0 ]; then
+				echo "<font color=\"grey\">" >> $OUTPUT_REP
+			else
+				echo "<font color=\"black\">" >> $OUTPUT_REP
+			fi
+
+			if [ $PRINT_VALUES -eq 1 ]; then
+				echo $VALUE | awk '{printf "%.2f\n", $1}' >> $OUTPUT_REP
+			else
+				echo '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' >> $OUTPUT_REP
+			fi
+
+			echo "</font>" >> $OUTPUT_REP
+			echo "</td>" >> $OUTPUT_REP
+		done
+
+		LONGITUDE=`echo $i | cut -d '|' -f 25`
+		LATITUDE=`echo $i | cut -d '|' -f 26`
+		VALID=`echo $i | cut -d '|' -f 27`
+		SCORE=`echo $i | cut -d '|' -f 28`
+
+		echo "<td>$LONGITUDE</td><td>$LATITUDE</td><td>$VALID</td><td>$SCORE</td>" >> $OUTPUT_REP
+
+		echo "</tr>" >> $OUTPUT_REP
+	done < $TMPFILE
+
+	echo "</table>" >> $OUTPUT_REP
+	rm $TMPFILE
+}
+
+
+function gen_report {
+	TMPFILE=/var/tmp/incident_merge_tmp.$$;
+	PRINT_VALUES=1
+
+	echo "Generating HTML report:"
+	echo "=============================================================================================="
+	rm -f $OUTPUT_REP
+	echo '<html><head><style type="text/css">.rot {transform: rotate(-90deg); width:2em;} </style></head><body>' >> $OUTPUT_REP
+
+	gen_catcher_table $PRINT_VALUES
+
+	echo "<br><br><br><br>" >> $OUTPUT_REP
+	echo "</body>" >> $OUTPUT_REP
+	echo ""
+}
+###############################################################################
+
+
+## FILTER AND ANALYZER ########################################################
 
 # Exit on error
 function exiterr {
@@ -316,17 +505,20 @@ function analyze {
 			exiterr
 		fi
 
-		# Store files 
+		# Perform further analysis and save results
 		if [ -n "$CATCHER" ] || [ -n "$EVENTS" ] ; then
 			echo "==> ALARM: Incident detected, storing data..."
-			# Rename files
+
 			# cp ./trace.log $INCIDENT.log # Log file is not needed, so we omit it
 			cp ./$TEMP_DB $INCIDENT.sqlite
 
 			create_db #Create a blank database
 			create_pcap `ls -d1rt $INPUT_DIR/$INCIDENT/2__*_*_qdmon*-*-*-*UTC*`
+			gen_report #Create html report
+
 			cp ./trace.pcap $INCIDENT.pcap
 			cp ./trace.results $INCIDENT.results
+			cp ./$OUTPUT_REP $INCIDENT.html
 		else
 			echo "==> Trace does not match the incident criteria, ignoring..."
 		fi
