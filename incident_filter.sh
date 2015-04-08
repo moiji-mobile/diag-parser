@@ -156,6 +156,8 @@ function gen_catcher_table {
 	DB=$TEMP_DB
 	TMPFILE=/var/tmp/incident_filter_tmp.$$;
 
+	echo "generating catcher table..."
+
 	echo "CATCHER:<br>" >> $OUTPUT_REP
 	
 	PRE='<td valign="bottom"><div class="rot"><nobr>&nbsp;&nbsp;&nbsp;'
@@ -166,14 +168,13 @@ function gen_catcher_table {
 	echo "<table border=\"1\" cellspacing=\"0\" bgcolor=\"#C0C0C0\">" >> $OUTPUT_REP
 	echo "<tr height=\"$MAX_TEXTLEN\">" >> $OUTPUT_REP
 
-	# Table column descriptions: begin
-	echo $PRE ID $POS >> $OUTPUT_REP
-	echo $PRE MCC $POS >> $OUTPUT_REP
-	echo $PRE MNC $POS >> $OUTPUT_REP
-	echo $PRE LAC $POS >> $OUTPUT_REP
-	echo $PRE CID $POS >> $OUTPUT_REP
-	echo $PRE Timestamp $POS >> $OUTPUT_REP
-	echo $PRE Duration $POS >> $OUTPUT_REP
+	echo $PRE "ID" $POS >> $OUTPUT_REP
+	echo $PRE "MCC" $POS >> $OUTPUT_REP
+	echo $PRE "MNC" $POS >> $OUTPUT_REP
+	echo $PRE "LAC" $POS >> $OUTPUT_REP
+	echo $PRE "CID" $POS >> $OUTPUT_REP
+	echo $PRE "Timestamp" $POS >> $OUTPUT_REP
+	echo $PRE "Duration" $POS >> $OUTPUT_REP
 	echo $PRE $A1 $POS >> $OUTPUT_REP
 	echo $PRE $A2 $POS >> $OUTPUT_REP
 	echo $PRE $A4 $POS >> $OUTPUT_REP
@@ -191,11 +192,10 @@ function gen_catcher_table {
 	echo $PRE $R1 $POS >> $OUTPUT_REP
 	echo $PRE $R2 $POS >> $OUTPUT_REP
 	echo $PRE $F1 $POS >> $OUTPUT_REP
-	echo $PRE Longitude $POS >> $OUTPUT_REP
-	echo $PRE Latitude $POS >> $OUTPUT_REP
-	echo $PRE valid $POS >> $OUTPUT_REP
+	echo $PRE "Longitude" $POS >> $OUTPUT_REP
+	echo $PRE "Latitude" $POS >> $OUTPUT_REP
+	echo $PRE "valid" $POS >> $OUTPUT_REP
 	echo $PRE $SCORE $POS >> $OUTPUT_REP
-	# Table column descriptions: end
 
 	echo "</tr>" >> $OUTPUT_REP
 
@@ -203,7 +203,7 @@ function gen_catcher_table {
 
 		echo "-Processing line: $i"
 
-		echo "<tr>" >> $OUTPUT_REP
+		echo "<tr bgcolor=\"#FFFFFF\">" >> $OUTPUT_REP
 		ID=`echo $i | cut -d '|' -f 1`
 		MCC=`echo $i | cut -d '|' -f 2`
 		MNC=`echo $i | cut -d '|' -f 3`
@@ -275,7 +275,77 @@ function gen_catcher_table {
 	rm $TMPFILE
 }
 
+# Generate html view for catcher table
+function gen_events_table {
+	DB=$TEMP_DB
+	TMPFILE=/var/tmp/incident_filter_tmp.$$;
 
+	echo "generating events table..."
+
+	echo "EVENTS:<br>" >> $OUTPUT_REP
+	
+	PRE='<td valign="bottom"><div class="rot"><nobr>&nbsp;&nbsp;&nbsp;'
+	POS='</nobr></div></td>'
+
+	echo 'select * from events;' | sqlite3 $DB > $TMPFILE
+
+	echo "<table border=\"1\" cellspacing=\"0\" bgcolor=\"#C0C0C0\">" >> $OUTPUT_REP
+	echo "<tr height=\"150\">" >> $OUTPUT_REP
+
+	echo $PRE "ID" $POS >> $OUTPUT_REP
+	echo $PRE "Sequence" $POS >> $OUTPUT_REP
+	echo $PRE "Timestamp" $POS >> $OUTPUT_REP
+	echo $PRE "MCC" $POS >> $OUTPUT_REP
+	echo $PRE "MNC" $POS >> $OUTPUT_REP
+	echo $PRE "LAC" $POS >> $OUTPUT_REP
+	echo $PRE "CID" $POS >> $OUTPUT_REP
+	echo $PRE "Longitude" $POS >> $OUTPUT_REP
+	echo $PRE "Latitude" $POS >> $OUTPUT_REP
+	echo $PRE "valid" $POS >> $OUTPUT_REP
+	echo $PRE "smsc" $POS >> $OUTPUT_REP
+	echo $PRE "msisdn" $POS >> $OUTPUT_REP
+	echo $PRE "event type" $POS >> $OUTPUT_REP
+	echo "</tr>" >> $OUTPUT_REP
+
+	while read i; do
+
+		echo "-Processing line: $i"
+		echo "<tr bgcolor=\"#FFFFFF\">" >> $OUTPUT_REP
+		ID=`echo $i | cut -d '|' -f 1`
+		SEQUENCE=`echo $i | cut -d '|' -f 2`
+		TIMESTAMP=`echo $i | cut -d '|' -f 3`
+		MCC=`echo $i | cut -d '|' -f 4`
+		MNC=`echo $i | cut -d '|' -f 5`
+		LAC=`echo $i | cut -d '|' -f 6`
+		CID=`echo $i | cut -d '|' -f 7`
+		LONGITUDE=`echo $i | cut -d '|' -f 8`
+		LATITUDE=`echo $i | cut -d '|' -f 9`
+		VALID=`echo $i | cut -d '|' -f 10`
+		SMSC=`echo $i | cut -d '|' -f 11`
+		MSISDN=`echo $i | cut -d '|' -f 12`
+		EVENTTYPE=`echo $i | cut -d '|' -f 13`
+
+		echo "<td>$ID</td><td>$SEQUENCE</td><td>$TIMESTAMP</td><td>$MCC</td><td>$MNC</td><td>$LAC</td><td>$CID</td><td>$LONGITUDE</td><td>$LATITUDE</td><td>$VALID</td><td>$SMSC</td><td>$MSISDN</td>" >> $OUTPUT_REP
+
+		if [ $EVENTTYPE -eq 0 ]; then
+			echo "<td>OTA/binary SMS</td>" >> $OUTPUT_REP
+		elif [ $EVENTTYPE -eq 1 ]; then
+			echo "<td>silent SMS</td>" >> $OUTPUT_REP
+		elif [ $EVENTTYPE -eq 2 ]; then
+			echo "<td>null paging</td>" >> $OUTPUT_REP
+		else
+			echo "<td>$EVENTTYPE</td>" >> $OUTPUT_REP		
+		fi
+
+		echo "</tr>" >> $OUTPUT_REP
+
+	done < $TMPFILE
+
+	echo "</table>" >> $OUTPUT_REP
+	rm $TMPFILE
+}
+
+# Generate HTML report
 function gen_report {
 	TMPFILE=/var/tmp/incident_merge_tmp.$$;
 	PRINT_VALUES=1
@@ -286,7 +356,8 @@ function gen_report {
 	echo '<html><head><style type="text/css">.rot {transform: rotate(-90deg); width:2em;} </style></head><body>' >> $OUTPUT_REP
 
 	gen_catcher_table $PRINT_VALUES
-
+	echo "<br><br>" >> $OUTPUT_REP
+	gen_events_table
 	echo "<br><br><br><br>" >> $OUTPUT_REP
 	echo "</body>" >> $OUTPUT_REP
 	echo ""

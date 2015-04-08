@@ -123,8 +123,8 @@ function gen_table {
 	echo "<tr height=\"$MAX_TEXTLEN\">" >> $OUTPUT_REP
 
 	# Table column descriptions: begin
-	echo $PRE MCC $POS >> $OUTPUT_REP
-	echo $PRE MNC $POS >> $OUTPUT_REP
+	echo $PRE "MCC" $POS >> $OUTPUT_REP
+	echo $PRE "MNC" $POS >> $OUTPUT_REP
 	echo $PRE $A1 $POS >> $OUTPUT_REP
 	echo $PRE $A2 $POS >> $OUTPUT_REP
 	echo $PRE $A4 $POS >> $OUTPUT_REP
@@ -149,7 +149,7 @@ function gen_table {
 
 	for i in $(cat $TMPFILE); do
 
-		echo "<tr>" >> $OUTPUT_REP
+		echo "<tr bgcolor=\"#FFFFFF\">" >> $OUTPUT_REP
 		MCC=`echo $i | cut -d '|' -f 1`
 		MNC=`echo $i | cut -d '|' -f 2`
 
