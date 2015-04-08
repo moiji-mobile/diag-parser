@@ -264,9 +264,9 @@ function gen_catcher_table {
 		LONGITUDE=`echo $i | cut -d '|' -f 25`
 		LATITUDE=`echo $i | cut -d '|' -f 26`
 		VALID=`echo $i | cut -d '|' -f 27`
-		SCORE=`echo $i | cut -d '|' -f 28`
+		SCOREVAL=`echo $i | cut -d '|' -f 28`
 
-		echo "<td>$LONGITUDE</td><td>$LATITUDE</td><td>$VALID</td><td>$SCORE</td>" >> $OUTPUT_REP
+		echo "<td>$LONGITUDE</td><td>$LATITUDE</td><td>$VALID</td><td>$SCOREVAL</td>" >> $OUTPUT_REP
 
 		echo "</tr>" >> $OUTPUT_REP
 	done < $TMPFILE
@@ -327,11 +327,11 @@ function gen_events_table {
 
 		echo "<td>$ID</td><td>$SEQUENCE</td><td>$TIMESTAMP</td><td>$MCC</td><td>$MNC</td><td>$LAC</td><td>$CID</td><td>$LONGITUDE</td><td>$LATITUDE</td><td>$VALID</td><td>$SMSC</td><td>$MSISDN</td>" >> $OUTPUT_REP
 
-		if [ $EVENTTYPE -eq 0 ]; then
+		if [ $EVENTTYPE -eq 1 ]; then
 			echo "<td>OTA/binary SMS</td>" >> $OUTPUT_REP
-		elif [ $EVENTTYPE -eq 1 ]; then
-			echo "<td>silent SMS</td>" >> $OUTPUT_REP
 		elif [ $EVENTTYPE -eq 2 ]; then
+			echo "<td>silent SMS</td>" >> $OUTPUT_REP
+		elif [ $EVENTTYPE -eq 3 ]; then
 			echo "<td>null paging</td>" >> $OUTPUT_REP
 		else
 			echo "<td>$EVENTTYPE</td>" >> $OUTPUT_REP		
@@ -576,6 +576,8 @@ function analyze {
 			echo "Error: Sqlite operation failed ('select * from events;' on temporary file trace.sqlite), aborting..." >&2
 			exiterr
 		fi
+		echo -e ".headers on\n.separator \"\t\"\nselect * from events;" | sqlite3 ./$TEMP_DB 
+		echo -e ".headers on\n.separator \"\t\"\nselect * from events;" | sqlite3 ./$TEMP_DB >> trace.results
 
 		# Perform further analysis and save results
 		if [ -n "$CATCHER" ] || [ -n "$EVENTS" ] || [ $FORCE_RESULTS -eq 1 ]; then
