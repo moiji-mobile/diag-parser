@@ -158,12 +158,17 @@ function gen_catcher_table {
 
 	echo "generating catcher table..."
 
+	echo 'select * from catcher;' | sqlite3 $DB > $TMPFILE
+
+	# Exit immediately if the query did not yield any results
+	if [ -z `cat $TMPFILE` ]; then
+		return 0;
+	fi;
+
 	echo "CATCHER:<br>" >> $OUTPUT_REP
 	
 	PRE='<td valign="bottom"><div class="rot"><nobr>&nbsp;&nbsp;&nbsp;'
 	POS='</nobr></div></td>'
-
-	echo 'select * from catcher;' | sqlite3 $DB > $TMPFILE
 
 	echo "<table border=\"1\" cellspacing=\"0\" bgcolor=\"#C0C0C0\">" >> $OUTPUT_REP
 	echo "<tr height=\"$MAX_TEXTLEN\">" >> $OUTPUT_REP
@@ -272,6 +277,7 @@ function gen_catcher_table {
 	done < $TMPFILE
 
 	echo "</table>" >> $OUTPUT_REP
+	echo "<br><br>" >> $OUTPUT_REP
 	rm $TMPFILE
 }
 
@@ -282,12 +288,18 @@ function gen_events_table {
 
 	echo "generating events table..."
 
+	echo 'select * from events;' | sqlite3 $DB > $TMPFILE
+
+	# Exit immediately if the query did not yield any results
+	if [ -z `cat $TMPFILE` ]; then
+		return 0;
+	fi;
+
+
 	echo "EVENTS:<br>" >> $OUTPUT_REP
 	
 	PRE='<td valign="bottom"><div class="rot"><nobr>&nbsp;&nbsp;&nbsp;'
 	POS='</nobr></div></td>'
-
-	echo 'select * from events;' | sqlite3 $DB > $TMPFILE
 
 	echo "<table border=\"1\" cellspacing=\"0\" bgcolor=\"#C0C0C0\">" >> $OUTPUT_REP
 	echo "<tr height=\"150\">" >> $OUTPUT_REP
@@ -342,6 +354,7 @@ function gen_events_table {
 	done < $TMPFILE
 
 	echo "</table>" >> $OUTPUT_REP
+	echo "<br><br>" >> $OUTPUT_REP
 	rm $TMPFILE
 }
 
@@ -356,9 +369,8 @@ function gen_report {
 	echo '<html><head><style type="text/css">.rot {transform: rotate(-90deg); width:2em;} </style></head><body>' >> $OUTPUT_REP
 
 	gen_catcher_table $PRINT_VALUES
-	echo "<br><br>" >> $OUTPUT_REP
 	gen_events_table
-	echo "<br><br><br><br>" >> $OUTPUT_REP
+
 	echo "</body>" >> $OUTPUT_REP
 	echo ""
 }
