@@ -23,6 +23,7 @@ GP_DIR=$SS_DIR/contrib/gsm-parser
 WORKING_DIR=$PWD	# Don't change unless you have a good reason
 TEMP_DB=metadata.db	# Don't change unless you change it in gsm-parser too
 OUTPUT_REP=trace.html	# Default filename for the generated html report
+FORCE_RESULTS=0
 
 # Fine tuning for the expected score range for each column
 SCORE_COLUMN_MAX[0]=1	# a1
@@ -506,7 +507,7 @@ function analyze {
 		fi
 
 		# Perform further analysis and save results
-		if [ -n "$CATCHER" ] || [ -n "$EVENTS" ] ; then
+		if [ -n "$CATCHER" ] || [ -n "$EVENTS" ] || [ $FORCE_RESULTS -eq 1 ]; then
 			echo "==> ALARM: Incident detected, storing data..."
 
 			# cp ./trace.log $INCIDENT.log # Log file is not needed, so we omit it
@@ -547,7 +548,7 @@ function analyze {
 
 # Display usage (help) information and exit
 function usage {
-	echo "usage: $0 -i input_dir -o output_dir [-a app_id] [-d dupavoid_db] [-D dupavoid_db]" >&2
+	echo "usage: $0 -i input_dir -o output_dir [-a app_id] [-d dupavoid_db] [-D dupavoid_db] [-f]" >&2
 	echo "Note: There are more parameters (static pathes) to" >&2
 	echo "      set inside the the script file." >&2
 	echo ""
@@ -570,6 +571,8 @@ function usage {
 	echo "   $0 -D workdone.db"
 	echo " * Looking at a specific incident:"
 	echo "   $0 -i ./incidents -a 1b561ccd"
+	echo " * Looking at a specific incident, force to keep results:"
+	echo "   $0 -i ./incidents -a 1b561ccd -f"
 	echo ""
 	exit 1
 }
@@ -579,7 +582,7 @@ echo "SNOOPSNITCH INCIDENT FILTER UTILITY"
 echo "==================================="
 
 # Parse options
-while getopts "hi:o:d:D:a:" ARG; do
+while getopts "hi:o:d:D:a:f" ARG; do
 	case $ARG in
 		h)
 			usage
@@ -600,7 +603,9 @@ while getopts "hi:o:d:D:a:" ARG; do
 			DUPAVOID_DB=$OPTARG
 			dupavoid_create_db # Creates a new db and then exists
 			;;
-
+		f)
+			FORCE_RESULTS=1
+			;;
 	esac
 done
 
