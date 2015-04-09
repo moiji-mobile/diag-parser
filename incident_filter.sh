@@ -636,6 +636,8 @@ function usage {
 	echo "usage: $0 -i input_dir -o output_dir [-a app_id] [-d dupavoid_db] [-D dupavoid_db] [-f]" >&2
 	echo "Note: There are more parameters (static pathes) to" >&2
 	echo "      set inside the the script file." >&2
+	echo "Note: This program requires the suid bit for dumpcap to be set:"
+	echo "      sudo chmod u+s /usr/bin/dumpcap"
 	echo ""
 	echo "Description:"
 	echo " * This tool walks through a folder with incidents (app IDs) and"
