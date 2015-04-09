@@ -5,10 +5,14 @@
 # All traces that match the incident criteria (at least 1 entry in the cater
 # table) will be stored in the outut directory. 
 
+# NOTE: This script uses diag_import from megagsm. Be sure that yor metagsm
+#       distribution is compiled with "make TARGET=host SQLITE=1"
+
 # Options (please set up before use)
 INPUT_DIR="" 		# Default input path
 OUTPUT_DIR=""		# Default output path
 SS_DIR=/home/dexter/snoopsnitch # Path to your snoopsnitch installation
+GP_DIR=/home/dexter/work/snoopsnitch/metagsm # Path to your gsm-parser (metagsm)
 OP_EXIT_ON_ERROR=1	# 1=Stop immedeiately on error, 0=Ignore all errors
 OP_STOPWATCH=0		# 1=Monitor processing times, 0=Do not monitor times
 DUPAVOID_DB=""		# Default path to your duplicate work avoidance db
@@ -17,7 +21,7 @@ DUPAVOID_DB=""		# Default path to your duplicate work avoidance db
 SS_PREBUILT_DIR=$SS_DIR/analysis/prebuilt
 SS_CATCHER_DIR=$SS_DIR/analysis/catcher
 SS_ASSET_DIR=$SS_DIR/SnoopSnitch/assets
-GP_DIR=$SS_DIR/contrib/gsm-parser
+
 
 # Relative pathes (please do not change)
 WORKING_DIR=$PWD	# Don't change unless you have a good reason
