@@ -125,7 +125,7 @@ function dupavoid_update_db {
 # never been analyzed before, has new data or the duplicate work avoidance
 # feature has been disabled.
 function dupavoid_checkwork {
-	if ! [ -z $DUPAVOID_DB ]; then
+	if ! [ -z "$DUPAVOID_DB" ]; then
 		APPID_TO_UPDATE=$1
 		FILECOUNT_TO_UPDATE=$2
 
@@ -136,7 +136,7 @@ function dupavoid_checkwork {
 			exiterr
 		fi
 
-		if [ -z $QUERY_RESULT ]; then
+		if [ -z "$QUERY_RESULT" ]; then
 			return 1
 		else 
 			return 0
@@ -161,7 +161,7 @@ function gen_catcher_table {
 	echo 'select * from catcher;' | sqlite3 $DB > $TMPFILE
 
 	# Exit immediately if the query did not yield any results
-	if [ -z `cat $TMPFILE` ]; then
+	if ! [ -s "$TMPFILE" ]; then
 		return 0;
 	fi;
 
@@ -291,7 +291,7 @@ function gen_events_table {
 	echo 'select * from events;' | sqlite3 $DB > $TMPFILE
 
 	# Exit immediately if the query did not yield any results
-	if [ -z `cat $TMPFILE` ]; then
+	if ! [ -s "$TMPFILE" ]; then
 		return 0;
 	fi;
 
@@ -523,13 +523,13 @@ function analyze {
 	echo "=============================================================================================="
 
 	# Check if we got an app id and not an empty string
-	if [ -z $INCIDENT ]; then
+	if [ -z "$INCIDENT" ]; then
 		echo "Error: App-Id missing, aborting..."
 		exiterr
 	fi
 
 	# Check if the desired app-id folder exists 
-	if ! [ -d $INPUT_DIR/$INCIDENT ]; then
+	if ! [ -d "$INPUT_DIR/$INCIDENT" ]; then
 		echo "Error: No such App-Id, aborting..."
 		exiterr
 	fi
@@ -560,7 +560,7 @@ function analyze {
 		fi
 
 		# Check if the incident has already been analyzed, if so, just do the analysis again
-		if [ -e $INCIDENT.log ]; then
+		if [ -e "${INCIDENT}.log" ]; then
 			echo "Warning: The current incident has been analyzed before, results will be overwritten!"
 		fi
 
@@ -700,7 +700,7 @@ if [ -z "$INPUT_DIR" ]; then
 	usage
 fi
 
-if ! [ -d $INPUT_DIR ]; then
+if ! [ -d "$INPUT_DIR" ]; then
 	echo "Error: Specified input directory does not exist..." >&2
 	exit 1
 fi	
@@ -720,9 +720,9 @@ OUTPUT_DIR=`realpath $OUTPUT_DIR`
 
 echo "Input directory: $INPUT_DIR"
 echo "Output directory: $OUTPUT_DIR"
-if ! [ -z $DUPAVOID_DB ]; then
+if [ -n "$DUPAVOID_DB" ]; then
 
-	if [ -e $DUPAVOID_DB ]; then
+	if [ -e "$DUPAVOID_DB" ]; then
 		DUPAVOID_DB=`realpath $DUPAVOID_DB`
 		echo "Database for dublicate work avoidance: $DUPAVOID_DB"
 	else
@@ -735,7 +735,7 @@ echo ""
 
 # Walk through all files in the incident directory and perform filter operations,
 # the results will be written to the OUTPUT_DIR.
-if [ -z $APP_ID ]; then
+if [ -z "$APP_ID" ]; then
 	for INCIDENT in $(ls $INPUT_DIR)
 	do
 		analyze $INCIDENT
