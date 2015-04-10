@@ -57,22 +57,19 @@ static int trace_push_payload(unsigned char *payload_data, int payload_len, stru
 {
 	struct pcap_pkthdr pcap_pkthdr;
 	int ip_hdr_checksum;
-	struct timeval dummy;
 
 	/* Create pcap header */
 	assert(payload_len + gsmtap_offset <= 65535);
-	if(timestamp)
+	if(timestamp) {
 		pcap_pkthdr.ts = *timestamp;
-	else
-	{
-		memset(&dummy,0,sizeof(struct timeval));
-		pcap_pkthdr.ts = dummy;
+	} else {
+		memset(&pcap_pkthdr.ts,0,sizeof(struct timeval));
 	}
 	pcap_pkthdr.len = payload_len + gsmtap_offset;
 	pcap_pkthdr.caplen = payload_len + gsmtap_offset;
 
 	/* Copy payload data into pcap buffer */
-	memcpy(pcap_buff+gsmtap_offset,payload_data,payload_len);
+	memcpy(&pcap_buff[gsmtap_offset],payload_data,payload_len);
 
 	/* Patch udp length field */
 	pcap_buff[udplen_offset] = ((payload_len+8) >> 8) & 0xFF;
@@ -98,12 +95,19 @@ void net_init(const char *target)
 	pcap_dumper = pcap_dump_open(pcap_handle, target);
 
 	/* Prepare buffer with hand-crafted dummy ethernet header */
-	char dummy_eth_hdr[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x08,0x00,0x45,0x00,0x00,0x4b,0xb8,0x20,0x40,0x00,0x40,0x11,0x00,0x00,0x7f,0x00,0x00,0x01,0x7f,0x00,0x00,0x01,0x7a,0x69,0x12,0x79,0xff,0xff,0x00,0x00};
+	char dummy_eth_hdr[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+				0x00,0x00,0x00,0x00,0x08,0x00,0x45,0x00,
+				0x00,0x4b,0xb8,0x20,0x40,0x00,0x40,0x11,
+				0x00,0x00,0x7f,0x00,0x00,0x01,0x7f,0x00,
+				0x00,0x01,0x7a,0x69,0x12,0x79,0xff,0xff,
+				0x00,0x00};
+
 	memcpy(pcap_buff,dummy_eth_hdr,sizeof(dummy_eth_hdr));
 	gsmtap_offset = sizeof(dummy_eth_hdr);
 	udplen_offset = sizeof(dummy_eth_hdr) - 4;
 	iphdrchksum_offset = sizeof(dummy_eth_hdr) - 18;
 #else
+	/* GSMTAP init */
 	gti = gsmtap_source_init(target, GSMTAP_UDP_PORT, 0);
 	if (!gti) {
 		fprintf(stderr, "Cannot initialize GSMTAP\n");
@@ -206,12 +210,15 @@ void net_send_msg(struct radio_message *m)
 	uint8_t gsmtap_channel;
 
 #ifdef USE_PCAP
-	if (!(pcap_dumper && (m->flags & MSG_DECODED)))
+	if (!pcap_dumper)
 		return;
 #else
-	if (!(gti && (m->flags & MSG_DECODED)))
+	if (!gti)
 		return;
 #endif
+
+	if (!(m->flags & MSG_DECODED))
+		return;
 
 	switch (m->rat) {
 	case RAT_GSM: {

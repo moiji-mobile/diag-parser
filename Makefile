@@ -6,7 +6,7 @@ CFLAGS  = \
 	-fPIC \
 	-I. \
 	-I$(PREFIX)/include \
-	-I$(PREFIX)/local/include/asn1c
+	-I$(PREFIX)/include/asn1c
 
 LDFLAGS = \
 	-L$(PREFIX)/lib \
