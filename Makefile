@@ -6,7 +6,7 @@ CFLAGS  = \
 	-fPIC \
 	-I. \
 	-I$(PREFIX)/include \
-	-I$(PREFIX)/include/asn1c
+	-I$(PREFIX)/local/include/asn1c
 
 LDFLAGS = \
 	-L$(PREFIX)/lib \
@@ -101,6 +101,18 @@ endif
 
 CFLAGS  += -DUSE_SQLITE
 LDFLAGS += -lsqlite3
+OBJ     += sqlite_api.o
+endif
+
+
+ifeq ($(PCAP),1)
+
+ifneq ($(TARGET),host)
+$(error PCAP supported for host builds only)
+endif
+
+CFLAGS  += -DUSE_PCAP
+LDFLAGS += -lpcap
 OBJ     += sqlite_api.o
 endif
 
