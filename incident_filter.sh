@@ -440,22 +440,6 @@ function create_db {
 	stopwatch_stop
 }
 
-# Create a TCPDUMP from the trace files
-function create_pcap {
-	stopwatch_start
-#	echo "creating pcap..."
-#	dumpcap -q -i lo -w trace.pcap -f "udp port 4729" &
-#	DUMPCAP_PID=$!
-#	sleep 1
-#	$GP_DIR/diag_import -g 127.0.0.1 $* > /dev/null
-#	sleep 1
-#	sync
-#	kill -TERM ${DUMPCAP_PID}
-
-	$GP_DIR/diag_import -g trace.pcap $* > /dev/null
-	stopwatch_stop
-}
-
 # Process the input files with diag_inport
 function process_files {
 	stopwatch_start
@@ -463,7 +447,7 @@ function process_files {
 	ls -d1rt $INPUT_DIR/$INCIDENT/2__*_*_qdmon*-*-*-*UTC*
 	NUMBER_OF_PROCESSED_FILES=`ls -d1rt $INPUT_DIR/$INCIDENT/2__*_*_qdmon*-*-*-*UTC* | wc -l`
 
-	$GP_DIR/diag_import `ls -d1rt $INPUT_DIR/$INCIDENT/2__*_*_qdmon*-*-*-*UTC*` > trace.log
+	$GP_DIR/diag_import -g trace.pcap `ls -d1rt $INPUT_DIR/$INCIDENT/2__*_*_qdmon*-*-*-*UTC*` > trace.log
 	if [ $? -ne 0 ]; then
 		echo "Error: Reading trace data into database failed (diag_import), aborting..." >&2
 		exiterr
@@ -603,13 +587,9 @@ function analyze {
 		if [ -n "$CATCHER" ] || [ -n "$EVENTS" ] || [ $FORCE_RESULTS -eq 1 ]; then
 			echo "==> ALARM: Incident detected, storing data..."
 
+			gen_report #Create html report
 			# cp ./trace.log $INCIDENT.log # Log file is not needed, so we omit it
 			cp ./$TEMP_DB $INCIDENT.sqlite
-
-			create_db #Create a blank database
-			create_pcap `ls -d1rt $INPUT_DIR/$INCIDENT/2__*_*_qdmon*-*-*-*UTC*`
-			gen_report #Create html report
-
 			cp ./trace.pcap $INCIDENT.pcap
 			cp ./trace.results $INCIDENT.results
 			cp ./$OUTPUT_REP $INCIDENT.html
