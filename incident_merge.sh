@@ -105,7 +105,7 @@ function create_db {
 ###############################################################################
 
 
-## REPORT GENERATION ##########################################################
+## HTML REPORT GENERATOR ######################################################
 
 # Generate HTML table
 function gen_table {
@@ -195,7 +195,9 @@ function gen_table {
 			fi
 
 			if [ $PRINT_VALUES -eq 1 ]; then
-				echo $VALUE | awk '{printf "%.2f\n", $1}' >> $OUTPUT_REP
+				if [ $COLORVALUE -gt 0 ]; then
+					echo $VALUE | awk '{printf "%d", $1*100}' >> $OUTPUT_REP
+				fi
 			else
 				echo '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' >> $OUTPUT_REP
 			fi
@@ -222,7 +224,7 @@ function gen_report {
 	AVG_QUERY="select mcc, mnc, avg(a1), avg(a2), avg(a4), avg(a5), avg(k1), avg(k2), avg(c1), avg(c2), avg(c3), avg(c4), avg(c5), avg(t1), avg(t3), avg(t4), avg(r1), avg(r2), avg(f1), avg(score) from events group by mcc,mnc;" 
 	MAX_QUERY="select mcc, mnc, max(a1), max(a2), max(a4), max(a5), max(k1), max(k2), max(c1), max(c2), max(c3), max(c4), max(c5), max(t1), max(t3), max(t4), max(r1), max(r2), max(f1), max(score) from events group by mcc,mnc;" 
 
-	echo '<html><head><style type="text/css">.rot {transform: rotate(-90deg); width:2em;} </style></head><body>' >> $OUTPUT_REP
+	echo '<html><head><style type="text/css">.rot {transform: rotate(-90deg); width:2em;} td {text-align: center;} </style></head><body>' >> $OUTPUT_REP
 
 	echo "Average..."
 	echo "Average over all scores per MCC/MNC<br>" >> $OUTPUT_REP
@@ -235,7 +237,6 @@ function gen_report {
 	gen_table "$MAX_QUERY" $PRINT_VALUES
 
 	echo "</body>" >> $OUTPUT_REP
-
 	echo ""
 }
 ###############################################################################

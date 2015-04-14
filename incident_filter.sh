@@ -261,7 +261,9 @@ function gen_catcher_table {
 			fi
 
 			if [ $PRINT_VALUES -eq 1 ]; then
-				echo $VALUE | awk '{printf "%.2f\n", $1}' >> $OUTPUT_REP
+				if [ $COLORVALUE -gt 0 ]; then
+					echo $VALUE | awk '{printf "%d", $1*100}' >> $OUTPUT_REP
+				fi
 			else
 				echo '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' >> $OUTPUT_REP
 			fi
@@ -370,7 +372,7 @@ function gen_report {
 	echo "Generating HTML report:"
 	echo "=============================================================================================="
 	rm -f $OUTPUT_REP
-	echo '<html><head><style type="text/css">.rot {transform: rotate(-90deg); width:2em;} </style></head><body>' >> $OUTPUT_REP
+	echo '<html><head><style type="text/css">.rot {transform: rotate(-90deg); width:2em;} td {text-align: center;} </style></head><body>' >> $OUTPUT_REP
 
 	gen_catcher_table $PRINT_VALUES
 	gen_events_table
