@@ -443,14 +443,16 @@ function create_db {
 # Create a TCPDUMP from the trace files
 function create_pcap {
 	stopwatch_start
-	echo "creating pcap..."
-	dumpcap -q -i lo -w trace.pcap -f "udp port 4729" &
-	DUMPCAP_PID=$!
-	sleep 1
-	$GP_DIR/diag_import -g 127.0.0.1 $* > /dev/null
-	sleep 1
-	sync
-	kill -TERM ${DUMPCAP_PID}
+#	echo "creating pcap..."
+#	dumpcap -q -i lo -w trace.pcap -f "udp port 4729" &
+#	DUMPCAP_PID=$!
+#	sleep 1
+#	$GP_DIR/diag_import -g 127.0.0.1 $* > /dev/null
+#	sleep 1
+#	sync
+#	kill -TERM ${DUMPCAP_PID}
+
+	$GP_DIR/diag_import -g trace.pcap $* > /dev/null
 	stopwatch_stop
 }
 
