@@ -55,8 +55,8 @@ SCORE='final score'
 
 ## DATABASE HANDLING ##########################################################
 
-# Table that will accumulate the event results
-read -d '' TABLE_CATCHER <<"EOF"
+# Tables that will accumulate the event results
+read -d '' RESULT_TABLES <<"EOF"
 CREATE TABLE main.catcher
 (
 	appid char(8) NOT NULL,
@@ -89,13 +89,32 @@ CREATE TABLE main.catcher
 	valid SMALLINT,
 	score FLOAT
 );
+
+CREATE TABLE main.events 
+(
+	appid char(8) NOT NULL,
+	id integer,
+	sequence integer,
+	timestamp datetime NOT NULL,
+	mcc smallint NOT NULL,
+	mnc smallint NOT NULL,
+	lac int NOT NULL,
+	cid int NOT NULL,
+	longitude DOUBLE NOT NULL,
+	latitude DOUBLE NOT NULL,
+	valid SMALLINT,
+	smsc CHAR(32) NOT NULL,
+	msisdn CHAR(32) NOT NULL,
+	event_type integer
+);
+
 EOF
 
 # Create a new database to store the output data
 function create_db {
 	echo "Creating a new results database at: $OUTPUT_DB"
 	rm -f $OUTPUT_DB
-	echo $TABLE_CATCHER | sqlite3 $OUTPUT_DB
+	echo $RESULT_TABLES | sqlite3 $OUTPUT_DB
 	if [ $? -ne 0 ]; then
 		echo "Error: Sqlite operation failed (create table), aborting..." >&2
 		exiterr
@@ -345,7 +364,14 @@ do
 	echo "Merging: $DATABASE"
 	echo 'attach '\"$DATABASE\"' as incident; insert into main.catcher select '\"$INCIDENT\"', * from incident.catcher; detach incident;' | sqlite3 $OUTPUT_DB
 	if [ $? -ne 0 ]; then
-		echo "Error: Sqlite operation failed (merging), aborting..." >&2
+		echo "Error: Sqlite operation failed (merging catcher), aborting..." >&2
+		exiterr
+	fi
+
+	# Merge events data
+	echo 'attach '\"$DATABASE\"' as incident; insert into main.events select '\"$INCIDENT\"', * from incident.events; detach incident;' | sqlite3 $OUTPUT_DB
+	if [ $? -ne 0 ]; then
+		echo "Error: Sqlite operation failed (merging events), aborting..." >&2
 		exiterr
 	fi
 done
