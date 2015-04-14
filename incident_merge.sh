@@ -56,8 +56,8 @@ SCORE='final score'
 ## DATABASE HANDLING ##########################################################
 
 # Table that will accumulate the event results
-read -d '' TABLE_EVENTS <<"EOF"
-CREATE TABLE main.events
+read -d '' TABLE_CATCHER <<"EOF"
+CREATE TABLE main.catcher
 (
 	appid char(8) NOT NULL,
 	id integer,
@@ -95,7 +95,7 @@ EOF
 function create_db {
 	echo "Creating a new results database at: $OUTPUT_DB"
 	rm -f $OUTPUT_DB
-	echo $TABLE_EVENTS | sqlite3 $OUTPUT_DB
+	echo $TABLE_CATCHER | sqlite3 $OUTPUT_DB
 	if [ $? -ne 0 ]; then
 		echo "Error: Sqlite operation failed (create table), aborting..." >&2
 		exiterr
@@ -225,8 +225,8 @@ function gen_report {
 	echo "=============================================================================================="
 	rm -f $OUTPUT_REP
 
-	AVG_QUERY="select mcc, mnc, count(*) as samples, avg(a1), avg(a2), avg(a4), avg(a5), avg(k1), avg(k2), avg(c1), avg(c2), avg(c3), avg(c4), avg(c5), avg(t1), avg(t3), avg(t4), avg(r1), avg(r2), avg(f1), avg(score) from events group by mcc,mnc;" 
-	MAX_QUERY="select mcc, mnc, count(*) as samples, max(a1), max(a2), max(a4), max(a5), max(k1), max(k2), max(c1), max(c2), max(c3), max(c4), max(c5), max(t1), max(t3), max(t4), max(r1), max(r2), max(f1), max(score) from events group by mcc,mnc;" 
+	AVG_QUERY="select mcc, mnc, count(*) as samples, avg(a1), avg(a2), avg(a4), avg(a5), avg(k1), avg(k2), avg(c1), avg(c2), avg(c3), avg(c4), avg(c5), avg(t1), avg(t3), avg(t4), avg(r1), avg(r2), avg(f1), avg(score) from catcher group by mcc,mnc;" 
+	MAX_QUERY="select mcc, mnc, count(*) as samples, max(a1), max(a2), max(a4), max(a5), max(k1), max(k2), max(c1), max(c2), max(c3), max(c4), max(c5), max(t1), max(t3), max(t4), max(r1), max(r2), max(f1), max(score) from catcher group by mcc,mnc;" 
 
 	echo '<html><head><style type="text/css">.rot {transform: rotate(-90deg); width:2em;} td {text-align: center;} td.right {text-align: right;} </style></head><body>' >> $OUTPUT_REP
 
@@ -343,7 +343,7 @@ do
 
 	# Merge catcher data
 	echo "Merging: $DATABASE"
-	echo 'attach '\"$DATABASE\"' as incident; insert into main.events select '\"$INCIDENT\"', * from incident.catcher; detach incident;' | sqlite3 $OUTPUT_DB
+	echo 'attach '\"$DATABASE\"' as incident; insert into main.catcher select '\"$INCIDENT\"', * from incident.catcher; detach incident;' | sqlite3 $OUTPUT_DB
 	if [ $? -ne 0 ]; then
 		echo "Error: Sqlite operation failed (merging), aborting..." >&2
 		exiterr
