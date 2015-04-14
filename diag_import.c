@@ -9,6 +9,8 @@
 #include "session.h"
 #include <stdlib.h>
 
+void process_file(char *infile_name);
+
 static void usage(const char *progname, const char *reason)
 {
 	printf("%s\n", reason);
@@ -81,13 +83,15 @@ int main(int argc, char *argv[])
 		errx(1, "Invalid arguments");
 	}
 
+	diag_init(sid, cid, gsmtap_target, NULL, appid);
+
 	printf("PARSER_OK\n");
 	fflush(stdout);
 
 	//  Handle files passed to command line first
 	while (argc > 0)
 	{
-		process_file(&sid, &cid, gsmtap_target, argv[0], appid);
+		process_file(argv[0]);
 		argc--;
 		argv++;
 	};
@@ -110,16 +114,18 @@ int main(int argc, char *argv[])
 				err(1, "Cannot open file in %s:%d", filelist_name, line);
 			}
 			chop_newline(infile_name);
-			process_file(&sid, &cid, gsmtap_target, infile_name, appid);
+			process_file(infile_name);
 		}
 		fclose(filelist);
 	}
+
+	diag_destroy(sid, cid);
 
 	return 0;
 }
 
 void
-process_file(long *sid, long *cid, char *gsmtap_target, char *infile_name, uint32_t appid)
+process_file(char *infile_name)
 {
 	uint8_t msg[4096];
 	FILE *infile = NULL;
@@ -138,7 +144,8 @@ process_file(long *sid, long *cid, char *gsmtap_target, char *infile_name, uint3
 		err(1, "Cannot open input file: %s", infile_name);
 	}
 
-	diag_init(*sid, *cid, gsmtap_target, infile_name, appid);
+	diag_set_filename(infile_name);
+
 	for (;;) {
 		memset(msg, 0x2b, sizeof(msg));
 		len = fread_unescape(infile, msg, sizeof(msg));
@@ -149,6 +156,5 @@ process_file(long *sid, long *cid, char *gsmtap_target, char *infile_name, uint3
 
 		handle_diag(msg, len);
 	}
-	diag_destroy(sid, cid);
 	fclose(infile);
 }

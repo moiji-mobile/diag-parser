@@ -70,10 +70,10 @@ FILE* trace_dump_open(const char *output_file)
 	hdr.magic = 0xA1B2C3D4;
 	hdr.version_major = 0x0020;
 	hdr.version_minor = 0x0040;
-	hdr.thiszone = 0x00000000;
+	hdr.thiszone = 0x00000000;	/* Assume UTC */
 	hdr.sigfigs = 0x00000000;
 	hdr.snaplen = 0x0000FFFF;	/* Our packet size never exceeds 64k */
-	hdr.linktype = 0x00000001;
+	hdr.linktype = 0x00000001;	/* Ethernet */
 
 	/* Write header to file */
 	rc = fwrite(&hdr,sizeof(hdr),1,handle);
