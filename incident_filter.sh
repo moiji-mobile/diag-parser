@@ -6,7 +6,7 @@
 # table) will be stored in the outut directory. 
 
 # NOTE: This script uses diag_import from megagsm. Be sure that yor metagsm
-#       distribution is compiled with "make TARGET=host SQLITE=1"
+#       distribution is compiled with "make TARGET=host SQLITE=1 PCAP=1"
 
 # Options (please set up before use)
 INPUT_DIR="" 		# Default input path
