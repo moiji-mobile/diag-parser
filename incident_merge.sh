@@ -125,6 +125,7 @@ function gen_table {
 	# Table column descriptions: begin
 	echo $PRE "MCC" $POS >> $OUTPUT_REP
 	echo $PRE "MNC" $POS >> $OUTPUT_REP
+	echo $PRE "Samples" $POS >> $OUTPUT_REP
 	echo $PRE $A1 $POS >> $OUTPUT_REP
 	echo $PRE $A2 $POS >> $OUTPUT_REP
 	echo $PRE $A4 $POS >> $OUTPUT_REP
@@ -152,14 +153,17 @@ function gen_table {
 		echo "<tr bgcolor=\"#FFFFFF\">" >> $OUTPUT_REP
 		MCC=`echo $i | cut -d '|' -f 1`
 		MNC=`echo $i | cut -d '|' -f 2`
+		SAMPLES=`echo $i | cut -d '|' -f 3`
 
-		echo "<td>$MCC</td><td>$MNC</td>"  >> $OUTPUT_REP
+		echo "<td class="right">$MCC</td>"  >> $OUTPUT_REP
+		echo "<td class="right">$MNC</td>"  >> $OUTPUT_REP
+		echo "<td class="right">$SAMPLES</td>"  >> $OUTPUT_REP
 
-		echo "-Processing operator: $MCC, $MNC"
+		echo "-Processing operator: $MCC, $MNC ($SAMPLES samples)"
 
-		for k in $(seq 3 20); do 
+		for k in $(seq 4 21); do 
 
-			MAX_SCORE_INDEX=`echo $k | awk '{printf "%i\n", $1-3}'`
+			MAX_SCORE_INDEX=`echo $k | awk '{printf "%i\n", $1-4}'`
 			MAX_SCORE=${SCORE_COLUMN_MAX[$MAX_SCORE_INDEX]}
 
 			#Compute rounded values and the color value
@@ -221,10 +225,10 @@ function gen_report {
 	echo "=============================================================================================="
 	rm -f $OUTPUT_REP
 
-	AVG_QUERY="select mcc, mnc, avg(a1), avg(a2), avg(a4), avg(a5), avg(k1), avg(k2), avg(c1), avg(c2), avg(c3), avg(c4), avg(c5), avg(t1), avg(t3), avg(t4), avg(r1), avg(r2), avg(f1), avg(score) from events group by mcc,mnc;" 
-	MAX_QUERY="select mcc, mnc, max(a1), max(a2), max(a4), max(a5), max(k1), max(k2), max(c1), max(c2), max(c3), max(c4), max(c5), max(t1), max(t3), max(t4), max(r1), max(r2), max(f1), max(score) from events group by mcc,mnc;" 
+	AVG_QUERY="select mcc, mnc, count(*) as samples, avg(a1), avg(a2), avg(a4), avg(a5), avg(k1), avg(k2), avg(c1), avg(c2), avg(c3), avg(c4), avg(c5), avg(t1), avg(t3), avg(t4), avg(r1), avg(r2), avg(f1), avg(score) from events group by mcc,mnc;" 
+	MAX_QUERY="select mcc, mnc, count(*) as samples, max(a1), max(a2), max(a4), max(a5), max(k1), max(k2), max(c1), max(c2), max(c3), max(c4), max(c5), max(t1), max(t3), max(t4), max(r1), max(r2), max(f1), max(score) from events group by mcc,mnc;" 
 
-	echo '<html><head><style type="text/css">.rot {transform: rotate(-90deg); width:2em;} td {text-align: center;} </style></head><body>' >> $OUTPUT_REP
+	echo '<html><head><style type="text/css">.rot {transform: rotate(-90deg); width:2em;} td {text-align: center;} td.right {text-align: right;} </style></head><body>' >> $OUTPUT_REP
 
 	echo "Average..."
 	echo "Average over all scores per MCC/MNC<br>" >> $OUTPUT_REP
