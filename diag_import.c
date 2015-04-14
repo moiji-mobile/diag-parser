@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
 		fclose(filelist);
 	}
 
-	diag_destroy(sid, cid);
+	diag_destroy(&sid, &cid);
 
 	return 0;
 }
