@@ -13,16 +13,131 @@
 #include "output.h"
 
 #ifdef USE_PCAP
-static pcap_dumper_t *pcap_dumper; 	/* Pcap handle */
-char pcap_buff[65535+1]; 		/* Working buffer for crafting the pcap packets */
-size_t gsmtap_offset; 			/* Offset where the gsmtap payload begins */
-size_t udplen_offset;			/* Offset where the udp length is stored */
-size_t iphdrchksum_offset;		/* Offset where the ip header checksum is stored */
+
+/* Pcap file header */
+struct srl_pcap_file_header
+{
+	bpf_u_int32 magic;
+	u_short version_major;
+	u_short version_minor;
+	bpf_int32 thiszone;	/* gmt to local correction */
+	bpf_u_int32 sigfigs;	/* accuracy of timestamps */
+	bpf_u_int32 snaplen;	/* max length saved portion of each pkt */
+	bpf_u_int32 linktype;	/* data link type (LINKTYPE_*) */
+} __attribute__((packed));
+typedef struct srl_pcap_file_header srl_pcap_file_header_t;
+
+/* Pcap packet header */
+struct srl_pcap_pkthdr
+{
+	struct timeval ts;	/* time stamp */
+	bpf_u_int32 caplen;	/* length of portion present  */
+	bpf_u_int32 len;	/* length this packet (off wire) */
+};
+typedef struct srl_pcap_pkthdr srl_pcap_pkthdr_t;
+
+/* Pcap handle */
+struct srl_pcap_handle
+{
+	srl_pcap_file_header_t hdr;
+	FILE *fd;
+};
+typedef struct srl_pcap_handle srl_pcap_handle_t;
+
+static srl_pcap_handle_t *pcap_handle = NULL; 	/* Pcap handle */
+char pcap_buff[65535+1]; 	/* Working buffer for crafting the pcap packets */
+size_t gsmtap_offset; 		/* Offset where the gsmtap payload begins */
+size_t udplen_offset;		/* Offset where the udp length is stored */
+size_t iphdrchksum_offset;	/* Offset where the ip header checksum is stored */
+size_t iptotlen_offset;		/* Ip header total length offset */
+
 #else
+
 static struct gsmtap_inst *gti = NULL;
+
 #endif
 
+
+
 #ifdef USE_PCAP
+/* Create a new pcap handle */
+void srl_pcap_create_handle(srl_pcap_handle_t **handle)
+{
+	*handle = (srl_pcap_handle_t*) malloc(sizeof(srl_pcap_handle_t));
+}
+
+
+/* Create a new pcap file */
+srl_pcap_dump_open(srl_pcap_handle_t *handle, const char *output_file)
+{
+	int rc;
+
+	/* Just to be sure, zero out the header structure */
+	memset(handle,0,sizeof(srl_pcap_handle_t));
+
+	/* Create a new file */
+	handle->fd = fopen(output_file,"w");
+	assert(handle->fd);
+
+	/* Fill out header with valid data */
+	handle->hdr.magic = 0xA1B2C3D4;
+	handle->hdr.version_major = 0x0020;
+	handle->hdr.version_minor = 0x0040;
+	handle->hdr.thiszone = 0x00000000;
+	handle->hdr.sigfigs = 0x00000000;
+	handle->hdr.snaplen = 0x0000FFFF;	/* Our packet size never exceeds 64k */
+	handle->hdr.linktype = 0x00000001;
+
+	/* Write header to file */
+	rc = fwrite(handle,sizeof(srl_pcap_file_header_t),1,handle->fd);
+	assert(rc == 1);
+	fflush(handle->fd);
+}
+
+/* Dump a packet into pcap file */
+void srl_pcap_dump(srl_pcap_handle_t *handle, srl_pcap_pkthdr_t *header, char *packet)
+{
+	int rc;
+	char len[4];
+	char timestamp[8];
+
+	assert(header->caplen == header->len);
+	assert(header->caplen <= handle->hdr.snaplen);
+
+	/* Write header */
+	memset(timestamp,0,sizeof(timestamp));
+	timestamp[3] = (header->ts.tv_sec >> 24) & 0x0FF;
+	timestamp[2] = (header->ts.tv_sec >> 16) & 0x0FF;
+	timestamp[1] = (header->ts.tv_sec >> 8) & 0x0FF;
+	timestamp[0] = header->ts.tv_sec & 0x0FF;
+
+	rc = fwrite(timestamp,sizeof(timestamp),1,handle->fd);
+	assert(rc == 1);
+
+	len[3] = (header->caplen >> 24) & 0x0FF;
+	len[2] = (header->caplen >> 16) & 0x0FF;
+	len[1] = (header->caplen >> 8) & 0x0FF;
+	len[0] = header->caplen & 0x0FF;
+	rc = fwrite(len,sizeof(len),1,handle->fd);
+	assert(rc == 1);
+	rc = fwrite(len,sizeof(len),1,handle->fd);
+	assert(rc == 1);
+
+	/* Write payload */
+	rc = fwrite(packet,header->caplen,1,handle->fd);
+	assert(rc == 1);
+
+	fflush(handle->fd);
+}
+
+/* Close pcap file */
+void srl_pcap_dump_close(srl_pcap_handle_t *handle)
+{
+	if(handle->fd)
+		fclose(handle->fd);
+	handle->fd = NULL;
+}
+
 
 /* IP header checksum calculator */
 /* Source: http://www.microhowto.info/howto/calculate_an_internet_protocol_checksum_in_c.html */
@@ -55,7 +170,7 @@ uint16_t ip_checksum(void* vdata,size_t length) {
 /* Helper function to write some payload data into the pcap file */
 static int trace_push_payload(unsigned char *payload_data, int payload_len, struct timeval *timestamp)
 {
-	struct pcap_pkthdr pcap_pkthdr;
+	struct srl_pcap_pkthdr pcap_pkthdr;
 	int ip_hdr_checksum;
 
 	/* Create pcap header */
@@ -75,26 +190,31 @@ static int trace_push_payload(unsigned char *payload_data, int payload_len, stru
 	pcap_buff[udplen_offset] = ((payload_len+8) >> 8) & 0xFF;
 	pcap_buff[udplen_offset+1] = (payload_len+8) & 0xFF;
 
+	/* Patch ip total length field */
+	pcap_buff[iptotlen_offset] = ((gsmtap_offset+payload_len-14) >> 8) & 0xFF;
+	pcap_buff[iptotlen_offset+1] = (gsmtap_offset+payload_len-14) & 0xFF;
+
 	/* Patch ip-header checksum */
 	ip_hdr_checksum = ip_checksum(pcap_buff,gsmtap_offset);
 	pcap_buff[iphdrchksum_offset] = (ip_hdr_checksum >> 8) & 0xFF;
 	pcap_buff[iphdrchksum_offset+1] = ip_hdr_checksum & 0xFF;
 
-	pcap_dump((u_char*)pcap_dumper, &pcap_pkthdr, (u_char*)pcap_buff);
+	/* Dump to pcap file */
+	srl_pcap_dump(pcap_handle, &pcap_pkthdr, pcap_buff);
 
 	return 0;
 }
+
 #endif
 
 void net_init(const char *target)
 {
 #ifdef USE_PCAP
 	/* Create pcap file */
-	pcap_t *pcap_handle = NULL;
-	pcap_handle = pcap_open_dead(DLT_EN10MB, 65535);
-	pcap_dumper = pcap_dump_open(pcap_handle, target);
+	srl_pcap_create_handle(&pcap_handle);
+	srl_pcap_dump_open(pcap_handle, target);
 
-	/* Prepare buffer with hand-crafted dummy ethernet header */
+	/* Prepare buffer with hand-crafted dummy ethernet+ip+udp header */
 	char dummy_eth_hdr[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 				0x00,0x00,0x00,0x00,0x08,0x00,0x45,0x00,
 				0x00,0x4b,0xb8,0x20,0x40,0x00,0x40,0x11,
@@ -106,14 +226,17 @@ void net_init(const char *target)
 	gsmtap_offset = sizeof(dummy_eth_hdr);
 	udplen_offset = sizeof(dummy_eth_hdr) - 4;
 	iphdrchksum_offset = sizeof(dummy_eth_hdr) - 18;
+	iptotlen_offset = 16;
 #else
 	/* GSMTAP init */
+	int rc;
 	gti = gsmtap_source_init(target, GSMTAP_UDP_PORT, 0);
 	if (!gti) {
 		fprintf(stderr, "Cannot initialize GSMTAP\n");
 		abort();
 	}
-	gsmtap_source_add_sink(gti);
+	rc = gsmtap_source_add_sink(gti);
+	assert(rc >= 0);
 #endif
 
 }
@@ -122,9 +245,7 @@ void net_destroy()
 {
 #ifdef USE_PCAP
 	/* Close pcap file */
-	if (pcap_dumper) {
-		pcap_dump_close(pcap_dumper);
-	}
+	srl_pcap_dump_close(&pcap_handle);
 #else
 	if (gti) {
 		/* Flush GSMTAP message queue */
@@ -144,8 +265,11 @@ void net_send_rlcmac(uint8_t *msg, int len, int ts, uint8_t ul)
 {
 #ifdef USE_PCAP
 	struct msgb *msgb;
-	msgb = gsmtap_makemsg(ul?ARFCN_UPLINK:0, ts, GSMTAP_CHANNEL_PACCH, 0, 0, 0, 0, msg, len);
-	trace_push_payload(msgb->data,msgb->data_len,0);
+	if (pcap_handle)
+	{
+		msgb = gsmtap_makemsg(ul?ARFCN_UPLINK:0, ts, GSMTAP_CHANNEL_PACCH, 0, 0, 0, 0, msg, len);
+		trace_push_payload(msgb->data,msgb->data_len,0);
+	}
 #else
 	if (gti) {
 		//gsmtap_send(gti, ul?ARFCN_UPLINK:0, 0, 0xd, 0, 0, 0, 0, msg, len);
@@ -163,7 +287,7 @@ void net_send_llc(uint8_t *data, int len, uint8_t ul)
 	uint8_t *dst;
 
 #ifdef USE_PCAP
-	if (!pcap_dumper)
+	if (!pcap_handle)
 		return;
 #else
 	if (!gti)
@@ -210,7 +334,7 @@ void net_send_msg(struct radio_message *m)
 	uint8_t gsmtap_channel;
 
 #ifdef USE_PCAP
-	if (!pcap_dumper)
+	if (!pcap_handle)
 		return;
 #else
 	if (!gti)
