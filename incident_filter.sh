@@ -166,6 +166,7 @@ function gen_catcher_table {
 
 	# Exit immediately if the query did not yield any results
 	if ! [ -s "$TMPFILE" ]; then
+		rm -f $TMPFILE
 		return 0;
 	fi;
 
@@ -284,7 +285,7 @@ function gen_catcher_table {
 
 	echo "</table>" >> $OUTPUT_REP
 	echo "<br><br>" >> $OUTPUT_REP
-	rm $TMPFILE
+	rm -f $TMPFILE
 }
 
 # Generate html view for catcher table
@@ -298,6 +299,7 @@ function gen_events_table {
 
 	# Exit immediately if the query did not yield any results
 	if ! [ -s "$TMPFILE" ]; then
+		rm -f $TMPFILE
 		return 0;
 	fi;
 
@@ -361,7 +363,7 @@ function gen_events_table {
 
 	echo "</table>" >> $OUTPUT_REP
 	echo "<br><br>" >> $OUTPUT_REP
-	rm $TMPFILE
+	rm -f $TMPFILE
 }
 
 # Generate HTML report
@@ -447,7 +449,7 @@ function process_files {
 	ls -d1rt $INPUT_DIR/$INCIDENT/2__*_*_qdmon*-*-*-*UTC*
 	NUMBER_OF_PROCESSED_FILES=`ls -d1rt $INPUT_DIR/$INCIDENT/2__*_*_qdmon*-*-*-*UTC* | wc -l`
 
-	$GP_DIR/diag_import -g trace.pcap `ls -d1rt $INPUT_DIR/$INCIDENT/2__*_*_qdmon*-*-*-*UTC*` > trace.log
+	$GP_DIR/diag_import -vv -g trace.pcap `ls -d1rt $INPUT_DIR/$INCIDENT/2__*_*_qdmon*-*-*-*UTC*` > trace.log
 	if [ $? -ne 0 ]; then
 		echo "Error: Reading trace data into database failed (diag_import), aborting..." >&2
 		exiterr
@@ -588,7 +590,7 @@ function analyze {
 			echo "==> ALARM: Incident detected, storing data..."
 
 			gen_report #Create html report
-			# cp ./trace.log $INCIDENT.log # Log file is not needed, so we omit it
+			cp ./trace.log $INCIDENT.log # Log file is not needed, so we omit it
 			cp ./$TEMP_DB $INCIDENT.sqlite
 			cp ./trace.pcap $INCIDENT.pcap
 			cp ./trace.results $INCIDENT.results

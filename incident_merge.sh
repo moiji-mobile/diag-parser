@@ -126,17 +126,23 @@ function create_db {
 
 ## HTML REPORT GENERATOR ######################################################
 
-# Generate HTML table
-function gen_table {
+# Generate html view for catcher table
+function gen_catcher_table {
 	QUERY=$1
 	PRINT_VALUES=$2
 	DB=$OUTPUT_DB
-	TMPFILE=/var/tmp/incident_merge_tmp.$$;
+	TMPFILE=/var/tmp/incident_merge_tmp.$$
 
 	PRE='<td valign="bottom"><div class="rot"><nobr>&nbsp;&nbsp;&nbsp;'
 	POS='</nobr></div></td>'
 
 	echo $QUERY | sqlite3 $DB > $TMPFILE
+
+	# Exit immediately if the query did not yield any results
+	if ! [ -s "$TMPFILE" ]; then
+		rm -f $TMPFILE
+		return 0;
+	fi;
 
 	echo "<table border=\"1\" cellspacing=\"0\" bgcolor=\"#C0C0C0\">" >> $OUTPUT_REP
 	echo "<tr height=\"$MAX_TEXTLEN\">" >> $OUTPUT_REP
@@ -232,7 +238,61 @@ function gen_table {
 	done;
 
 	echo "</table>" >> $OUTPUT_REP
-	rm $TMPFILE
+	echo "<br><br>" >> $OUTPUT_REP
+	rm -f $TMPFILE
+}
+
+# Generate html view for catcher table
+function gen_events_table {
+	QUERY='select mcc, mnc, count(distinct appid) as users, count(*) as total, sum(case when event_type = 1 then 1 else 0 end) as ota, sum(case when event_type = 2 then 1 else 0 end) as silent, sum(case when event_type = 3 then 1 else 0 end) as nullpaging from events group by mcc, mnc;'
+	DB=$OUTPUT_DB
+	TMPFILE=/var/tmp/incident_merge_tmp.$$
+
+	PRE='<td valign="bottom"><div class="rot"><nobr>&nbsp;&nbsp;&nbsp;'
+	POS='</nobr></div></td>'
+
+	echo $QUERY | sqlite3 $DB > $TMPFILE
+
+	# Exit immediately if the query did not yield any results
+	if ! [ -s "$TMPFILE" ]; then
+		rm -f $TMPFILE
+		return 0;
+	fi;
+
+	echo "CAT"
+	echo $QUERY
+	cat /var/tmp/incident_merge_tmp.$$
+
+	echo "<table border=\"1\" cellspacing=\"0\" bgcolor=\"#C0C0C0\">" >> $OUTPUT_REP
+	echo "<tr height=\"200\">" >> $OUTPUT_REP
+
+	# Table column descriptions: begin
+	# Table column descriptions: begin
+	echo $PRE "MCC" $POS >> $OUTPUT_REP
+	echo $PRE "MNC" $POS >> $OUTPUT_REP
+	echo $PRE "Users" $POS >> $OUTPUT_REP
+	echo $PRE "Samples" $POS >> $OUTPUT_REP
+	echo $PRE "binary SMS / ota" $POS >> $OUTPUT_REP
+	echo $PRE "silent sms" $POS >> $OUTPUT_REP
+	echo $PRE "null paging" $POS >> $OUTPUT_REP
+	# Table column descriptions: end
+	# Table column descriptions: end
+
+	echo "</tr>" >> $OUTPUT_REP
+
+	# Loop through the results and build the table
+	for i in $(cat $TMPFILE); do
+		echo $i | awk -F '|' '{printf "<tr bgcolor=\"#FFFFFF\"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n", $1, $2, $3, $4, $5, $6, $7}' >> $OUTPUT_REP
+	done;
+
+
+
+
+
+
+	echo "</table>" >> $OUTPUT_REP
+	echo "<br><br>" >> $OUTPUT_REP
+	rm -f $TMPFILE
 }
 
 # Generate HTML-Report
@@ -251,13 +311,17 @@ function gen_report {
 
 	echo "Average..."
 	echo "Average over all scores per MCC/MNC<br>" >> $OUTPUT_REP
-	gen_table "$AVG_QUERY" $PRINT_VALUES
+	gen_catcher_table "$AVG_QUERY" $PRINT_VALUES
 
 	echo "<br><br><br><br>" >> $OUTPUT_REP
 
 	echo "Maximum..."
 	echo "Maximum over all scores per MCC/MNC<br>" >> $OUTPUT_REP
-	gen_table "$MAX_QUERY" $PRINT_VALUES
+	gen_catcher_table "$MAX_QUERY" $PRINT_VALUES
+
+	echo "Event statistics..."
+	echo "Event statistics<br>" >> $OUTPUT_REP
+	gen_events_table
 
 	echo "</body>" >> $OUTPUT_REP
 	echo ""
