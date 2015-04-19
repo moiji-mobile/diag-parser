@@ -113,7 +113,6 @@ endif
 
 CFLAGS  += -DUSE_PCAP
 LDFLAGS += -lpcap
-OBJ     += sqlite_api.o
 endif
 
 CFLAGS  += $(EXTRA_CFLAGS)
