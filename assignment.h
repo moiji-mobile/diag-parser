@@ -15,7 +15,7 @@ struct gsm_assignment {
 		struct {
 			int maio;
 			int hsn;
-			uint16_t ma[64];
+			uint16_t ma[128];
 			int ma_len;
 		} h1;
 	};

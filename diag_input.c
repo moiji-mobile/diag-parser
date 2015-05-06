@@ -506,8 +506,7 @@ void handle_diag(uint8_t *msg, unsigned len)
 	struct radio_message *m = NULL;
 
 	if (dp->msg_class != 0x0010) {
-		if (dp->msg_class == 0x001d) {
-			assert(len > 3);
+		if (dp->msg_class == 0x001d && len > 9) {
 			_s[0].timestamp.tv_sec = get_epoch(&msg[3]);
 			_s[1].timestamp = _s[0].timestamp;
 		}
@@ -517,7 +516,9 @@ void handle_diag(uint8_t *msg, unsigned len)
 		return;
 	}
 
-	assert(len > 10);
+	/* Avoid short messages */
+	if (len < 16)
+		return;
 
 	now = get_epoch(&msg[10]);
 	cell_dump(now, 0, 0);

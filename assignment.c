@@ -127,6 +127,7 @@ void parse_assignment(struct gsm48_hdr *hdr, unsigned len, struct gsm_sysinfo_fr
 		ga->tsc = cd->h1.tsc;
 		ga->h1.maio = cd->h1.maio_low | (cd->h1.maio_high << 2);;
 		ga->h1.hsn = cd->h1.hsn;
+		ga->h1.ma_len = 0;
 
 		/* decode mobile allocation */
 		if (ma) {
@@ -155,10 +156,12 @@ void parse_assignment(struct gsm48_hdr *hdr, unsigned len, struct gsm_sysinfo_fr
 				}
 			}
 		} else {
-			for (i=1, j=0; i<=1024; i++) {
+			for (i=1; i<=1024; i++) {
 				arfcn = i & 1023;
 				if (cell_arfcns[arfcn].mask & mask) {
-					ga->h1.ma[ga->h1.ma_len++] = arfcn;
+					if (ga->h1.ma_len < 128) {
+						ga->h1.ma[ga->h1.ma_len++] = arfcn;
+					}
 				}
 			}
 		}
