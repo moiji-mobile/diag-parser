@@ -60,18 +60,27 @@ void diag_init(unsigned start_sid, unsigned start_cid, const char *gsmtap_target
 
 	session_init(start_sid, 0, gsmtap_target, callback_type);
 
+	diag_set_filename(filename);
+	diag_set_appid(appid);
+
+	cell_init(start_cid, _s[0].timestamp.tv_sec, callback_type);
+}
+
+void diag_set_filename(char *filename)
+{
 	if (filename && (filename[0] != '-')) {
 		session_from_filename(filename, &_s[0]);
 		session_from_filename(filename, &_s[1]);
 	}
+}
 
+void diag_set_appid(uint32_t appid)
+{
 	if (appid)
 	{
 		_s[0].appid = appid;
 		_s[1].appid = appid;
 	}
-
-	cell_init(start_cid, _s[0].timestamp.tv_sec, callback_type);
 }
 
 void diag_destroy(unsigned *last_sid, unsigned *last_cid)
