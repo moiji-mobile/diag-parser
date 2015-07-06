@@ -4,6 +4,8 @@
 #include "process.h"
 #include "session.h"
 
+void handle_lai(struct session_info *s, uint8_t *data, int cid);
+void handle_mi(struct session_info *s, uint8_t *data, uint8_t len, uint8_t new_tmsi);
 void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uint8_t ul);
 void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uint32_t fn);
 void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uint32_t fn);

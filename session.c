@@ -215,7 +215,7 @@ void session_free_msg_list(struct session_info *s)
 
 	while (s->first_msg) {
 		m = s->first_msg;
-		if (msg_verbose > 1) {
+		if (msg_verbose > 2) {
 			printf("Freeing pointer %p\n", m);
 		}
 		s->first_msg = m->next;
@@ -696,7 +696,7 @@ void session_close(struct session_info *s)
 
 void link_to_msg_list(struct session_info* s, struct radio_message *m)
 {
-	if (msg_verbose > 1) {
+	if (msg_verbose > 2) {
 		printf("linking to domain %d message ptr %p\n", s->domain, m);
 	}
 
@@ -803,7 +803,7 @@ void session_reset(struct session_info *s, int forced_release)
 	/* Free allocated memory */
 
 	//TODO remove the check below, it's *expensive*
-	if (msg_verbose > 1) {
+	if (msg_verbose > 2) {
 		printf("session reset (at the end of the function), domain: %d\n", old_s.domain);
 	}
 	struct radio_message *tmp = old_s.first_msg;
@@ -862,6 +862,7 @@ int session_from_filename(const char *filename, struct session_info *s)
 	char *xgs_ptr;
 	char *qdmon_ptr;
 	char *ptr;
+	char *ptr_copy = NULL;
 	char *token;
 	unsigned mcc_mnc;
 	struct tm ts;
@@ -890,8 +891,11 @@ int session_from_filename(const char *filename, struct session_info *s)
 		}
 	}
 
+	/* We need a copy, tokenizer is not const */
+	ptr_copy = strdup(ptr);
+
 	/* Create tokenizer and skip first element */
-	token = strtok_r(ptr, ".", &ptr);
+	token = strtok_r(ptr_copy, ".", &ptr);
 	if (!token)
 		goto parse_error;
 
@@ -1000,6 +1004,9 @@ int session_from_filename(const char *filename, struct session_info *s)
 	return 0;
 
 parse_error:
+	if (ptr_copy) {
+		free(ptr_copy);
+	}
 	if (auto_timestamp) {
 		gettimeofday(&s->timestamp, NULL);
 	}

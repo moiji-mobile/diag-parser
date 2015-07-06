@@ -25,7 +25,6 @@ OBJ = \
 	chan_detect.o \
 	crc.o \
 	umts_rrc.o \
-	lte_eps.o \
 	diag_input.o \
 	gprs.o \
 	gsm_interleave.o \
@@ -40,7 +39,11 @@ OBJ = \
 	session.o \
 	sms.o \
 	tch.o \
-	viterbi.o
+	viterbi.o \
+	lte_nas_eps.o \
+	lte_nas_eps_mm.o \
+	lte_nas_eps_sm.o \
+	lte_nas_eps_info.o
 
 TOOLS = diag_import
 
@@ -49,7 +52,7 @@ ifeq ($(TARGET),host)
 CC       = gcc
 AR       = ar
 TOOLS   += hex_import gsmtap_import analyze.sh
-CFLAGS  += -O3 
+CFLAGS  += -O3
 
 else ifeq ($(TARGET),android)
 

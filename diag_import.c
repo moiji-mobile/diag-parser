@@ -147,11 +147,15 @@ process_file(char *infile_name)
 	diag_set_filename(infile_name);
 
 	for (;;) {
-		memset(msg, 0x2b, sizeof(msg));
 		len = fread_unescape(infile, msg, sizeof(msg));
 
-		if (!len) {
+		if (len < 1) {
 			break;
+		}
+
+		/* Terminate message with standard GSM padding */
+		if (len < sizeof(msg) - 1) {
+			msg[len] = 0x2b;
 		}
 
 		handle_diag(msg, len);

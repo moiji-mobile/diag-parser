@@ -202,6 +202,7 @@ struct radio_message * handle_4G(struct diag_packet *dp, unsigned len)
 {
 	unsigned payload_len;
 	struct radio_message *m;
+	uint8_t *data = NULL;
 
 	if (len < 16) {
 		return 0;
@@ -217,6 +218,8 @@ struct radio_message * handle_4G(struct diag_packet *dp, unsigned len)
 		return 0;
 	}
 
+	data = &dp->data[1];
+
 	m = (struct radio_message *) malloc(sizeof(struct radio_message));
 
 	memset(m, 0, sizeof(struct radio_message));
@@ -227,12 +230,51 @@ struct radio_message * handle_4G(struct diag_packet *dp, unsigned len)
 
 	switch (dp->msg_protocol) {
 	case 0xb0c0: // LTE RRC
+		m->flags = MSG_BCCH; // it's not really BCCH, just indicates RRC
+		m->bb.arfcn[0] = ((uint16_t) dp->data[4]) << 8 | dp->data[3];
 		if (dp->data[0]) {
 			// Uplink
+			m->bb.arfcn[0] |= ARFCN_UPLINK;
 		} else {
 			// Downlink
 		}
-		return 0;
+
+		/* Qualcomm to wireshark conversion */
+		switch (dp->data[7]) {
+		case 2:	// BCCH-DL-SCH
+			m->chan_nr = 5;
+			break;
+		case 3: // MCCH
+			m->chan_nr = 7;
+			break;
+		case 4: // PCCH
+			m->chan_nr = 6;
+			break;
+		case 5: // DL-CCCH
+			m->chan_nr = 0;
+			break;
+		case 6: // DL-DCCH
+			m->chan_nr = 1;
+			break;
+		case 7: // UL-CCCH
+			m->chan_nr = 2;
+			break;
+		case 8: // UL-DCCH
+			m->chan_nr = 3;
+			break;
+		default:
+			// Unhandled
+			return NULL;
+		}
+		// verify len
+		payload_len = ((uint16_t)dp->data[9]) << 8 | dp->data[8];
+		if (payload_len > len - 15) {
+			return 0;
+		}
+		if (payload_len > sizeof(m->bb.data)) {
+			return 0;
+		}
+		data = &dp->data[10];
 		break;
 	case 0xb0e0: // LTE NAS ESM DL (protected)
 	case 0xb0ea: // LTE NAS EMM DL (protected)
@@ -254,17 +296,18 @@ struct radio_message * handle_4G(struct diag_packet *dp, unsigned len)
 		m->flags = MSG_SDCCH;
 		m->bb.arfcn[0] = ARFCN_UPLINK;
 		break;
+	case 0xb0f3: // EMM ciphering and integrity keys
 	default:
 		if (msg_verbose > 1) {
 			printf("Discarding 4G message type=%d data=%s\n", dp->msg_type, osmo_hexdump_nospc(dp->data, payload_len));
 		}
 		free(m);
-		return 0;
+		return NULL;
 	}
 
 	m->msg_len = payload_len;
 
-	memcpy(m->bb.data, &dp->data[1], payload_len);
+	memcpy(m->bb.data, data, payload_len);
 
 	return m;
 }
@@ -520,7 +563,7 @@ void handle_diag(uint8_t *msg, unsigned len)
 	if (len < 16)
 		return;
 
-	now = get_epoch(&msg[10]);
+	now = get_epoch(&dp->timestamp);
 	cell_dump(now, 0, 0);
 
 	switch(dp->msg_protocol) {

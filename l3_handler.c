@@ -19,7 +19,7 @@
 #include "cell_info.h"
 #include "output.h"
 #include "umts_rrc.h"
-#include "lte_eps.h"
+#include "lte_nas_eps.h"
 
 void handle_classmark(struct session_info *s, uint8_t *data, uint8_t type)
 {
@@ -130,13 +130,16 @@ void handle_cmreq(struct session_info *s, uint8_t *data)
 	handle_mi(s, cm->mi, cm->mi_len, 0);
 }
 
-void handle_serv_req(struct session_info *s, uint8_t *data)
+void handle_serv_req(struct session_info *s, uint8_t *data, unsigned len)
 {
 	s->started = 1;
 	s->closed = 0;
+	s->serv_req = 1;
 
 	s->initial_seq = data[0] & 7;
-	handle_mi(s, &data[2], data[1], 0);
+	if (len >= 7) {
+		handle_mi(s, &data[2], data[1], 0);
+	}
 }
 
 void handle_pag_resp(struct session_info *s, uint8_t *data)
@@ -167,6 +170,54 @@ void handle_loc_upd_acc(struct session_info *s, uint8_t *data, unsigned len)
 		s->tmsi_realloc = 1;
 		handle_mi(s, &data[7], data[6], 1);
 	}
+}
+
+void handle_id_req(struct session_info *s, uint8_t *data)
+{
+	switch (data[0] & GSM_MI_TYPE_MASK) {
+	case GSM_MI_TYPE_IMSI:
+		SET_MSG_INFO(s, "IDENTITY REQUEST, IMSI");
+		if (s->cipher) {
+			s->iden_imsi_ac = 1;
+		} else {
+			s->iden_imsi_bc = 1;
+		}
+		break;
+	case GSM_MI_TYPE_IMEI:
+	case GSM_MI_TYPE_IMEISV:
+		SET_MSG_INFO(s, "IDENTITY REQUEST, IMEI");
+		if (s->cipher) {
+			s->iden_imei_ac = 1;
+		} else {
+			s->iden_imei_bc = 1;
+		}
+		break;
+	}
+}
+
+void handle_id_resp(struct session_info *s, uint8_t *data, unsigned len)
+{
+	SET_MSG_INFO(s, "IDENTITY RESPONSE");
+
+	switch (data[1] & GSM_MI_TYPE_MASK) {
+	case GSM_MI_TYPE_IMSI:
+		if (s->cipher) {
+			s->iden_imsi_ac = 1;
+		} else {
+			s->iden_imsi_bc = 1;
+		}
+		break;
+	case GSM_MI_TYPE_IMEI:
+	case GSM_MI_TYPE_IMEISV:
+		if (s->cipher) {
+			s->iden_imei_ac = 1;
+		} else {
+			s->iden_imei_bc = 1;
+		}
+		break;
+	}
+
+	handle_mi(s, &data[1], data[0], 0);
 }
 
 void handle_loc_upd_req(struct session_info *s, uint8_t *data)
@@ -353,47 +404,10 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		}
 		break;
 	case 0x18:
-		switch (dtap->data[0] & GSM_MI_TYPE_MASK) {
-		case GSM_MI_TYPE_IMSI:
-			SET_MSG_INFO(s, "IDENTITY REQUEST, IMSI");
-			if (s->cipher) {
-				s->iden_imsi_ac = 1;
-			} else {
-				s->iden_imsi_bc = 1;
-			}
-			break;
-		case GSM_MI_TYPE_IMEI:
-		case GSM_MI_TYPE_IMEISV:
-			SET_MSG_INFO(s, "IDENTITY REQUEST, IMEI");
-			if (s->cipher) {
-				s->iden_imei_ac = 1;
-			} else {
-				s->iden_imei_bc = 1;
-			}
-			break;
-		}
+		handle_id_req(s, dtap->data);
 		break;
 	case 0x19:
-		handle_mi(s, &dtap->data[1], dtap->data[0], 0);
-		switch (dtap->data[1] & GSM_MI_TYPE_MASK) {
-		case GSM_MI_TYPE_IMSI:
-			SET_MSG_INFO(s, "IDENTITY RESPONSE, IMSI %s", s->imsi);
-			if (s->cipher) {
-				s->iden_imsi_ac = 1;
-			} else {
-				s->iden_imsi_bc = 1;
-			}
-			break;
-		case GSM_MI_TYPE_IMEI:
-		case GSM_MI_TYPE_IMEISV:
-			SET_MSG_INFO(s, "IDENTITY RESPONSE, IMEI %s", s->imei);
-			if (s->cipher) {
-				s->iden_imei_ac = 1;
-			} else {
-				s->iden_imei_bc = 1;
-			}
-			break;
-		}
+		handle_id_resp(s, dtap->data, dtap_len - 2);
 		break;
 	case 0x1a:
 		SET_MSG_INFO(s, "TMSI REALLOC COMMAND");
@@ -690,9 +704,12 @@ void handle_attach_acc(struct session_info *s, uint8_t *data, unsigned len)
 	s->attach = 1;
 	s->att_acc = 1;
 
+	if (len < 9) {
+		return;
+	}
 	handle_lai(s, &data[3], data[8]);
 
-	if (data[13] == 0x18) {
+	if (len > 18 && data[13] == 0x18) {
 		handle_mi(s, &data[15], data[14], 1);
 	}
 }
@@ -707,6 +724,52 @@ void handle_ra_upd_acc(struct session_info *s, uint8_t *data, unsigned len)
 	if (data[8] == 0x18) {
 		handle_mi(s, &data[10], data[9], 1);
 	}
+}
+
+void handle_attach_req(struct session_info *s, uint8_t *data, unsigned len)
+{
+	uint8_t offset;
+	struct gsm48_loc_area_id *lai;
+
+	s->attach = 1;
+	s->started = 1;
+	s->closed = 0;
+
+	/* Get MS capabilities length */
+	offset = 1 + data[0];
+	if (offset >= len) {
+		SET_MSG_INFO(s, "FAILED SANITY CHECKS (MS_CAP_LEN)");
+		return;
+	}
+
+	if (offset + 4 >= len) {
+		SET_MSG_INFO(s, "FAILED SANITY CHECKS (NO_DATA_ATT)");
+		return;
+	}
+	s->lu_type = data[offset] & 7;
+	s->initial_seq = (data[offset] >> 4) & 7;
+	offset++;
+
+	/* Skip DRX */
+	offset += 2;
+
+	if (offset + data[offset] + 1 >= len) {
+		SET_MSG_INFO(s, "FAILED SANITY CHECKS (NO_DATA_MI)");
+		return;
+	}
+	/* Get current mobile identity */
+	handle_mi(s, &data[offset+1], data[offset], 0);
+	offset += 1 + data[offset];
+
+	if (offset + 3 >= len) {
+		SET_MSG_INFO(s, "FAILED SANITY CHECKS (NO_DATA_LAI)");
+		return;
+	}
+	/* Get old LAI */
+	lai = (struct gsm48_loc_area_id*) &data[offset];
+        s->lu_mcc = get_mcc(lai->digits);
+        s->lu_mnc = get_mnc(lai->digits);
+        s->lu_lac = htons(lai->lac);
 }
 
 void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
@@ -727,15 +790,9 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 
 	switch (dtap->msg_type & 0x3f) {
 	case 0x01:
+		session_reset(s, 1);
 		SET_MSG_INFO(s, "ATTACH REQUEST");
-		s->attach = 1;
-		s->started = 1;
-		s->closed = 0;
-		// get MS cap
-		// get key seq
-		// RAI
-		// MI
-		// extended cap
+		handle_attach_req(s, dtap->data, len-2);
 		break;
 	case 0x02:
 		SET_MSG_INFO(s, "ATTACH ACCEPT");
@@ -756,8 +813,8 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		SET_MSG_INFO(s, "DETACH ACCEPT");
 		break;
 	case 0x08:
-		SET_MSG_INFO(s, "RA UPDATE REQUEST");
 		session_reset(s, 1);
+		SET_MSG_INFO(s, "RA UPDATE REQUEST");
 		s->raupd = 1;
 		s->mo = 1;
 		s->started = 1;
@@ -766,7 +823,7 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		break;
 	case 0x09:
 		SET_MSG_INFO(s, "RA UPDATE ACCEPT");
-		handle_ra_upd_acc(s, dtap->data, len-2);
+		handle_ra_upd_acc(s, dtap->data, len - 2);
 		break;
 	case 0x0a:
 		SET_MSG_INFO(s, "RA UPDATE COMPLETE");
@@ -776,12 +833,9 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		SET_MSG_INFO(s, "RA UPDATE REJECT");
 		break;
 	case 0x0c:
-		SET_MSG_INFO(s, "SERVICE REQUEST");
 		session_reset(s, 1);
-		s->started = 1;
-		s->closed = 0;
-		s->serv_req = 1;
-		handle_serv_req(s, dtap->data);
+		SET_MSG_INFO(s, "SERVICE REQUEST");
+		handle_serv_req(s, dtap->data, len - 2);
 		break;
 	case 0x0d:
 		SET_MSG_INFO(s, "SERVICE ACCEPT");
@@ -797,21 +851,36 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		break;
 	case 0x12:
 		SET_MSG_INFO(s, "AUTH AND CIPHER REQUEST");
-		s->auth = 1;
+		if (!s->cipher) {
+			s->cipher = dtap->data[0] & 7;
+		}
+		s->cmc_imeisv = !!(dtap->data[0] & 0x70);
+		if ((len > (2 + 20)) && (dtap->data[20] == 0x28)) {
+			s->auth = 2;
+		} else {
+			s->auth = 1;
+		}
 		break;
 	case 0x13:
 		SET_MSG_INFO(s, "AUTH AND CIPHER RESPONSE");
-		s->auth = 1;
+		if (!s->auth) {
+			s->auth = 1;
+		}
+		/* Check if IMEISV is included */
+		if ((len > (2 + 15)) && (dtap->data[6] == 0x23)) {
+			s->cmc_imeisv = 1;
+			handle_mi(s, &dtap->data[8], dtap->data[7], 0);
+		}
 		break;
 	case 0x14:
 		s->auth = 1;
 		SET_MSG_INFO(s, "AUTH AND CIPHER REJECT");
 		break;
 	case 0x15:
-		SET_MSG_INFO(s, "IDENTITY REQUEST");
+		handle_id_req(s, dtap->data);
 		break;
 	case 0x16:
-		SET_MSG_INFO(s, "IDENTITY RESPONSE");
+		handle_id_resp(s, dtap->data, len - 2);
 		break;
 	case 0x20:
 		SET_MSG_INFO(s, "GMM STATUS");
@@ -824,15 +893,38 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 	}
 }
 
+void handle_pdp_accept(struct session_info *s, uint8_t *data, unsigned len)
+{
+	uint8_t offset;
+
+	/* Skip LLC NSAPI */
+	offset = 1;
+
+	/* Skip QoS and Radio priority */
+	offset += 1 + data[offset] + 1;
+	if (offset >= len) {
+		SET_MSG_INFO(s, "FAILED SANITY CHECKS (QOS_LEN_OVER)");
+		return;
+	}
+	/* Check if there is a PDP address */
+	if (data[offset++] != 0x2b) {
+		SET_MSG_INFO(s, "FAILED SANITY CHECKS (NO_PDP_ADDR)");
+		return;
+	}
+	/* Check if compatible with IPv4 */
+	if ((offset + 7 < len) && (data[offset] == 6)) {
+		struct in_addr *in = (struct in_addr *) (&data[offset+3]);
+		strncpy(s->pdp_ip, inet_ntoa(*in), sizeof(s->pdp_ip));
+		s->pdp_ip[15] = 0;
+	}
+}
+
 void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 {
-	//uint8_t sapi;
-	//uint8_t qos_len;
-
 	assert(s != NULL);
 	assert(dtap != NULL);
 
-	if (!len) {
+	if (len < 2) {
 		return;
 	}
 
@@ -850,10 +942,7 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		break;
 	case 0x02:
 		SET_MSG_INFO(s, "ACTIVATE PDP ACCEPT");
-		//sapi = dtap->data[0];
-		//qos_len = dtap->data[1];
-		//assert(qos_len < (len-3));
-		//TLV @ data[3+qos_len+1]
+		handle_pdp_accept(s, dtap->data, len-2);
 		break;
 	case 0x06:
 		SET_MSG_INFO(s, "DEACTIVATE PDP REQUEST");
@@ -1325,12 +1414,18 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 
 	case RAT_UMTS:
 		if (m->flags & MSG_SDCCH) {
+			s[0].rat = RAT_UMTS;
+			s[1].rat = RAT_UMTS;
+
 			if (ul) {
 				handle_dcch_ul(s, m->bb.data, m->msg_len);
 			} else {
 				handle_dcch_dl(s, m->bb.data, m->msg_len);
 			}
 		} else if (m->flags & MSG_FACCH) {
+			s[0].rat = RAT_UMTS;
+			s[1].rat = RAT_UMTS;
+
 			if (ul) {
 				handle_ccch_ul(s, m->bb.data, m->msg_len);
 			} else {
@@ -1348,7 +1443,11 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 		break;
 
 	case RAT_LTE:
-		handle_eps(s, m->bb.data, m->msg_len);
+		if (m->flags & MSG_SDCCH) {
+			s[0].rat = RAT_LTE;
+			s[1].rat = RAT_LTE;
+			handle_naseps(s, m->bb.data, m->msg_len);
+		}
 		if (msg_verbose && s->new_msg == m && m->flags & MSG_DECODED) {
 			printf("LTE %s %u : %s\n", ul ? "UL" : "DL",
 				m->bb.fn[0], m->info[0] ? m->info : osmo_hexdump_nospc(m->bb.data, m->msg_len));

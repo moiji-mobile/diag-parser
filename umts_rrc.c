@@ -39,9 +39,6 @@ int handle_dcch_ul(struct session_info *s, uint8_t *msg, size_t len)
 		return 1;
 	}
 
-	s[0].rat = RAT_UMTS;
-	s[1].rat = RAT_UMTS;
-
 	/* Decode message type */
 	if (msg[0] & 0x80) {
 		/* Integrity present */
@@ -175,9 +172,6 @@ int handle_dcch_dl(struct session_info *s, uint8_t *msg, size_t len)
 	if (!len) {
 		return 1;
 	}
-
-	s[0].rat = RAT_UMTS;
-	s[1].rat = RAT_UMTS;
 
 	/* Pre-decode message type */
 	if (msg[0] & 0x80) {
@@ -352,9 +346,6 @@ int handle_ccch_ul(struct session_info *s, uint8_t *msg, size_t len)
 		return 1;
 	}
 
-	s[0].rat = RAT_UMTS;
-	s[1].rat = RAT_UMTS;
-
 	/* Pre-decode message type */
 	if (msg[0] & 0x80) {
 		if (len < 5) {
@@ -390,9 +381,6 @@ int handle_ccch_dl(struct session_info *s, uint8_t *msg, size_t len)
 	if (!len) {
 		return 1;
 	}
-
-	s[0].rat = RAT_UMTS;
-	s[1].rat = RAT_UMTS;
 
 	/* Pre-decode message type */
 	if (msg[0] & 0x80) {
@@ -469,7 +457,7 @@ void handle_umts_sib_0_frame(struct session_info *s, BIT_STRING_t *frame)
 	s->mnc = n_mnc;
 
 	/* FIXME: When freeing, the whole program exits. */
-	//ASN_STRUCT_FREE(asn_DEF_MasterInformationBlock, sib);
+	ASN_STRUCT_FREE(asn_DEF_MasterInformationBlock, sib);
 }
 
 /* Analyze system information type 1 frame */
@@ -494,7 +482,7 @@ void handle_umts_sib_1_frame(struct session_info *s, BIT_STRING_t *frame)
 	APPEND_MSG_INFO(s, " SIB1 LAC %d", lac);
 	s->lac = lac;
 
-	//ASN_STRUCT_FREE(asn_DEF_SysInfoType1, sib);
+	ASN_STRUCT_FREE(asn_DEF_SysInfoType1, sib);
 }
 
 /* Analyze system information type 3 frame */
@@ -556,7 +544,7 @@ void handle_umts_sib_7_frame(struct session_info *s, BIT_STRING_t *frame)
 
 	APPEND_MSG_INFO(s, " SIB7");
 
-	//ASN_STRUCT_FREE(asn_DEF_SysInfoType7, sib);
+	ASN_STRUCT_FREE(asn_DEF_SysInfoType7, sib);
 }
 
 /* Analyze system information type 11 frame */
@@ -574,7 +562,7 @@ void handle_umts_sib_11_frame(struct session_info *s, BIT_STRING_t *frame)
 
 	APPEND_MSG_INFO(s, " SIB11");
 
-	//ASN_STRUCT_FREE(asn_DEF_SysInfoType11, sib);
+	ASN_STRUCT_FREE(asn_DEF_SysInfoType11, sib);
 }
 
 void handle_umts_sib(struct session_info *s, CompleteSIBshort_t *sib)
@@ -794,6 +782,7 @@ int handle_umts_bcch(struct session_info *s, uint8_t *msg, size_t len)
 	}
 	
 	/* Missing ASN.1 free() */
+	ASN_STRUCT_FREE(asn_DEF_BCCH_BCH_Message, bcch);
 
 	return 0;
 }

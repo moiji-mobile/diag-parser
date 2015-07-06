@@ -42,10 +42,21 @@ void sqlite_api_init(struct session_info *s)
 		exit(1);
 	}
 
+	ret = sqlite3_exec(meta_db, "BEGIN TRANSACTION;", 0, 0, 0);
+	if (ret) {
+		printf("Cannot begin transaction\n");
+	}
+
 	s->sql_callback = sqlite_api_query_cb;
 }
 
 void sqlite_api_destroy()
 {
+	int ret;
+
+	ret = sqlite3_exec(meta_db, "COMMIT TRANSACTION;", 0, 0, 0);
+	if (ret) {
+		printf("Cannot commit transaction\n");
+	}
 	sqlite3_close(meta_db);
 }

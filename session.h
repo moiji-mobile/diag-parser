@@ -67,6 +67,8 @@ struct session_info {
 	uint32_t cipher_delta;
 	uint8_t cipher;
 	uint8_t integrity;
+	uint8_t cipher_nas;
+	uint8_t integrity_nas;
 	uint32_t first_fn;
 	uint32_t last_fn;
 	uint32_t duration;
@@ -102,6 +104,7 @@ struct session_info {
 	uint8_t release;
 	uint8_t rr_cause;
 	uint8_t have_gprs;
+	uint8_t have_ims;
 	uint8_t auth;
 	uint8_t iden_imsi_bc;
 	uint8_t iden_imei_bc;

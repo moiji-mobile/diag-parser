@@ -352,8 +352,8 @@ struct cell_info * get_from_arfcn(struct session_info *s, uint8_t msg_type)
 	llist_for_each_entry_reverse(ci, &cell_list, entry) {
 		/* Match ARFCN */
 		if (ci->bcch_arfcn == arfcn) {
-			/* and last timestamp not older than 10 sec */
-			if (ci->last_seen.tv_sec + 10 > s->new_msg->timestamp.tv_sec) {
+			/* and last timestamp not older than 1 minute */
+			if (ci->last_seen.tv_sec + 60 > s->new_msg->timestamp.tv_sec) {
 				/* and this SI was not seen before */
 				if (ci->si_counter[index] == 0) {
 					return ci;
@@ -806,7 +806,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 		ci->first_seen = s->new_msg->timestamp;
 		ci->id = cell_info_id++;
 		llist_add(&ci->entry, &cell_list);
-		if (msg_verbose > 1) {
+		if (msg_verbose > 2) {
 			printf("linking ptr %p to cell_list\n", ci);
 		}
 	}
