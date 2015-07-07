@@ -76,6 +76,7 @@ const char * si_name[] = {
 struct cell_info {
 	uint32_t id;
 	uint8_t stored;
+	uint8_t has_changed;
 	struct timeval first_seen;
 	struct timeval last_seen;
 	/* DIAG or Android */
@@ -145,6 +146,16 @@ void cell_dump(uint32_t timestamp, int forced, int on_destroy)
 
 	/* Dump cell_info and arfcn_list */
 	llist_for_each_entry_safe(ci, ci2, &cell_list, entry) {
+		/* Check if any update is needed */
+		if (!ci->has_changed) {
+			continue;
+		}
+
+		/* Store only useful cell data */
+		if (!ci->mcc || !ci->lac || !ci->cid) {
+			continue;
+		}
+
 		/* Store main cell_info */
 		cell_make_sql(ci, query, sizeof(query), output_sqlite);
 		if (s.sql_callback && strlen(query))
@@ -793,6 +804,7 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	}
 
 	/* Fill or update structure fields */
+	ci->has_changed = 1;
 	ci->last_seen = s->new_msg->timestamp;
 	if (!ci->bcch_arfcn) {
 		ci->bcch_arfcn = single_arfcn(s->new_msg);

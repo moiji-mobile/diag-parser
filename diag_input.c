@@ -346,7 +346,9 @@ struct radio_message * handle_bcch_and_rr(struct diag_packet *dp, unsigned len)
 	case 0x84: /* SACCH DL RR */
 		return new_l3(dp->data, dtap_len, RAT_GSM, DOMAIN_CS, get_fn(dp), 0, MSG_SACCH);
 	default:
-		print_common(dp, len);
+		if (msg_verbose > 1) {
+			print_common(dp, len);
+		}
 	}
 
 	return 0;
@@ -669,8 +671,8 @@ void handle_diag(uint8_t *msg, unsigned len)
 	default:
 		if (msg_verbose > 1) {
 			fprintf(stderr, "-> Handling default case\n");
+			print_common(dp, len);
 		}
-		print_common(dp, len);
 		break;
 	}
 
