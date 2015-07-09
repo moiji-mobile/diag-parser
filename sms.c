@@ -786,11 +786,13 @@ void handle_cpdata(struct session_info *s, uint8_t *data, unsigned len)
 		SET_MSG_INFO(s, "SMS RP-DATA");
 		handle_rpdata(s, rp->data, len-sizeof(struct gsm411_rp_hdr), 0);
 		s->mo = 1;
+		s->sms_presence = 1;
 		break;
 	case GSM411_MT_RP_DATA_MT:
 		SET_MSG_INFO(s, "SMS RP-DATA");
 		handle_rpdata(s, rp->data, len-sizeof(struct gsm411_rp_hdr), 1);
 		s->mt = 1;
+		s->sms_presence = 1;
 		break;
 	case GSM411_MT_RP_ACK_MO:
 		SET_MSG_INFO(s, "SMS RP-ACK");
@@ -820,7 +822,6 @@ void handle_cpdata(struct session_info *s, uint8_t *data, unsigned len)
 void handle_sms(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 {
 	s->sms = 1;
-	s->sms_presence = 1;
 
 	switch (dtap->msg_type & 0x1f) {
 	case GSM411_MT_CP_DATA:

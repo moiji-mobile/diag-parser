@@ -170,6 +170,7 @@ void cell_dump(uint32_t timestamp, int forced, int on_destroy)
 		}
 
 		ci->stored = 1;
+		ci->has_changed = 0;
 		//llist_del(&ci->entry);
                 /*
                  * FIXME: Elements should be deallocated on deletion. However,
