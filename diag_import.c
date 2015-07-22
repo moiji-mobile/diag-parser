@@ -107,14 +107,16 @@ int main(int argc, char *argv[])
 
 		while (!feof(filelist))
 		{
-			fgets(infile_name, sizeof(infile_name), filelist);
+			char *ret = fgets(infile_name, sizeof(infile_name), filelist);
 			++line;
 			if (ferror(filelist))
 			{
-				err(1, "Cannot open file in %s:%d", filelist_name, line);
+				err(1, "Error parsing file list %s:%d", filelist_name, line);
 			}
-			chop_newline(infile_name);
-			process_file(infile_name);
+			if (ret) {
+				chop_newline(infile_name);
+				process_file(infile_name);
+			}
 		}
 		fclose(filelist);
 	}

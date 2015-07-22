@@ -277,8 +277,8 @@ void handle_scmd(struct session_info *s, naseps_msg_t *msg)
 	selected_nas_security_alogirthms = get_naseps_msg_field_by_pos(msg, 3);
 	if(selected_nas_security_alogirthms && selected_nas_security_alogirthms->data)
 	{
-		s->cipher_nas = ((selected_nas_security_alogirthms->data[0]) >> 4) & 0x7;
-		s->integrity_nas = (selected_nas_security_alogirthms->data[0]) & 0x7;
+		s->cipher = ((selected_nas_security_alogirthms->data[0]) >> 4) & 0x7;
+		s->integrity = (selected_nas_security_alogirthms->data[0]) & 0x7;
 	}
 }
 
@@ -411,8 +411,8 @@ static void naseps_set_msg_info_mm(struct session_info *s, naseps_msg_t *msg)
 	case EPS_MM_IRQ_MSG: 	SET_MSG_INFO(s, "IDENTITY REQUEST"); break;
 	case EPS_MM_IRP_MSG: 	SET_MSG_INFO(s, "IDENTITY RESPONSE"); break;
 	case EPS_MM_SCMD_MSG:
-		SET_MSG_INFO(s, "SECURITY MODE COMMAND");
 		handle_scmd(s,msg);
+		SET_MSG_INFO(s, "SECURITY MODE COMMAND EEA/%d EIA/%d", s->cipher, s->integrity);
 	break;
 	case EPS_MM_SCPL_MSG: 	SET_MSG_INFO(s, "SECURITY MODE COMPLETE"); break;
 	case EPS_MM_SCRJ_MSG: 	SET_MSG_INFO(s, "SECURITY MODE REJECT"); break;

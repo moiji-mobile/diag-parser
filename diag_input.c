@@ -106,10 +106,7 @@ uint32_t get_epoch(uint8_t *qd_time)
 	qd_ts *= 1.25*256.0/1000.0;
 
 	/* Sanity check on timestamp (year > 2011) */
-	if (qd_ts > 1000000000) {
-		/* Adjust timestamp from GPS to UNIX */
-		qd_ts += 315964800.0;
-	} else {
+	if (auto_timestamp || qd_ts < 1000000000) {
 		/* Use current time */
 		int rv = -1;
 		struct timeval tv;
@@ -119,6 +116,9 @@ uint32_t get_epoch(uint8_t *qd_time)
 		if (0 == rv) {
 			return tv.tv_sec;
 		}
+	} else {
+		/* Adjust timestamp from GPS to UNIX */
+		qd_ts += 315964800.0;
 	}
 
 	return qd_ts;
