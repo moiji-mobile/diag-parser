@@ -107,17 +107,6 @@ LDFLAGS += -lsqlite3
 OBJ     += sqlite_api.o
 endif
 
-
-ifeq ($(PCAP),1)
-
-ifneq ($(TARGET),host)
-$(error PCAP supported for host builds only)
-endif
-
-CFLAGS  += -DUSE_PCAP
-LDFLAGS += -lpcap
-endif
-
 CFLAGS  += $(EXTRA_CFLAGS)
 
 %.o: %.c %.h

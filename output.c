@@ -6,7 +6,6 @@
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/gsmtap_util.h>
 #ifdef USE_PCAP
-#include <pcap.h>
 #include <assert.h>
 #include <sys/time.h>
 #endif
