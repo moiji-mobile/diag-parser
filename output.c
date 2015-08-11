@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -13,25 +14,12 @@
 
 #ifdef USE_PCAP
 
-/* Pcap file header */
-struct trace_file_header
-{
-	bpf_u_int32 magic;
-	u_short version_major;
-	u_short version_minor;
-	bpf_int32 thiszone;	/* gmt to local correction */
-	bpf_u_int32 sigfigs;	/* accuracy of timestamps */
-	bpf_u_int32 snaplen;	/* max length saved portion of each pkt */
-	bpf_u_int32 linktype;	/* data link type (LINKTYPE_*) */
-} __attribute__((packed));
-typedef struct trace_file_header trace_file_header_t;
-
 /* Pcap packet header */
 struct trace_pkthdr
 {
-	struct timeval ts;	/* time stamp */
-	bpf_u_int32 caplen;	/* length of portion present  */
-	bpf_u_int32 len;	/* length this packet (off wire) */
+	struct   timeval ts;	/* time stamp */
+	uint32_t caplen;	/* length of portion present  */
+	uint32_t len;		/* length this packet (off wire) */
 };
 typedef struct trace_pkthdr trace_pkthdr_t;
 
@@ -55,27 +43,23 @@ static struct gsmtap_inst *gti = NULL;
 FILE* trace_dump_open(const char *output_file)
 {
 	FILE *handle = NULL;
-	trace_file_header_t hdr;
+	uint8_t pcap_hdr[24] = {0xd4,0xc3,0xb2,0xa1,
+				0x02,0x00,0x04,0x00,
+				0x00,0x00,0x00,0x00,
+				0x00,0x00,0x00,0x00,
+				0xff,0xff,0x00,0x00,
+				0x01,0x00,0x00,0x00};
 	int rc;
-
-	/* Just to be sure, zero out the header structure */
-	memset(&hdr,0,sizeof(hdr));
 
 	/* Create a new file */
 	handle = fopen(output_file,"w");
-	assert(handle);
-
-	/* Fill out header with valid data */
-	hdr.magic = 0xA1B2C3D4;
-	hdr.version_major = 0x0020;
-	hdr.version_minor = 0x0040;
-	hdr.thiszone = 0x00000000;	/* Assume UTC */
-	hdr.sigfigs = 0x00000000;
-	hdr.snaplen = 0x0000FFFF;	/* Our packet size never exceeds 64k */
-	hdr.linktype = 0x00000001;	/* Ethernet */
+	if (!handle) {
+		fprintf(stderr, "Cannot open pcap file %s, %s\n", output_file, strerror(errno));
+		exit(1);
+	}
 
 	/* Write header to file */
-	rc = fwrite(&hdr,sizeof(hdr),1,handle);
+	rc = fwrite(pcap_hdr,sizeof(pcap_hdr),1,handle);
 	assert(rc == 1);
 	fflush(handle);
 
@@ -86,29 +70,24 @@ FILE* trace_dump_open(const char *output_file)
 void trace_dump(trace_pkthdr_t *header, char *packet)
 {
 	int rc;
-	char len[4];
-	char timestamp[8];
+	uint32_t len;
+	uint32_t timestamp[2];
 
 	assert(pcap_handle != NULL);
 	assert(header->caplen == header->len);
 
 	/* Write header */
-	memset(timestamp,0,sizeof(timestamp));
-	timestamp[3] = (header->ts.tv_sec >> 24) & 0x0FF;
-	timestamp[2] = (header->ts.tv_sec >> 16) & 0x0FF;
-	timestamp[1] = (header->ts.tv_sec >> 8) & 0x0FF;
-	timestamp[0] = header->ts.tv_sec & 0x0FF;
+	timestamp[0] = header->ts.tv_sec;
+	timestamp[1] = 0;
 
 	rc = fwrite(timestamp,sizeof(timestamp),1,pcap_handle);
 	assert(rc == 1);
 
-	len[3] = (header->caplen >> 24) & 0x0FF;
-	len[2] = (header->caplen >> 16) & 0x0FF;
-	len[1] = (header->caplen >> 8) & 0x0FF;
-	len[0] = header->caplen & 0x0FF;
-	rc = fwrite(len,sizeof(len),1,pcap_handle);
+	len = header->caplen;
+
+	rc = fwrite(&len,sizeof(len),1,pcap_handle);
 	assert(rc == 1);
-	rc = fwrite(len,sizeof(len),1,pcap_handle);
+	rc = fwrite(&len,sizeof(len),1,pcap_handle);
 	assert(rc == 1);
 
 	/* Write payload */
@@ -155,9 +134,10 @@ static int trace_push_payload(unsigned char *payload_data, int payload_len, stru
 	/* Create pcap header */
 	assert(payload_len + gsmtap_offset <= 65535);
 	if(timestamp) {
-		pcap_pkthdr.ts = *timestamp;
+		memmove(&pcap_pkthdr.ts,timestamp,sizeof(*timestamp));
 	} else {
-		memset(&pcap_pkthdr.ts,0,sizeof(struct timeval));
+		pcap_pkthdr.ts.tv_sec = 0;
+		pcap_pkthdr.ts.tv_usec = 0;
 	}
 	pcap_pkthdr.len = payload_len + gsmtap_offset;
 	pcap_pkthdr.caplen = payload_len + gsmtap_offset;

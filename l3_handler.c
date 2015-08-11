@@ -944,6 +944,16 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		SET_MSG_INFO(s, "ACTIVATE PDP ACCEPT");
 		handle_pdp_accept(s, dtap->data, len-2);
 		break;
+	case 0x03:
+		SET_MSG_INFO(s, "ACTIVATE PDP REJECT");
+		break;
+	case 0x04:
+		SET_MSG_INFO(s, "REQUEST PDP ACTIVATION");
+		s->pdp_activate = 1;
+		break;
+	case 0x05:
+		SET_MSG_INFO(s, "REQUEST PDP ACT REJECT");
+		break;
 	case 0x06:
 		SET_MSG_INFO(s, "DEACTIVATE PDP REQUEST");
 		break;
@@ -954,13 +964,34 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		SET_MSG_INFO(s, "MODIFY PDP REQUEST");
 		break;
 	case 0x09:
-		SET_MSG_INFO(s, "MODIFY PDP ACCEPT");
+		SET_MSG_INFO(s, "MODIFY PDP ACCEPT (MS)");
 		break;
 	case 0x0a:
-		SET_MSG_INFO(s, "DEACTIVATE PDP ACCEPT");
+		SET_MSG_INFO(s, "MODIFY PDP REQUEST (MS)");
+		break;
+	case 0x0b:
+		SET_MSG_INFO(s, "MODIFY PDP ACCEPT");
+		break;
+	case 0x0c:
+		SET_MSG_INFO(s, "MODIFY PDP REJECT");
+		break;
+	case 0x0d:
+		SET_MSG_INFO(s, "ACTIVATE 2ND PDP REQUEST");
+		break;
+	case 0x0e:
+		SET_MSG_INFO(s, "ACTIVATE 2ND PDP ACCEPT");
+		break;
+	case 0x0f:
+		SET_MSG_INFO(s, "ACTIVATE 2ND PDP REJECT");
 		break;
 	case 0x15:
 		SET_MSG_INFO(s, "SM STATUS");
+		break;
+	case 0x1b:
+		SET_MSG_INFO(s, "REQUEST 2ND PDP ACTIVATION");
+		break;
+	case 0x1c:
+		SET_MSG_INFO(s, "REQUEST 2ND PDP ACT REJECT");
 		break;
 	default:
 		SET_MSG_INFO(s, "UNKNOWN SM (%02x)", dtap->msg_type & 0x3f);
