@@ -31,7 +31,7 @@
 #define RATE_LIMIT 1
 #endif /* !RATE_LIMIT */
 
-#define DUMP_INTERVAL 60
+#define DUMP_INTERVAL 600
 
 #include <osmocom/core/bitvec.h>
 #include <osmocom/core/timer.h>

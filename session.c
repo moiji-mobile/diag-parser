@@ -686,6 +686,8 @@ void session_close(struct session_info *s)
 
 			s->sql_callback(sql_buffer);
 		}
+
+		cell_dump(0, 1, 0);
 	}
 
 	/* reset counters */
