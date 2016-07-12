@@ -641,6 +641,9 @@ void handle_diag(uint8_t *msg, unsigned len)
 		if (msg_verbose > 1) {
 			fprintf(stderr, "-> Not handling GPRS GMM\n");
 		}
+		/* downlink handling, UL goes through DTAP */
+		if (dp->msg_type == 0x01)
+			m = new_l3(dp->data + 1, dp->data_len, RAT_GSM, DOMAIN_PS, get_fn(dp), dp->msg_type, MSG_SDCCH);
 		break;
 
 	case 0x713a: // DTAP (2G, 3G)
