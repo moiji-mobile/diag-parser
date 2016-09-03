@@ -11,25 +11,14 @@ OBJ = \
 	address.o \
 	assignment.o \
 	bit_func.o \
-	ccch.o \
-	cch.o \
-	chan_detect.o \
 	crc.o \
 	diag_input.o \
-	gprs.o \
-	gsm_interleave.o \
 	cell_info.o \
 	l3_handler.o \
 	output.o \
-	process.o \
-	punct.o \
 	rand_check.o \
-	rlcmac.o \
-	sch.o \
 	session.o \
 	sms.o \
-	tch.o \
-	viterbi.o \
 	lte_nas_eps.o \
 	lte_nas_eps_mm.o \
 	lte_nas_eps_sm.o \

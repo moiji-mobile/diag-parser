@@ -159,16 +159,12 @@ struct session_info {
 	struct rand_state si6;
 	struct rand_state other_sdcch;
 	struct rand_state other_sacch;
-	void (*sql_callback)(const char *);
 	int output_gsmtap;
 } __attribute__((packed));
 
 inline void link_to_msg_list(struct session_info* s, struct radio_message *m);
 
 #define CALLBACK_NONE 0
-#define CALLBACK_MYSQL 1
-#define CALLBACK_SQLITE 2
-#define CALLBACK_CONSOLE 3
 
 #define SET_MSG_INFO(s, ... )  { \
 	assert((s)->new_msg); \

@@ -7,14 +7,6 @@
 #include "cell_info.h"
 #include "bit_func.h"
 
-#ifdef USE_MYSQL
-#include "mysql_api.h"
-#endif
-
-#ifdef USE_SQLITE
-#include "sqlite_api.h"
-#endif
-
 #define MASK_BCCH	0x01
 #define MASK_NEIGH_2	0x02
 #define MASK_NEIGH_2b	0x04
@@ -22,10 +14,6 @@
 #define MASK_NEIGH_5	0x10
 #define MASK_NEIGH_5b	0x20
 #define MASK_NEIGH_5t	0x40
-
-#ifndef SQLITE_QUERY
-#define SQLITE_QUERY 0
-#endif
 
 #ifndef RATE_LIMIT
 #define RATE_LIMIT 1
@@ -158,15 +146,10 @@ void cell_dump(uint32_t timestamp, int forced, int on_destroy)
 
 		/* Store main cell_info */
 		cell_make_sql(ci, query, sizeof(query), output_sqlite);
-		if (s.sql_callback && strlen(query))
-			(*s.sql_callback)(query);
 
 		/* Append queries for ARFCN storage */
 		for (i = 0; i < SI_MAX; i++) {
 			arfcn_list_make_sql(ci, i, query, sizeof(query), output_sqlite);
-			if (s.sql_callback && strlen(query)) {
-				(*s.sql_callback)(query);
-			}
 		}
 
 		ci->stored = 1;
@@ -219,20 +202,6 @@ void cell_init(unsigned start_id, uint32_t unix_time, int callback)
 
 	switch (callback) {
 	case CALLBACK_NONE:
-		break;
-#ifdef USE_MYSQL
-	case CALLBACK_MYSQL:
-		output_sqlite = 0;
-		mysql_api_init(&s);
-		break;
-#endif
-#ifdef USE_SQLITE
-	case CALLBACK_SQLITE:
-		sqlite_api_init(&s);
-		break;
-#endif
-	case CALLBACK_CONSOLE:
-		s.sql_callback = console_callback;
 		break;
 	}
 }

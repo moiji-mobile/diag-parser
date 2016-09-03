@@ -11,7 +11,6 @@
 #include <assert.h>
 
 #include "diag_input.h"
-#include "process.h"
 #include "session.h"
 #include "diag_structs.h"
 #include "l3_handler.h"
@@ -39,17 +38,7 @@ void diag_init(unsigned start_sid, unsigned start_cid, const char *gsmtap_target
 {
 	int callback_type;
 
-#ifdef USE_MYSQL
-	callback_type = CALLBACK_MYSQL;
-	msg_verbose = 0;
-#else
-#ifdef USE_SQLITE
-	callback_type = CALLBACK_SQLITE;
-#else
-	callback_type = CALLBACK_CONSOLE;
-	//msg_verbose = 1;
-#endif
-#endif
+	callback_type = CALLBACK_NONE;
 #ifdef USE_AUTOTIME
 	auto_timestamp = 1;
 #else

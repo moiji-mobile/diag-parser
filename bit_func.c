@@ -2,10 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-#ifdef USE_SQLITE
-#include <sqlite3.h>
-#endif
-
 #include "bit_func.h"
 
 inline int not_zero(uint8_t *t, unsigned size)
@@ -266,14 +262,7 @@ char * strescape_or_null(char *str)
 		return strdup("NULL");
 	}
 
-#ifdef USE_SQLITE
-	escaped = sqlite3_mprintf("%Q", str);
-	str = strdup(escaped);
-	sqlite3_free(escaped);
-	return str;
-#else
 	basic_sanitize(str);
-#endif
 
 	len = strlen(str);
 

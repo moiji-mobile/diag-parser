@@ -1,5 +1,0 @@
-#!/bin/sh -eu
-
-DB=trace.sqlite
-
-cat <<SQL | sqlite3 ${DB}
