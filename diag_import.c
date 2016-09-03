@@ -14,12 +14,9 @@ void process_file(char *infile_name);
 static void usage(const char *progname, const char *reason)
 {
 	printf("%s\n", reason);
-	printf("Usage: %s [-s <id>] [-c <id>] [-f <filelist>] [filenames]\n", progname);
-	printf("	-s <id>       - First session_info ID to be used for SQL\n");
-	printf("	-c <id>       - First cell_info ID to be used for SQL\n");
+	printf("Usage: %s [-f <filelist>] [filenames]\n", progname);
 	printf("	-g <target>   - Target host for GSMTAP UDP stream\n");
 	printf("	-f <filelist> - Read list of input files from <filelist>\n");
-	printf("	-a <appid>    - Set appid to <appid> (in hex)\n");
 	printf("	-v            - Verbose messages\n");
 	printf("	[filenames]   - Read DIAG data from [filenames]\n");
 	exit(1);
@@ -49,22 +46,13 @@ int main(int argc, char *argv[])
 
 	msg_verbose = 0;
 
-	while ((ch = getopt(argc, argv, "s:c:g:f:a:v")) != -1) {
+	while ((ch = getopt(argc, argv, "g:f:v")) != -1) {
 		switch (ch) {
-			case 's':
-				sid = atol(optarg);
-				break;
-			case 'c':
-				cid = atol(optarg);
-				break;
 			case 'g':
 				gsmtap_target = strdup(optarg);
 				break;
 			case 'f':
 				filelist_name = strdup(optarg);
-				break;
-			case 'a':
-				appid = strtol(optarg, (char **)NULL, 16);
 				break;
 			case 'v':
 				msg_verbose++;
