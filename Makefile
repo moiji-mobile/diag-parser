@@ -6,15 +6,12 @@ CFLAGS  = \
 	-fPIC \
 	-I. \
 	-I$(PREFIX)/include \
-	-I$(PREFIX)/include/asn1c
 
 LDFLAGS = \
 	-L$(PREFIX)/lib \
 	-losmocore \
 	-losmogsm \
-	-lasn1c \
-	-lm \
-	-losmo-asn1-rrc
+	-lm
 
 OBJ = \
 	address.o \
@@ -24,7 +21,6 @@ OBJ = \
 	cch.o \
 	chan_detect.o \
 	crc.o \
-	umts_rrc.o \
 	diag_input.o \
 	gprs.o \
 	gsm_interleave.o \
