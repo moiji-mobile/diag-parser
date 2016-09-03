@@ -132,15 +132,9 @@ struct session_info {
 	char msisdn[GSM48_MI_SIZE];
 	struct gsm_assignment ga;
 	struct frame_count fc;
-	struct burst_buf bcch;
-	struct burst_buf sdcch;
-	struct burst_buf sacch;
-	struct burst_buf facch[2];
 	struct lapdm_buf chan_sdcch[2*2];
 	struct lapdm_buf chan_sacch[2*2];
 	struct lapdm_buf chan_facch[2*2];
-	struct burst_buf saccht[4];
-	struct burst_buf gprs[16];
 	uint8_t last_dtap[256];
 	uint8_t last_dtap_len;
 	uint8_t last_dtap_rat;

@@ -554,7 +554,7 @@ void handle_diag(uint8_t *msg, unsigned len)
 	if (len < 16)
 		return;
 
-	now = get_epoch(&dp->timestamp);
+	now = get_epoch((uint8_t *) &dp->timestamp);
 	cell_dump(now, 0, 0);
 
 	switch(dp->msg_protocol) {
