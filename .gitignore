@@ -1,6 +1,6 @@
 *.o
 *.so
-diag_import
+diag_parser
 libmetagsm.*
 *.sw?
 deps/

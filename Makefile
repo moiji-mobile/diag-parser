@@ -25,7 +25,7 @@ OBJ = \
 	lte_nas_eps_sm.o \
 	lte_nas_eps_info.o
 
-TOOLS = diag_import
+TOOLS = diag_parser
 
 
 CC      = $(CROSS_COMPILE)gcc
@@ -47,7 +47,7 @@ install: $(TOOLS)
 libmetagsm.a: $(OBJ)
 	$(AR) rcs $@ $^
 
-diag_import: diag_import.o libmetagsm.a
+diag_parser: diag_import.o libmetagsm.a
 	$(CC) -o $@  diag_import.o libmetagsm.a $(LDFLAGS) $(LIBS)
 
 clean:
