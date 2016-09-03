@@ -10,14 +10,6 @@
 #include <assert.h>
 #include <osmocom/gsm/gsm_utils.h>
 
-#ifdef USE_MYSQL
-#include "mysql_api.h"
-#endif
-
-#ifdef USE_SQLITE
-#include "sqlite_api.h"
-#endif
-
 #define APPEND(log, msg) snprintf(log+strlen(log), sizeof(log)-strlen(log), "%s", msg);
 
 #ifndef MSG_VERBOSE
@@ -37,7 +29,6 @@ uint8_t auto_reset = 1;
 static uint8_t output_console = 1;
 static uint8_t output_gsmtap = 1;
 static uint8_t output_pcap = 1;
-static uint8_t output_sqlite = 1;
 
 static uint32_t s_id = 0;
 static struct session_info *s_pointer = 0;
@@ -46,14 +37,6 @@ pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 struct session_info _s[2];
 
 uint32_t now = 0;
-
-static void console_callback(const char *sql)
-{
-	assert(sql != NULL);
-
-	printf("SQL: %s", sql);
-	fflush(stdout);
-}
 
 void session_init(unsigned start_sid, int console, const char *gsmtap_target, const char *pcap_target, int callback)
 {
@@ -66,23 +49,6 @@ void session_init(unsigned start_sid, int console, const char *gsmtap_target, co
 
 	switch (callback) {
 	case CALLBACK_NONE:
-		break;
-#ifdef USE_MYSQL
-	case CALLBACK_MYSQL:
-		output_sqlite = 0;
-		mysql_api_init(&_s[0]);
-		mysql_api_init(&_s[1]);
-		break;
-#endif
-#ifdef USE_SQLITE
-	case CALLBACK_SQLITE:
-		sqlite_api_init(&_s[0]);
-		sqlite_api_init(&_s[1]);
-		break;
-#endif
-	case CALLBACK_CONSOLE:
-		_s[0].sql_callback = console_callback;
-		_s[1].sql_callback = console_callback;
 		break;
 	}
 
@@ -108,19 +74,6 @@ void session_destroy(unsigned *last_sid, unsigned *last_cid)
 
 	cell_destroy(last_cid);
 	net_destroy();
-
-	if (_s[0].sql_callback) {
-#ifdef USE_SQLITE
-		if (output_sqlite == 1) {
-			sqlite_api_destroy();
-		}
-#endif
-#ifdef USE_MYSQL
-		if (output_sqlite == 0) {
-			mysql_api_destroy();
-		}
-#endif
-	}
 }
 
 struct session_info *session_create(int id, char* name, uint8_t *key, int mcc, int mnc, int lac, int cid, struct gsm_sysinfo_freq *ca)
@@ -655,40 +608,6 @@ void session_close(struct session_info *s)
 	if (output_console)
 		session_print(s);
 
-	if (s->sql_callback) {
-		char sql_buffer[8192];
-		struct sms_meta *sm;
-
-		session_make_sql(s, sql_buffer, sizeof(sql_buffer), output_sqlite);
-		s->sql_callback(sql_buffer);
-
-		if ((s->rat == RAT_GSM) && (s->domain == DOMAIN_CS)) {
-			session_make_rand_sql(s, sql_buffer, sizeof(sql_buffer));
-			s->sql_callback(sql_buffer);
-		}
-
-		paging_make_sql(s->id, sql_buffer, sizeof(sql_buffer));
-		s->sql_callback(sql_buffer);
-
-		sm = s->sms_list;
-		while (sm) {
-			sms_make_sql(s->id, sm, sql_buffer, sizeof(sql_buffer));
-			s->sql_callback(sql_buffer);
-
-			sm = sm->next;
-		}
-
-		if (s->appid) {
-			snprintf(sql_buffer, sizeof(sql_buffer),
-				 "INSERT INTO sid_appid VALUES (%d,'%08x');\n",
-				 s->id, s->appid); 
-
-			s->sql_callback(sql_buffer);
-		}
-
-		cell_dump(0, 1, 0);
-	}
-
 	/* reset counters */
 	paging_reset();
 
@@ -783,7 +702,6 @@ void session_reset(struct session_info *s, int forced_release)
 	if (strlen(old_s.imsi)) {
 		strncpy(s->imsi, old_s.imsi, sizeof(s->imsi));
 	}
-	s->sql_callback = old_s.sql_callback;
 
 	if (forced_release) {
 		s->new_msg = m;
