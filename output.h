@@ -3,10 +3,8 @@
 
 #include "session.h"
 
-void net_init(const char *target);
+void net_init(const char *gsmtap, const char *pcap);
 void net_destroy();
 void net_send_msg(struct radio_message *m);
-void net_send_llc(uint8_t *data, int len, uint8_t ul);
-void net_send_rlcmac(uint8_t *msg, int len, int ts, uint8_t ul);
 
 #endif

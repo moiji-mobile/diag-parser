@@ -16,6 +16,7 @@ static void usage(const char *progname, const char *reason)
 	printf("%s\n", reason);
 	printf("Usage: %s [-f <filelist>] [filenames]\n", progname);
 	printf("	-g <target>   - Target host for GSMTAP UDP stream\n");
+	printf("	-p <pcapfile> - Write to PCAP file\n");
 	printf("	-f <filelist> - Read list of input files from <filelist>\n");
 	printf("	-v            - Verbose messages\n");
 	printf("	[filenames]   - Read DIAG data from [filenames]\n");
@@ -38,6 +39,7 @@ int main(int argc, char *argv[])
 	FILE *filelist = NULL;
 	char *filelist_name = NULL;
 	char *gsmtap_target = NULL;
+	char *pcap_target = NULL;
 	uint32_t appid = 0;
 	int ch;
 	long sid = 0;
@@ -46,10 +48,13 @@ int main(int argc, char *argv[])
 
 	msg_verbose = 0;
 
-	while ((ch = getopt(argc, argv, "g:f:v")) != -1) {
+	while ((ch = getopt(argc, argv, "p:g:f:v")) != -1) {
 		switch (ch) {
 			case 'g':
 				gsmtap_target = strdup(optarg);
+				break;
+			case 'p':
+				pcap_target = strdup(optarg);
 				break;
 			case 'f':
 				filelist_name = strdup(optarg);
@@ -71,7 +76,7 @@ int main(int argc, char *argv[])
 		errx(1, "Invalid arguments");
 	}
 
-	diag_init(sid, cid, gsmtap_target, NULL, appid);
+	diag_init(sid, cid, gsmtap_target, pcap_target, NULL, appid);
 
 	printf("PARSER_OK\n");
 	fflush(stdout);

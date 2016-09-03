@@ -35,7 +35,7 @@ struct burst_info {
 
 struct radio_message *last_m = NULL;
 
-void diag_init(unsigned start_sid, unsigned start_cid, const char *gsmtap_target, char *filename, uint32_t appid)
+void diag_init(unsigned start_sid, unsigned start_cid, const char *gsmtap_target, const char *pcap_target, char *filename, uint32_t appid)
 {
 	int callback_type;
 
@@ -58,7 +58,7 @@ void diag_init(unsigned start_sid, unsigned start_cid, const char *gsmtap_target
 
 	memset(&last_burst, 0, sizeof(last_burst));
 
-	session_init(start_sid, 0, gsmtap_target, callback_type);
+	session_init(start_sid, 0, gsmtap_target, pcap_target, callback_type);
 
 	diag_set_filename(filename);
 	diag_set_appid(appid);

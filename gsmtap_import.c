@@ -201,7 +201,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	session_init(atoi(argv[2]), 1, "127.0.0.1", CALLBACK_MYSQL);
+	session_init(atoi(argv[2]), 1, "127.0.0.1", NULL, CALLBACK_MYSQL);
 	cell_init(atoi(argv[3]), pkt_hdr.ts.tv_sec, CALLBACK_MYSQL);
 	msg_verbose = 0;
 
