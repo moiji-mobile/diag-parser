@@ -1447,23 +1447,10 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 		if (m->flags & MSG_SDCCH) {
 			s[0].rat = RAT_UMTS;
 			s[1].rat = RAT_UMTS;
-
-			if (ul) {
-				handle_dcch_ul(s, m->bb.data, m->msg_len);
-			} else {
-				handle_dcch_dl(s, m->bb.data, m->msg_len);
-			}
 		} else if (m->flags & MSG_FACCH) {
 			s[0].rat = RAT_UMTS;
 			s[1].rat = RAT_UMTS;
-
-			if (ul) {
-				handle_ccch_ul(s, m->bb.data, m->msg_len);
-			} else {
-				handle_ccch_dl(s, m->bb.data, m->msg_len);
-			}
 		} else if (m->flags & MSG_BCCH) {
-			handle_umts_bcch(s, m->bb.data, m->msg_len);
 		} else {
 			assert(0);
 		}
