@@ -9,7 +9,7 @@
 #include "session.h"
 #include <stdlib.h>
 
-void process_file(char *infile_name);
+void process_file(char *infile_name, int do_init);
 
 static void usage(const char *progname, const char *reason)
 {
@@ -18,6 +18,7 @@ static void usage(const char *progname, const char *reason)
 	printf("	-g <target>   - Target host for GSMTAP UDP stream\n");
 	printf("	-p <pcapfile> - Write to PCAP file\n");
 	printf("	-f <filelist> - Read list of input files from <filelist>\n");
+	printf("	-i            - Initialize device\n");
 	printf("	-v            - Verbose messages\n");
 	printf("	[filenames]   - Read DIAG data from [filenames]\n");
 	exit(1);
@@ -45,10 +46,11 @@ int main(int argc, char *argv[])
 	long sid = 0;
 	long cid = 0;
 	int line = 0;
+	int init = 0;
 
 	msg_verbose = 0;
 
-	while ((ch = getopt(argc, argv, "p:g:f:v")) != -1) {
+	while ((ch = getopt(argc, argv, "p:g:f:vi")) != -1) {
 		switch (ch) {
 			case 'g':
 				gsmtap_target = strdup(optarg);
@@ -58,6 +60,9 @@ int main(int argc, char *argv[])
 				break;
 			case 'f':
 				filelist_name = strdup(optarg);
+				break;
+			case 'i':
+				init = 1;
 				break;
 			case 'v':
 				msg_verbose++;
@@ -84,7 +89,7 @@ int main(int argc, char *argv[])
 	//  Handle files passed to command line first
 	while (argc > 0)
 	{
-		process_file(argv[0]);
+		process_file(argv[0], init);
 		argc--;
 		argv++;
 	};
@@ -108,7 +113,7 @@ int main(int argc, char *argv[])
 			}
 			if (ret) {
 				chop_newline(infile_name);
-				process_file(infile_name);
+				process_file(infile_name, init);
 			}
 		}
 		fclose(filelist);
@@ -120,7 +125,7 @@ int main(int argc, char *argv[])
 }
 
 void
-process_file(char *infile_name)
+process_file(char *infile_name, int do_init)
 {
 	uint8_t msg[4096];
 	FILE *infile = NULL;
@@ -139,6 +144,8 @@ process_file(char *infile_name)
 		err(1, "Cannot open input file: %s", infile_name);
 	}
 
+	if (do_init)
+		diag_set_log(infile);
 	diag_set_filename(infile_name);
 
 	for (;;) {

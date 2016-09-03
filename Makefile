@@ -13,6 +13,7 @@ OBJ = \
 	bit_func.o \
 	crc.o \
 	diag_input.o \
+	diag_init.o \
 	cell_info.o \
 	l3_handler.o \
 	output.o \
