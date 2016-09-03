@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	diag_init(atoi(argv[1]), atoi(argv[2]), NULL, NULL, 0);
+	diag_init(atoi(argv[1]), atoi(argv[2]), NULL, NULL, NULL, 0);
 
 	printf("PARSER_OK\n");
 	fflush(stdout);

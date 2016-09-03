@@ -107,10 +107,6 @@ LDFLAGS += -lsqlite3
 OBJ     += sqlite_api.o
 endif
 
-ifeq ($(PCAP),1)
-CFLAGS  += -DUSE_PCAP
-endif
-
 CFLAGS  += $(EXTRA_CFLAGS)
 
 %.o: %.c %.h

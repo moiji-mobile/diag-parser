@@ -6,13 +6,10 @@
 #include <osmocom/gsm/rsl.h>
 #include <osmocom/core/gsmtap.h>
 #include <osmocom/core/gsmtap_util.h>
-#ifdef USE_PCAP
 #include <assert.h>
 #include <sys/time.h>
-#endif
 #include "output.h"
 
-#ifdef USE_PCAP
 
 /* Pcap packet header */
 struct trace_pkthdr
@@ -30,17 +27,13 @@ static size_t udplen_offset;		/* Offset where the udp length is stored */
 static size_t iphdrchksum_offset;	/* Offset where the ip header checksum is stored */
 static size_t iptotlen_offset;		/* Ip header total length offset */
 
-#else
-
 static struct gsmtap_inst *gti = NULL;
 
-#endif
 
 
 
-#ifdef USE_PCAP
 /* Create a new pcap file */
-FILE* trace_dump_open(const char *output_file)
+static FILE* trace_dump_open(const char *output_file)
 {
 	FILE *handle = NULL;
 	uint8_t pcap_hdr[24] = {0xd4,0xc3,0xb2,0xa1,
@@ -67,7 +60,7 @@ FILE* trace_dump_open(const char *output_file)
 }
 
 /* Dump a packet into pcap file */
-void trace_dump(trace_pkthdr_t *header, char *packet)
+static void trace_dump(trace_pkthdr_t *header, char *packet)
 {
 	int rc;
 	uint32_t len;
@@ -99,7 +92,7 @@ void trace_dump(trace_pkthdr_t *header, char *packet)
 
 /* IP header checksum calculator */
 /* Source: http://www.microhowto.info/howto/calculate_an_internet_protocol_checksum_in_c.html */
-uint16_t ip_checksum(void* vdata,size_t length) {
+static uint16_t ip_checksum(void* vdata,size_t length) {
 	char* data=(char*)vdata;
 	uint32_t acc=0xffff;
 	size_t i;
@@ -126,7 +119,7 @@ uint16_t ip_checksum(void* vdata,size_t length) {
 }
 
 /* Helper function to write some payload data into the pcap file */
-static int trace_push_payload(unsigned char *payload_data, int payload_len, struct timeval *timestamp)
+static void trace_push_payload(unsigned char *payload_data, int payload_len, struct timeval *timestamp)
 {
 	struct trace_pkthdr pcap_pkthdr;
 	int ip_hdr_checksum;
@@ -160,20 +153,15 @@ static int trace_push_payload(unsigned char *payload_data, int payload_len, stru
 
 	/* Dump to pcap file */
 	trace_dump(&pcap_pkthdr, pcap_buff);
-
-	return 0;
 }
 
-#endif
-
-void net_init(const char *target)
+void net_init(const char *gsmtap_target, const char *pcap_target)
 {
-#ifdef USE_PCAP
 	/* Avoid double initalization */
-	if(pcap_handle == NULL)
+	if(pcap_handle == NULL && pcap_target)
 	{
 		/* Create pcap file */
-		pcap_handle = trace_dump_open(target);
+		pcap_handle = trace_dump_open(pcap_target);
 
 		/* Prepare buffer with hand-crafted dummy ethernet+ip+udp header */
 		char dummy_eth_hdr[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -188,123 +176,43 @@ void net_init(const char *target)
 		udplen_offset = sizeof(dummy_eth_hdr) - 4;
 		iphdrchksum_offset = sizeof(dummy_eth_hdr) - 18;
 		iptotlen_offset = 16;
+	} else if (gsmtap_target) {
+		/* GSMTAP init */
+		int rc;
+		gti = gsmtap_source_init(gsmtap_target, GSMTAP_UDP_PORT, 0);
+		if (!gti) {
+			fprintf(stderr, "Cannot initialize GSMTAP\n");
+			abort();
+		}
+		rc = gsmtap_source_add_sink(gti);
+		assert(rc >= 0);
 	}
-#else
-	/* GSMTAP init */
-	int rc;
-	gti = gsmtap_source_init(target, GSMTAP_UDP_PORT, 0);
-	if (!gti) {
-		fprintf(stderr, "Cannot initialize GSMTAP\n");
-		abort();
-	}
-	rc = gsmtap_source_add_sink(gti);
-	assert(rc >= 0);
-#endif
-
 }
 
 void net_destroy()
 {
-#ifdef USE_PCAP
 	/* Close pcap file */
 	if (pcap_handle) {
 		fclose(pcap_handle);
 		pcap_handle = NULL;
 	}
-#else
 	if (gti) {
-		/* Flush GSMTAP message queue */
-		while (osmo_select_main(1));
-
 		// Found no counterpart to gsmtap_source_init that
 		// would free resources. Doing that by hand, otherwise
 		// we run out of file descriptors...
 		close(gti->wq.bfd.fd);
 		talloc_free(gti);
 	}
-#endif
 }
 
-
-void net_send_rlcmac(uint8_t *msg, int len, int ts, uint8_t ul)
-{
-#ifdef USE_PCAP
-	struct msgb *msgb;
-	if (pcap_handle)
-	{
-		msgb = gsmtap_makemsg(ul?ARFCN_UPLINK:0, ts, GSMTAP_CHANNEL_PACCH, 0, 0, 0, 0, msg, len);
-		trace_push_payload(msgb->data,msgb->data_len,0);
-	}
-#else
-	if (gti) {
-		//gsmtap_send(gti, ul?ARFCN_UPLINK:0, 0, 0xd, 0, 0, 0, 0, msg, len);
-		gsmtap_send(gti, ul?ARFCN_UPLINK:0, ts, GSMTAP_CHANNEL_PACCH, 0, 0, 0, 0, msg, len);
-
-	}
-#endif
-}
-
-
-void net_send_llc(uint8_t *data, int len, uint8_t ul)
-{
-	struct msgb *msg;
-	struct gsmtap_hdr *gh;
-	uint8_t *dst;
-
-#ifdef USE_PCAP
-	if (!pcap_handle)
-		return;
-#else
-	if (!gti)
-		return;
-#endif
-
-	if ((data[0] == 0x43) &&
-	    (data[1] == 0xc0) &&
-	    (data[2] == 0x01))
-		return;
-
-	msg = msgb_alloc(sizeof(*gh) + len, "gsmtap_tx");
-	if (!msg)
-	        return;
-
-	gh = (struct gsmtap_hdr *) msgb_put(msg, sizeof(*gh));
-
-	gh->version = GSMTAP_VERSION;
-	gh->hdr_len = sizeof(*gh)/4;
-	gh->type = 8;
-	gh->timeslot = 0;
-	gh->sub_slot = 0;
-	gh->arfcn = ul ? htons(ARFCN_UPLINK) : 0;
-	gh->snr_db = 0;
-	gh->signal_dbm = 0;
-	gh->frame_number = 0;
-	gh->sub_type = 0;
-	gh->antenna_nr = 0;
-
-        dst = msgb_put(msg, len);
-        memcpy(dst, data, len);
-
-#ifdef USE_PCAP
-	trace_push_payload(msg->data,msg->data_len,0);
-#else
-	gsmtap_sendmsg(gti, msg);
-#endif
-
-}
 
 void net_send_msg(struct radio_message *m)
 {
 	struct msgb *msgb = 0;
 	uint8_t gsmtap_channel;
 
-#ifdef USE_PCAP
-	if (!pcap_handle)
+	if (!pcap_handle && !gti)
 		return;
-#else
-	if (!gti)
-		return;
-#endif
 
 	if (!(m->flags & MSG_DECODED))
 		return;
@@ -359,16 +267,16 @@ void net_send_msg(struct radio_message *m)
 	}
 
 	if (msgb) {
-#ifdef USE_PCAP
-		int ret = trace_push_payload(msgb->data,msgb->data_len,&m->timestamp);
-#else
-		int ret = gsmtap_sendmsg(gti, msgb);
-#endif
-		if (ret != 0) {
-			msgb_free(msgb);
-		} else {
-			osmo_select_main(1);
+		int del = 1;
+
+		if (pcap_handle)
+			trace_push_payload(msgb->data,msgb->data_len,&m->timestamp);
+		if (gti) {
+			int ret = gsmtap_sendmsg(gti, msgb);
+			del = ret != 0;
 		}
+		if (del)
+			msgb_free(msgb);
 	}
 }
 

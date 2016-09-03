@@ -36,6 +36,7 @@ uint8_t auto_reset = 1;
 
 static uint8_t output_console = 1;
 static uint8_t output_gsmtap = 1;
+static uint8_t output_pcap = 1;
 static uint8_t output_sqlite = 1;
 
 static uint32_t s_id = 0;
@@ -54,10 +55,11 @@ static void console_callback(const char *sql)
 	fflush(stdout);
 }
 
-void session_init(unsigned start_sid, int console, const char *gsmtap_target, int callback)
+void session_init(unsigned start_sid, int console, const char *gsmtap_target, const char *pcap_target, int callback)
 {
 	output_console = console;
 	output_gsmtap = (gsmtap_target == NULL ? 0 : 1);
+	output_pcap = (pcap_target == NULL ? 0 : 1);
 
 	// Reset both domains
 	memset(_s, 0, sizeof(_s));
@@ -90,10 +92,7 @@ void session_init(unsigned start_sid, int console, const char *gsmtap_target, in
 	_s[1].id = s_id++;
 	_s[1].domain = DOMAIN_PS;
 
-	if (gsmtap_target != NULL)
-	{
-		net_init(gsmtap_target);
-	}
+	net_init(gsmtap_target, pcap_target);
 }
 
 void session_destroy(unsigned *last_sid, unsigned *last_cid)
@@ -650,7 +649,7 @@ void session_close(struct session_info *s)
 #endif
 
 	/* Output functions */
-	if (output_gsmtap && !auto_reset)
+	if ((output_gsmtap || output_pcap) && !auto_reset)
 		session_stream(s);
 
 	if (output_console)
