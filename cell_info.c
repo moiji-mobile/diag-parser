@@ -33,7 +33,6 @@ static unsigned cell_info_id;
 static struct llist_head cell_list;
 static unsigned output_sqlite = 1;
 static uint32_t previous_ts = 0;
-static struct session_info s;
 unsigned paging_count[3];
 unsigned paging_imsi;
 unsigned paging_tmsi;
@@ -172,14 +171,6 @@ void cell_dump(uint32_t timestamp, int forced, int on_destroy)
 	}
 
 	previous_ts = timestamp;
-}
-
-static void console_callback(const char *sql)
-{
-	assert(sql != NULL);
-
-	printf("SQL: %s\n", sql);
-	fflush(stdout);
 }
 
 void cell_init(unsigned start_id, uint32_t unix_time, int callback)
@@ -546,14 +537,12 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	struct gsm48_system_information_type_2 *si2;
 	struct gsm48_system_information_type_2bis *si2b;
 	struct gsm48_system_information_type_2ter *si2t;
-	struct gsm48_system_information_type_2quater *si2q;
 	struct gsm48_system_information_type_3 *si3;
 	struct gsm48_system_information_type_4 *si4;
 	struct gsm48_system_information_type_5 *si5;
 	struct gsm48_system_information_type_5bis *si5b;
 	struct gsm48_system_information_type_5ter *si5t;
 	struct gsm48_system_information_type_6 *si6;
-	struct gsm48_system_information_type_13 *si13;
 
 	struct cell_info *ci = NULL;
 
@@ -652,7 +641,6 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	case GSM48_MT_RR_SYSINFO_2quater:
 		if (!parse)
 			break;
-		si2q = (struct gsm48_system_information_type_2quater *) ((uint8_t *)dtap - 1);
 		break;
 
 	case GSM48_MT_RR_SYSINFO_3:
@@ -764,7 +752,6 @@ void handle_sysinfo(struct session_info *s, struct gsm48_hdr *dtap, unsigned len
 	case GSM48_MT_RR_SYSINFO_13:
 		if (!parse)
 			break;
-		si13 = (struct gsm48_system_information_type_13 *) ((uint8_t *)dtap - 1);
 		break;
 
 	default:

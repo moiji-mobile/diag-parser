@@ -553,11 +553,11 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		break;
 	case GSM48_MT_RR_PAG_REQ_1:
 		SET_MSG_INFO(s, "PAGING REQ 1");
-		handle_paging1(dtap, len);
+		handle_paging1((uint8_t *) dtap, len);
 		break;
 	case GSM48_MT_RR_PAG_REQ_2:
 		SET_MSG_INFO(s, "PAGING REQ 2");
-		handle_paging2(dtap, len);
+		handle_paging2((uint8_t *) dtap, len);
 		break;
 	case GSM48_MT_RR_PAG_REQ_3:
 		SET_MSG_INFO(s, "PAGING REQ 3");
