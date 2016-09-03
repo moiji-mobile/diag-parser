@@ -1,0 +1,24 @@
+language: c
+os:
+  - linux
+sudo: required
+dist: trusty
+addons:
+  apt:
+    packages:
+      - autoconf
+      - automake
+      - autopoint
+      - make
+      - gcc
+      - debhelper
+      - devscripts
+      - libtool
+      - build-essential
+      - pkg-config
+      - libtalloc-dev
+      - libpcsclite-dev
+
+script:
+  - build/build_local.sh
+
