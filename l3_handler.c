@@ -884,46 +884,6 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 	}
 }
 
-int is_double(struct session_info *s, uint8_t *msg, size_t len)
-{
-	int min_len;
-	uint8_t ul;
-
-	if (len > sizeof(s->last_dtap)) {
-		len = sizeof(s->last_dtap);
-	}
-
-	min_len = len > s->last_dtap_len ? s->last_dtap_len : len;
-
-	/* Match with previous msg, if available */
-	if (min_len && !memcmp(msg, s->last_dtap, min_len)) {
-		ul = !!(s->new_msg->bb.arfcn[0] & ARFCN_UPLINK);
-		if (ul) {
-			if ((s->last_dtap_rat == RAT_GSM) &&
-			    (s->new_msg->rat != RAT_GSM)) {
-				// set real rat and discard
-				s->rat = s->new_msg->rat;
-				s->new_msg->flags &= ~MSG_DECODED;
-				return 1;
-			}
-		} else {
-			if ((s->last_dtap_rat != RAT_GSM) &&
-			    (s->new_msg->rat == RAT_GSM)) {
-				// discard as we already processed the 3G one
-				s->new_msg->flags &= ~MSG_DECODED;
-				return 1;
-			}
-		}
-	}
-
-	/* store current */
-	memcpy(s->last_dtap, msg, len);
-	s->last_dtap_len = len;
-	s->last_dtap_rat = s->new_msg->rat;
-
-	return 0;
-}
-
 void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, uint8_t ul)
 {
 	struct gsm48_hdr *dtap;
@@ -937,11 +897,6 @@ void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, 
 
 	if (len == 0) {
 		SET_MSG_INFO(s, "<ZERO LENGTH>");
-		return;
-	}
-
-	if (is_double(s, msg, len)) {
-		SET_MSG_INFO(s, "<DOUBLE MSG>");
 		return;
 	}
 
