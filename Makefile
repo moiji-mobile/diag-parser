@@ -16,7 +16,6 @@ OBJ = \
 	diag_init.o \
 	l3_handler.o \
 	output.o \
-	rand_check.o \
 	session.o
 
 TOOLS = diag_parser

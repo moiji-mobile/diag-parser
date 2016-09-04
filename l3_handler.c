@@ -15,7 +15,6 @@
 #include "bit_func.h"
 #include "assignment.h"
 #include "address.h"
-#include "cell_info.h"
 #include "output.h"
 
 void handle_classmark(struct session_info *s, uint8_t *data, uint8_t type)
@@ -454,19 +453,15 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		break;
 	case GSM48_MT_RR_SYSINFO_5:
 		SET_MSG_INFO(s, "SYSTEM INFO 5");
-		rand_check((uint8_t *)dtap, 18, &s->si5, s->cipher);
 		break;
 	case GSM48_MT_RR_SYSINFO_5bis:
 		SET_MSG_INFO(s, "SYSTEM INFO 5bis");
-		rand_check((uint8_t *)dtap, 18, &s->si5bis, s->cipher);
 		break;
 	case GSM48_MT_RR_SYSINFO_5ter:
 		SET_MSG_INFO(s, "SYSTEM INFO 5ter");
-		rand_check((uint8_t *)dtap, 18, &s->si5ter, s->cipher);
 		break;
 	case GSM48_MT_RR_SYSINFO_6:
 		SET_MSG_INFO(s, "SYSTEM INFO 6");
-		rand_check((uint8_t *)dtap, 18, &s->si6, s->cipher);
 		break;
 	case GSM48_MT_RR_SYSINFO_13:
 		SET_MSG_INFO(s, "SYSTEM INFO 13");
@@ -889,73 +884,6 @@ void handle_sm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 	}
 }
 
-void update_counters(struct session_info *s, uint8_t *data, unsigned len, unsigned data_len, uint32_t fn, uint8_t ul)
-{
-	int is_random = 0;
-	struct frame_count *f = &s->fc;
-	unsigned pad_len;
-	uint8_t *pad_data;
-
-	if (ul)
-		s->uplink++;
-
-	pad_len = len - data_len;
-	pad_data = &data[data_len];
-
-	if (pad_len > 20) {
-		fprintf(stderr, "s = %d: error in pad_len %d\n", s->id, pad_len);
-		return;
-	}
-
-	//TODO: handle uplink statistics
-	if (ul)
-		return;
-
-	/* check padding randomization */
-	if (pad_len) {
-		switch (len) {
-		case 20: /* SDCCH */
-			if (data_len == 0) {
-				/* null frames */
-				is_random = rand_check(&pad_data[1], pad_len-1, &s->null, s->cipher);
-			} else {
-				/* other downlink */
-				is_random = rand_check(&pad_data[1], pad_len-1, &s->other_sdcch, s->cipher);
-			}
-			break;
-		case 18: /* SACCH */
-			is_random = rand_check(&pad_data[1], pad_len-1, &s->other_sacch, s->cipher);
-			break;
-		}
-	}
-
-	if (s->cipher) {
-		f->enc++;
-		if (is_random) {
-			f->enc_rand++;
-		}
-		if (!data_len) {
-			f->enc_null++;
-			if (is_random) {
-				f->enc_null_rand++;
-			} else {
-				f->predict++;
-			}
-		} else if (len == 18) {
-			f->enc_si++;
-			if (is_random)
-				f->enc_si_rand++;
-			else
-				f->predict++;
-		}
-	} else {
-		f->unenc++;
-		if (is_random) {
-			f->unenc_rand++;
-		}
-	}
-}
-
 int is_double(struct session_info *s, uint8_t *msg, size_t len)
 {
 	int min_len;
@@ -1139,7 +1067,6 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 				, "<OUT OF SEQUENCE> recv %d want %d no out-of-seq %u", ns
 				, (mb->ns + 1)%8, mb->no_out_of_seq_sender_msgs
 			);
-			update_counters(s, &msg[3], len - 3, data_len, fn, ul);
 
 			//Fragments end, reset everything
 			if (!more_frag && mb->no_out_of_seq_sender_msgs >= 3) {
@@ -1183,8 +1110,6 @@ void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *ms
 		break;
 
 	}
-
-	update_counters(s, &msg[3], len - 3, data_len, fn, ul);
 
 	/* discard null frames */
 	if (!data_len) {

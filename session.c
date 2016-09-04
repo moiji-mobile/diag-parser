@@ -115,9 +115,6 @@ struct session_info *session_create(int id, char* name, uint8_t *key, int mcc, i
 		memcpy(ns->cell_arfcns, ca, 1024*sizeof(struct gsm_sysinfo_freq));
 
 	ns->decoded = 1;
-	rand_init_2b(&ns->null);
-	rand_init_2b(&ns->other_sdcch);
-	rand_init_2b(&ns->other_sacch);
 
 	pthread_mutex_lock(&s_mutex);
 
@@ -258,38 +255,6 @@ void session_print(struct session_info *s)
 	} else {
 		APPEND(log, "key: -\n"); 
 	}
-
-	/* Randomization */
-	APPEND(log, "randomization:");
-	if (s->si5.byte_count) {
-		snprintf(strbuf, 256, " si5 %d%%", 100*s->si5.rand_count/s->si5.byte_count);
-		APPEND(log, strbuf);
-	}
-	if (s->si5bis.byte_count) {
-		snprintf(strbuf, 256, " si5bis %d%%", 100*s->si5bis.rand_count/s->si5bis.byte_count);
-		APPEND(log, strbuf);
-	}
-	if (s->si5ter.byte_count) {
-		snprintf(strbuf, 256, " si5ter %d%%", 100*s->si5ter.rand_count/s->si5ter.byte_count);
-		APPEND(log, strbuf);
-	}
-	if (s->si6.byte_count) {
-		snprintf(strbuf, 256, " si6 %d%%", 100*s->si6.rand_count/s->si6.byte_count);
-		APPEND(log, strbuf);
-	}
-	if (s->null.byte_count) {
-		snprintf(strbuf, 256, " null %d%%", 100*s->null.rand_count/s->null.byte_count);
-		APPEND(log, strbuf);
-	}
-	if (s->other_sdcch.byte_count) {
-		snprintf(strbuf, 256, " sdcch_pad %d%%", 100*s->other_sdcch.rand_count/s->other_sdcch.byte_count);
-		APPEND(log, strbuf);
-	}
-	if (s->other_sacch.byte_count) {
-		snprintf(strbuf, 256, " sacch_pad %d%%", 100*s->other_sacch.rand_count/s->other_sacch.byte_count);
-		APPEND(log, strbuf);
-	}
-	APPEND(log, "\n");
 
 	/* Transaction details */
 	APPEND(log, "report:");
@@ -497,36 +462,6 @@ void session_make_sql(struct session_info *s, char *query, unsigned q_len, uint8
 	free(imei);
 	free(msisdn);
 	free(pdpip);
-}
-
-void session_make_rand_sql(struct session_info *s, char *query, unsigned q_len)
-{
-	char si5_ratio[8];
-	char si5bis_ratio[8];
-	char si5ter_ratio[8];
-	char si6_ratio[8];
-	char null_ratio[8];
-	char sdcch_ratio[8];
-	char sacch_ratio[8];
-
-	assert(s != NULL);
-	assert(query != NULL);
-	assert(q_len > 0);
-
-	query[0] = 0;
-
-	strfloat_or_null(si5_ratio, 8, s->si5.rand_count, s->si5.byte_count);
-	strfloat_or_null(si5bis_ratio, 8, s->si5bis.rand_count, s->si5bis.byte_count);
-	strfloat_or_null(si5ter_ratio, 8, s->si5ter.rand_count, s->si5ter.byte_count);
-	strfloat_or_null(si6_ratio, 8, s->si6.rand_count, s->si6.byte_count);
-	strfloat_or_null(null_ratio, 8, s->null.rand_count, s->null.byte_count);
-	strfloat_or_null(sdcch_ratio, 8, s->other_sdcch.rand_count, s->other_sdcch.byte_count);
-	strfloat_or_null(sacch_ratio, 8, s->other_sacch.rand_count, s->other_sacch.byte_count);
-
-	snprintf(query, q_len,
-		"INSERT INTO rand_check VALUES (%d,%s,%s,%s,%s,%s,%s,%s);\n",
-		s->id, si5_ratio, si5bis_ratio, si5ter_ratio, si6_ratio,
-		null_ratio, sdcch_ratio, sacch_ratio);
 }
 
 void session_close(struct session_info *s)

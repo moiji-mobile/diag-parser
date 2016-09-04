@@ -7,9 +7,7 @@
 #include <osmocom/gsm/protocol/gsm_04_08.h>
 
 #include "process.h"
-#include "rand_check.h"
 #include "assignment.h"
-#include "cell_info.h"
 
 struct frame_count {
 	uint32_t unenc;
@@ -145,13 +143,6 @@ struct session_info {
 	struct session_info *prev;
 	struct gsm_sysinfo_freq cell_arfcns[1024];
 	struct cell_info *ci;
-	struct rand_state null;
-	struct rand_state si5;
-	struct rand_state si5bis;
-	struct rand_state si5ter;
-	struct rand_state si6;
-	struct rand_state other_sdcch;
-	struct rand_state other_sacch;
 	int output_gsmtap;
 } __attribute__((packed));
 
