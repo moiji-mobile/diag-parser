@@ -71,7 +71,6 @@ void session_destroy(unsigned *last_sid, unsigned *last_cid)
 	session_reset(&_s[1], 1);
 	*last_sid = s_id;
 
-	cell_destroy(last_cid);
 	net_destroy();
 }
 
@@ -590,9 +589,6 @@ void session_close(struct session_info *s)
 
 	if (output_console)
 		session_print(s);
-
-	/* reset counters */
-	paging_reset();
 
 	s->closed = 1;
 }

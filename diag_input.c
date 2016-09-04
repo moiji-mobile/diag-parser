@@ -51,8 +51,6 @@ void diag_init(unsigned start_sid, unsigned start_cid, const char *gsmtap_target
 
 	diag_set_filename(filename);
 	diag_set_appid(appid);
-
-	cell_init(start_cid, _s[0].timestamp.tv_sec, callback_type);
 }
 
 void diag_set_filename(char *filename)
@@ -555,7 +553,6 @@ void handle_diag(uint8_t *msg, unsigned len)
 		return;
 
 	now = get_epoch((uint8_t *) &dp->timestamp);
-	cell_dump(now, 0, 0);
 
 	switch(dp->msg_protocol) {
 	case 0x5071:

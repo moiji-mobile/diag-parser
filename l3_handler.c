@@ -30,20 +30,6 @@ void handle_classmark(struct session_info *s, uint8_t *data, uint8_t type)
 	}
 }
 
-
-void handle_lai(struct session_info *s, uint8_t *data, int cid)
-{
-	struct gsm48_loc_area_id *lai = (struct gsm48_loc_area_id *) data;
-
-	s->mcc = get_mcc(lai->digits);
-	s->mnc = get_mnc(lai->digits);
-	s->lac = htons(lai->lac);
-
-	if (cid >= 0) {
-		s->cid = cid;
-	}
-}
-
 void handle_mi(struct session_info *s, uint8_t *data, uint8_t len, uint8_t new_tmsi)
 {
 	char tmsi_str[9];
@@ -161,8 +147,6 @@ void handle_loc_upd_acc(struct session_info *s, uint8_t *data, unsigned len)
 	s->mo = 1;
 	s->lu_acc = 1;
 
-	handle_lai(s, data, -1);
-
 	if ((len > 11) && (data[5] == 0x17)) {
 		s->tmsi_realloc = 1;
 		handle_mi(s, &data[7], data[6], 1);
@@ -215,26 +199,6 @@ void handle_id_resp(struct session_info *s, uint8_t *data, unsigned len)
 	}
 
 	handle_mi(s, &data[1], data[0], 0);
-}
-
-void handle_loc_upd_req(struct session_info *s, uint8_t *data)
-{
-	struct gsm48_loc_upd_req *lu = (struct gsm48_loc_upd_req *) data;
-
-	s->mo = 1;
-	s->locupd = 1;
-	s->started = 1;
-	s->closed = 0;
-
-	s->lu_type = lu->type & 3;
-	s->initial_seq = lu->key_seq;
-	s->lu_mcc = get_mcc(lu->lai.digits);
-	s->lu_mnc = get_mnc(lu->lai.digits);
-	s->lu_lac = htons(lu->lai.lac);
-
-	handle_classmark(s, (uint8_t *) &lu->classmark1, 1);
-
-	handle_mi(s, lu->mi, lu->mi_len, 0);
 }
 
 void handle_detach(struct session_info *s, uint8_t *data)
@@ -362,7 +326,6 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 			break;
 		}
 		SET_MSG_INFO(s, "LOC UPD REQUEST");
-		handle_loc_upd_req(s, dtap->data);
 		break;
 	case 0x12:
 		if ((dtap_len > 19) && (dtap->data[17] == 0x20) && (dtap->data[18] == 0x10)) {
@@ -409,7 +372,6 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 	case 0x1a:
 		SET_MSG_INFO(s, "TMSI REALLOC COMMAND");
 		s->tmsi_realloc = 1;
-		handle_lai(s, dtap->data, -1);
 		handle_mi(s, &dtap->data[6], dtap->data[5], 1);
 		break;
 	case 0x1b:
@@ -459,7 +421,6 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 
 void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uint32_t fn)
 {
-	struct gsm48_system_information_type_6 *si6;
 	struct tlv_parsed tp;
 
 	s->rat = RAT_GSM;
@@ -472,57 +433,43 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 	switch (dtap->msg_type) {
 	case GSM48_MT_RR_SYSINFO_1:
 		SET_MSG_INFO(s, "SYSTEM INFO 1");
-		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_2:
 		SET_MSG_INFO(s, "SYSTEM INFO 2");
-		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_2bis:
 		SET_MSG_INFO(s, "SYSTEM INFO 2bis");
-		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_2ter:
 		SET_MSG_INFO(s, "SYSTEM INFO 2ter");
-		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_2quater:
 		SET_MSG_INFO(s, "SYSTEM INFO 2quater");
-		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_3:
 		SET_MSG_INFO(s, "SYSTEM INFO 3");
-		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_4:
 		SET_MSG_INFO(s, "SYSTEM INFO 4");
-		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_5:
 		SET_MSG_INFO(s, "SYSTEM INFO 5");
 		rand_check((uint8_t *)dtap, 18, &s->si5, s->cipher);
-		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_5bis:
 		SET_MSG_INFO(s, "SYSTEM INFO 5bis");
 		rand_check((uint8_t *)dtap, 18, &s->si5bis, s->cipher);
-		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_5ter:
 		SET_MSG_INFO(s, "SYSTEM INFO 5ter");
 		rand_check((uint8_t *)dtap, 18, &s->si5ter, s->cipher);
-		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_6:
 		SET_MSG_INFO(s, "SYSTEM INFO 6");
 		rand_check((uint8_t *)dtap, 18, &s->si6, s->cipher);
-		si6 = (struct gsm48_system_information_type_6 *) dtap;
-		handle_lai(s, (uint8_t*)&si6->lai, htons(si6->cell_identity));
-		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_SYSINFO_13:
 		SET_MSG_INFO(s, "SYSTEM INFO 13");
-		handle_sysinfo(s, dtap, len);
 		break;
 	case GSM48_MT_RR_CHAN_REL:
 		SET_MSG_INFO(s, "CHANNEL RELEASE");
@@ -551,15 +498,12 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		break;
 	case GSM48_MT_RR_PAG_REQ_1:
 		SET_MSG_INFO(s, "PAGING REQ 1");
-		handle_paging1((uint8_t *) dtap, len);
 		break;
 	case GSM48_MT_RR_PAG_REQ_2:
 		SET_MSG_INFO(s, "PAGING REQ 2");
-		handle_paging2((uint8_t *) dtap, len);
 		break;
 	case GSM48_MT_RR_PAG_REQ_3:
 		SET_MSG_INFO(s, "PAGING REQ 3");
-		handle_paging3();
 		break;
 	case GSM48_MT_RR_IMM_ASS:
 		SET_MSG_INFO(s, "IMM ASSIGNMENT");
@@ -704,7 +648,6 @@ void handle_attach_acc(struct session_info *s, uint8_t *data, unsigned len)
 	if (len < 9) {
 		return;
 	}
-	handle_lai(s, &data[3], data[8]);
 
 	if (len > 18 && data[13] == 0x18) {
 		handle_mi(s, &data[15], data[14], 1);
@@ -716,57 +659,9 @@ void handle_ra_upd_acc(struct session_info *s, uint8_t *data, unsigned len)
 	s->raupd = 1;
 	s->lu_acc = 1;
 
-	handle_lai(s, &data[2], data[7]);
-
 	if (data[8] == 0x18) {
 		handle_mi(s, &data[10], data[9], 1);
 	}
-}
-
-void handle_attach_req(struct session_info *s, uint8_t *data, unsigned len)
-{
-	uint8_t offset;
-	struct gsm48_loc_area_id *lai;
-
-	s->attach = 1;
-	s->started = 1;
-	s->closed = 0;
-
-	/* Get MS capabilities length */
-	offset = 1 + data[0];
-	if (offset >= len) {
-		SET_MSG_INFO(s, "FAILED SANITY CHECKS (MS_CAP_LEN)");
-		return;
-	}
-
-	if (offset + 4 >= len) {
-		SET_MSG_INFO(s, "FAILED SANITY CHECKS (NO_DATA_ATT)");
-		return;
-	}
-	s->lu_type = data[offset] & 7;
-	s->initial_seq = (data[offset] >> 4) & 7;
-	offset++;
-
-	/* Skip DRX */
-	offset += 2;
-
-	if (offset + data[offset] + 1 >= len) {
-		SET_MSG_INFO(s, "FAILED SANITY CHECKS (NO_DATA_MI)");
-		return;
-	}
-	/* Get current mobile identity */
-	handle_mi(s, &data[offset+1], data[offset], 0);
-	offset += 1 + data[offset];
-
-	if (offset + 3 >= len) {
-		SET_MSG_INFO(s, "FAILED SANITY CHECKS (NO_DATA_LAI)");
-		return;
-	}
-	/* Get old LAI */
-	lai = (struct gsm48_loc_area_id*) &data[offset];
-        s->lu_mcc = get_mcc(lai->digits);
-        s->lu_mnc = get_mnc(lai->digits);
-        s->lu_lac = htons(lai->lac);
 }
 
 void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
@@ -789,7 +684,6 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 	case 0x01:
 		session_reset(s, 1);
 		SET_MSG_INFO(s, "ATTACH REQUEST");
-		handle_attach_req(s, dtap->data, len-2);
 		break;
 	case 0x02:
 		SET_MSG_INFO(s, "ATTACH ACCEPT");
