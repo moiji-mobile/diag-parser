@@ -19,11 +19,7 @@ OBJ = \
 	output.o \
 	rand_check.o \
 	session.o \
-	sms.o \
-	lte_nas_eps.o \
-	lte_nas_eps_mm.o \
-	lte_nas_eps_sm.o \
-	lte_nas_eps_info.o
+	sms.o
 
 TOOLS = diag_parser
 

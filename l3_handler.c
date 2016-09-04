@@ -18,7 +18,6 @@
 #include "sms.h"
 #include "cell_info.h"
 #include "output.h"
-#include "lte_nas_eps.h"
 
 void handle_classmark(struct session_info *s, uint8_t *data, uint8_t type)
 {
@@ -1463,7 +1462,6 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 		if (m->flags & MSG_SDCCH) {
 			s[0].rat = RAT_LTE;
 			s[1].rat = RAT_LTE;
-			handle_naseps(s, m->bb.data, m->msg_len);
 		}
 		if (msg_verbose && s->new_msg == m && m->flags & MSG_DECODED) {
 			printf("LTE %s %u : %s\n", ul ? "UL" : "DL",
