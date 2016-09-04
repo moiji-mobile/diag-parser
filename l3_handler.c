@@ -31,7 +31,6 @@ void handle_classmark(struct session_info *s, uint8_t *data, uint8_t type)
 
 void handle_mi(struct session_info *s, uint8_t *data, uint8_t len, uint8_t new_tmsi)
 {
-	char tmsi_str[9];
 	uint8_t mi_type;
 
 	if (len > GSM48_MI_SIZE) {
@@ -45,33 +44,13 @@ void handle_mi(struct session_info *s, uint8_t *data, uint8_t len, uint8_t new_t
 		break;
 
 	case GSM_MI_TYPE_IMSI:
-		bcd2str(data, s->imsi, len*2, 1);
-		APPEND_MSG_INFO(s, ", IMSI %s", s->imsi); 
-		s->use_imsi = 1;
 		break;
 
 	case GSM_MI_TYPE_IMEI:
 	case GSM_MI_TYPE_IMEISV:
-		bcd2str(data, s->imei, 15, 1);
-		APPEND_MSG_INFO(s, ", IMEI %s", s->imei); 
 		break;
 
 	case GSM_MI_TYPE_TMSI:
-		hex_bin2str(&data[1], tmsi_str, 4);
-		tmsi_str[8] = 0;
-		assert(s->new_msg);
-
-		APPEND_MSG_INFO(s, ", TMSI %s", tmsi_str); 
-		if (new_tmsi) {
-			if (!not_zero(s->new_tmsi, 4)) {
-				memcpy(s->new_tmsi, &data[1], 4);
-			}
-		} else {
-			if (!not_zero(s->old_tmsi, 4)) {
-				memcpy(s->old_tmsi, &data[1], 4);
-				s->use_tmsi = 1;
-			}
-		}
 		break;
 
 	default:
@@ -86,14 +65,10 @@ void handle_cmreq(struct session_info *s, uint8_t *data)
 
 	switch (cm->cm_service_type) {
 	case GSM48_CMSERV_EMERGENCY:
-		s->call_presence = 1;
-		strncpy(s->msisdn, "<emergency>", GSM48_MI_SIZE);
 		/* fall-through */
 	case GSM48_CMSERV_MO_CALL_PACKET:
-		s->call = 1;
 		break;
 	case GSM48_CMSERV_SMS:
-		s->sms = 1;
 		break;
 	case GSM48_CMSERV_SUP_SERV:
 		s->ssa = 1;
@@ -108,8 +83,6 @@ void handle_cmreq(struct session_info *s, uint8_t *data)
 	s->initial_seq = cm->cipher_key_seq & 7;
 
 	handle_classmark(s, ((uint8_t *) &cm->classmark)+1, 2);
-
-	handle_mi(s, cm->mi, cm->mi_len, 0);
 }
 
 void handle_serv_req(struct session_info *s, uint8_t *data, unsigned len)
@@ -119,9 +92,6 @@ void handle_serv_req(struct session_info *s, uint8_t *data, unsigned len)
 	s->serv_req = 1;
 
 	s->initial_seq = data[0] & 7;
-	if (len >= 7) {
-		handle_mi(s, &data[2], data[1], 0);
-	}
 }
 
 void handle_pag_resp(struct session_info *s, uint8_t *data)
@@ -137,7 +107,6 @@ void handle_pag_resp(struct session_info *s, uint8_t *data)
 	handle_classmark(s, (uint8_t *) (&pr->classmark2) + 1, 2);
 
 	s->pag_mi = pr->mi[0] & GSM_MI_TYPE_MASK;
-	handle_mi(s, pr->mi, pr->mi_len, 0);
 }
 
 void handle_loc_upd_acc(struct session_info *s, uint8_t *data, unsigned len)
@@ -148,7 +117,6 @@ void handle_loc_upd_acc(struct session_info *s, uint8_t *data, unsigned len)
 
 	if ((len > 11) && (data[5] == 0x17)) {
 		s->tmsi_realloc = 1;
-		handle_mi(s, &data[7], data[6], 1);
 	}
 }
 
@@ -196,8 +164,6 @@ void handle_id_resp(struct session_info *s, uint8_t *data, unsigned len)
 		}
 		break;
 	}
-
-	handle_mi(s, &data[1], data[0], 0);
 }
 
 void handle_detach(struct session_info *s, uint8_t *data)
@@ -208,16 +174,10 @@ void handle_detach(struct session_info *s, uint8_t *data)
 	s->closed = 0;
 
 	handle_classmark(s, (uint8_t *) &idi->classmark1, 1);
-
-	handle_mi(s, idi->mi, idi->mi_len, 0);
 }
 
 void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uint8_t ul)
 {
-	struct tlv_parsed tp;
-
-	s->call = 1;
-
 	switch (dtap->msg_type & 0x3f) {
 	case 0x01:
 		SET_MSG_INFO(s, "CALL ALERTING");
@@ -233,25 +193,11 @@ void handle_cc(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		SET_MSG_INFO(s, "CALL PROGRESS");
 		break;
 	case 0x05:
-		s->call_presence = 1;
 		SET_MSG_INFO(s, "CALL SETUP");
 		if (!ul)
 			s->mt = 1;
 		else
 			s->mo = 1;
-
-		/* get MSISDN */
-		tlv_parse(&tp, &gsm48_att_tlvdef, dtap->data, len-2, 0, 0);
-		if (TLVP_PRESENT(&tp, GSM48_IE_CALLING_BCD)) {
-			uint8_t *v = (uint8_t *) TLVP_VAL(&tp, GSM48_IE_CALLING_BCD);
-			uint8_t v_len = TLVP_LEN(&tp, GSM48_IE_CALLING_BCD);
-			handle_address(v, v_len, s->msisdn, 0);
-		}
-		if (TLVP_PRESENT(&tp, GSM48_IE_CALLED_BCD)) {
-			uint8_t *v = (uint8_t *) TLVP_VAL(&tp, GSM48_IE_CALLED_BCD);
-			uint8_t v_len = TLVP_LEN(&tp, GSM48_IE_CALLED_BCD);
-			handle_address(v, v_len, s->msisdn, 0);
-		}
 
 		break;
 	case 0x07:
@@ -371,7 +317,6 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 	case 0x1a:
 		SET_MSG_INFO(s, "TMSI REALLOC COMMAND");
 		s->tmsi_realloc = 1;
-		handle_mi(s, &dtap->data[6], dtap->data[5], 1);
 		break;
 	case 0x1b:
 		SET_MSG_INFO(s, "TMSI REALLOC COMPLETE");
@@ -387,18 +332,7 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 		break;
 	case 0x24:
 		SET_MSG_INFO(s, "CM SERVICE REQUEST");
-		/* Handle subsequent request without starting a new session */
-		if ((s->started || s->call_presence || s->sms_presence || s->lu_acc) &&
-			!s->closed &&
-			s->last_msg &&
-			!(s->last_msg->flags & MSG_BCCH) &&
-			(s->new_msg->timestamp.tv_sec - s->last_msg->timestamp.tv_sec <= 1)) {
-			if (msg_verbose > 0) {
-				printf("New service request in already started transaction!\n");
-			}
-		} else {
-			session_reset(s, 1);
-		}
+		session_reset(s, 1);
 		s->started = 1;
 		s->closed = 0;
 		s->serv_req = 1;
@@ -420,8 +354,6 @@ void handle_mm(struct session_info *s, struct gsm48_hdr *dtap, unsigned dtap_len
 
 void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uint32_t fn)
 {
-	struct tlv_parsed tp;
-
 	s->rat = RAT_GSM;
 	assert(s->new_msg);
 
@@ -562,13 +494,6 @@ void handle_rr(struct session_info *s, struct gsm48_hdr *dtap, unsigned len, uin
 		if (dtap->data[0] == 0x2b)
 			return;
 
-		/* get IMEISV */
-		tlv_parse(&tp, &gsm48_rr_att_tlvdef, dtap->data, len-2, 0, 0);
-		if (TLVP_PRESENT(&tp, GSM48_IE_MOBILE_ID)) {
-			uint8_t *v = (uint8_t *) TLVP_VAL(&tp, GSM48_IE_MOBILE_ID);
-			handle_mi(s, &v[1], v[0], 0);
-			s->cmc_imeisv = 1;
-		}
 		break;
 	case GSM48_MT_RR_GPRS_SUSP_REQ:
 		SET_MSG_INFO(s, "GPRS SUSPEND");
@@ -643,20 +568,12 @@ void handle_attach_acc(struct session_info *s, uint8_t *data, unsigned len)
 	if (len < 9) {
 		return;
 	}
-
-	if (len > 18 && data[13] == 0x18) {
-		handle_mi(s, &data[15], data[14], 1);
-	}
 }
 
 void handle_ra_upd_acc(struct session_info *s, uint8_t *data, unsigned len)
 {
 	s->raupd = 1;
 	s->lu_acc = 1;
-
-	if (data[8] == 0x18) {
-		handle_mi(s, &data[10], data[9], 1);
-	}
 }
 
 void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
@@ -755,7 +672,6 @@ void handle_gmm(struct session_info *s, struct gsm48_hdr *dtap, unsigned len)
 		/* Check if IMEISV is included */
 		if ((len > (2 + 15)) && (dtap->data[6] == 0x23)) {
 			s->cmc_imeisv = 1;
-			handle_mi(s, &dtap->data[8], dtap->data[7], 0);
 		}
 		break;
 	case 0x14:
@@ -951,176 +867,6 @@ void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, 
 	}
 }
 
-void handle_lapdm(struct session_info *s, struct lapdm_buf *mb_sapi, uint8_t *msg, unsigned len, uint32_t fn, uint8_t ul)
-{
-	uint8_t sapi, lpd_type, ea;
-	uint8_t frame_type, nr, ns = 0;
-	//uint8_t cr, pf;
-	uint8_t data_len, more_frag, fo;
-	uint8_t old_auth;
-	uint8_t old_cipher;
-	struct lapdm_buf *mb;
-	uint8_t flags;
-
-	/* extract all bit fields */
-	lpd_type = (msg[0] >> 5) & 0x03;
-	sapi = (msg[0] >> 2) & 0x07;
-	//cr = (msg[0] >> 1) & 0x01;
-	ea = msg[0] & 0x01;
-
-	frame_type = msg[1] & 0x03;
-	//pf = (msg[1] >> 4) & 0x01;
-
-	data_len = (msg[2] >> 2) & 0x3f;
-	more_frag = (msg[2] >> 1) & 0x1;
-	fo = msg[2] & 0x1;
-
-	s->new_msg->info[0] = 0;
-
-	/* discard non-GSM */
-	if (lpd_type) {
-		SET_MSG_INFO(s, "non-GSM");
-		return;
-	}
-
-	/* other sanity checks */
-	if (!ea || !fo || ((data_len + 3) > len)) {
-		SET_MSG_INFO(s, "FAILED SANITY CHECKS (LAPDm)");
-		return;
-	}
-
-	/* discard unknown SAPIs */
-	if ((sapi != 0) && (sapi != 3)) {
-		SET_MSG_INFO(s, "Unknown SAPI: %u", sapi);
-		return;
-	}
-
-	/* get SAPI state */
-	mb = &mb_sapi[!!sapi];
-
-	switch (frame_type) {
-	case 0:
-	case 2:
-		/* I frame */
-		nr = msg[1] >> 5;
-		ns = (msg[1] >> 1) & 0x07;
-
-		/* check sequence */
-		//if mb->len is > 0 then we have already received a fragment. Otherwise, not.
-		//BELOW: if start of message, we never check out-of-sequence
-		if (mb->len
-			&& (ns != ((mb->ns + 1) % 8) || mb->no_out_of_seq_sender_msgs >= 3)) {
-
-			if (mb->last_out_of_seq_msg_number != ns
-				&& ((mb->ns - ns) % 8) < 2
-			) {
-				mb->no_out_of_seq_sender_msgs++;
-			}
-			mb->last_out_of_seq_msg_number = ns;
-
-			SET_MSG_INFO(s
-				, "<OUT OF SEQUENCE> recv %d want %d no out-of-seq %u", ns
-				, (mb->ns + 1)%8, mb->no_out_of_seq_sender_msgs
-			);
-
-			//Fragments end, reset everything
-			if (!more_frag && mb->no_out_of_seq_sender_msgs >= 3) {
-				SET_MSG_INFO(s
-					, "<OUT OF SEQUENCE END> no out-of-seq %u, reset seq to %u"
-					, mb->no_out_of_seq_sender_msgs, ns
-				);
-
-				mb->no_out_of_seq_sender_msgs = 0;
-				mb->len = 0;
-				mb->ns = ns;
-			}
-			return;
-		}
-
-		mb->no_out_of_seq_sender_msgs = 0;
-		mb->last_out_of_seq_msg_number = 100;
-		mb->nr = nr;
-		mb->ns = ns;
-		break;
-	case 1:
-		/* S frame */
-		if (msg_verbose > 1) {
-			fprintf(stdout, "<S-FRAME>\n");
-		}
-		data_len = 0;
-		break;
-	case 3:
-		/* U (unnumbered) frame */
-		flags = msg[1] & 0xec;
-		//001. 11.. = Command: Set Asynchronous Balanced Mode
-		if (flags == 0x2c) {
-			if (msg_verbose > 1) {
-				fprintf(stdout, "<SABM U-FRAME>\n");
-			}
-
-			mb->no_out_of_seq_sender_msgs = 0;
-			mb->len = 0;
-			mb->ns = 0;
-		}
-		break;
-
-	}
-
-	/* discard null frames */
-	if (!data_len) {
-		SET_MSG_INFO(s, "<NULL>"); 
-		return;
-	}
-
-	/* append payload to buffer */
-	if (mb->len == 0) {
-		memcpy(mb->data, &msg[3], data_len);
-		mb->len = data_len;
-		memset(&mb->data[mb->len], 0x2b, sizeof(mb->data)-data_len);
-	} else {
-		memcpy(&mb->data[mb->len], &msg[3], data_len);
-		mb->len += data_len;
-	}
-
-	/* store current state */
-	old_auth = s->auth;
-	old_cipher = s->cipher;
-
-	/* more fragments? */
-	if (more_frag) {
-		SET_MSG_INFO(s, "<FRAGMENT %d>", ns);
-	} else {
-		/* call L3 handler */
-		handle_dtap(s, mb->data, mb->len, fn, ul);
-
-		mb->len = 0;
-	}
-
-	/* hack: update auth and cipher timestamps, when ul is not available  */
-	if (s->auth && old_auth && !s->auth_resp_fn && (len > 21)
-		 && ((sapi != 0) || (mb->data[0] != 5))) {
-		if (fn) {
-			s->auth_resp_fn = fn;
-		} else {
-			s->auth_resp_fn = GSM_MAX_FN;
-		}
-	}
-	if (s->cipher && old_cipher && !s->cm_comp_last_fn && (len > 21)
-		&& ((sapi != 0) || (mb->data[0] != 6))) {
-		if (fn) {
-			if (!s->cm_comp_first_fn) {
-				s->cm_comp_first_fn = fn;
-			}
-			s->cm_comp_last_fn = fn;
-		} else {
-			if (!s->cm_comp_first_fn) {
-				s->cm_comp_first_fn = GSM_MAX_FN;
-			}
-			s->cm_comp_last_fn = GSM_MAX_FN;
-		}
-	}
-}
-
 void update_timestamps(struct session_info *s)
 {
 	uint32_t fn;
@@ -1176,7 +922,6 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 			if (msg_verbose > 1) {
 				fprintf(stderr, "-> MSG_SACCH\n");
 			}
-			handle_lapdm(s, &s->chan_sacch[ul], &m->msg[2], m->msg_len-2, m->bb.fn[0], ul);
 			break;
 		case MSG_SDCCH: //standalone dedicated control channel
 			if (s->rat != RAT_GSM)
@@ -1185,13 +930,11 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 			if (msg_verbose > 1) {
 				fprintf(stderr, "-> MSG_SDCCH\n");
 			}
-			handle_lapdm(s, &s->chan_sdcch[ul], m->msg, m->msg_len, m->bb.fn[0], ul);
 			break;
 		case MSG_FACCH:
 			if (msg_verbose > 1) {
 				fprintf(stderr, "-> MSG_FACCH\n");
 			}
-			handle_lapdm(s, &s->chan_facch[ul], m->msg, m->msg_len, m->bb.fn[0], ul);
 			break;
 		case MSG_BCCH:
 			if (msg_verbose > 1) {
