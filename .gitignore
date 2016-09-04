@@ -4,3 +4,4 @@ diag_parser
 libmetagsm.*
 *.sw?
 deps/
+.d/*
