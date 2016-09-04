@@ -1,7 +1,6 @@
 #include "session.h"
 #include "output.h"
 #include "bit_func.h"
-#include "sms.h"
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -176,21 +175,6 @@ void session_free_msg_list(struct session_info *s)
 	}
 }
 
-void session_free_sms_list(struct session_info *s)
-{
-	struct sms_meta *sm;
-
-	assert(s != NULL);
-
-	while (s->sms_list) {
-		sm = s->sms_list;
-
-		s->sms_list = sm->next;
-
-		free(sm);
-	}
-}
-
 void session_free(struct session_info *s)
 {
 	assert(auto_reset == 0);
@@ -207,7 +191,6 @@ void session_free(struct session_info *s)
 	}
 
 	session_free_msg_list(s);
-	session_free_sms_list(s);
 	free(s);
 }
 
@@ -732,7 +715,6 @@ void session_reset(struct session_info *s, int forced_release)
 	}
 
 	session_free_msg_list(&old_s);
-	session_free_sms_list(&old_s);
 	old_s.first_msg = NULL;
 	old_s.last_msg = NULL;
 }

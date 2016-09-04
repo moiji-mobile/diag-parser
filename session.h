@@ -141,7 +141,6 @@ struct session_info {
 	struct radio_message *first_msg;
 	struct radio_message *last_msg;
 	struct radio_message *new_msg;
-	struct sms_meta *sms_list;
 	struct session_info *next;
 	struct session_info *prev;
 	struct gsm_sysinfo_freq cell_arfcns[1024];

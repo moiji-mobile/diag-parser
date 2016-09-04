@@ -15,7 +15,6 @@
 #include "bit_func.h"
 #include "assignment.h"
 #include "address.h"
-#include "sms.h"
 #include "cell_info.h"
 #include "output.h"
 
@@ -1142,7 +1141,7 @@ void handle_dtap(struct session_info *s, uint8_t *msg, size_t len, uint32_t fn, 
 		}
 		break;
 	case GSM411_PDISC_SMS:
-		handle_sms(s, dtap, len);
+		SET_MSG_INFO(s, "SMS");
 		break;
 	case GSM48_PDISC_SM_GPRS:
 		if (auto_reset) {
