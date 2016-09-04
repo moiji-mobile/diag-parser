@@ -11,7 +11,6 @@ OBJ = \
 	address.o \
 	assignment.o \
 	bit_func.o \
-	crc.o \
 	diag_input.o \
 	diag_init.o \
 	l3_handler.o \
@@ -37,7 +36,7 @@ else
 	@$(AR) rcs $@ $^
 endif
 
-diag_parser: diag_import.o libmetagsm.a
+diag_parser: diag_import.o libmetagsm.a Makefile
 ifeq ($(V),1)
 	$(CC) -o $@  diag_import.o libmetagsm.a $(LDFLAGS) $(LIBS)
 else
