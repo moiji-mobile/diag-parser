@@ -1253,9 +1253,9 @@ void handle_radio_msg(struct session_info *s, struct radio_message *m)
 
 		if (s->new_msg->flags & MSG_DECODED) {
 			assert(s->new_msg == m);
-			link_to_msg_list(&s[m->domain], m);
 			s->new_msg = NULL;
 			net_send_msg(m);
+			free(m);
 		} else {
 			free(m);
 			s->new_msg = NULL;

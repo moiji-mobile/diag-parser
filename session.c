@@ -528,25 +528,6 @@ void session_close(struct session_info *s)
 	s->closed = 1;
 }
 
-void link_to_msg_list(struct session_info* s, struct radio_message *m)
-{
-	if (msg_verbose > 2) {
-		printf("linking to domain %d message ptr %p\n", s->domain, m);
-	}
-
-	if (s->first_msg == NULL) {
-		s->first_msg = m;
-	}
-
-	if (s->last_msg) {
-		assert(s->last_msg->next == NULL);
-		s->last_msg->next = m;
-	}
-	m->next = NULL;
-	m->prev = s->last_msg;
-	s->last_msg = m;
-}
-
 void session_reset(struct session_info *s, int forced_release)
 {
 	struct session_info old_s;
@@ -567,7 +548,7 @@ void session_reset(struct session_info *s, int forced_release)
 		m = s->new_msg;
 	} else {
 		if (s->new_msg) { //&& (s->new_msg->flags & MSG_DECODED)
-			link_to_msg_list(s, s->new_msg);
+			free(s->new_msg);
 		}
 		s->new_msg = NULL;
 	}
