@@ -26,8 +26,6 @@ uint8_t auto_reset = 1;
 #endif
 
 static uint8_t output_console = 1;
-static uint8_t output_gsmtap = 1;
-static uint8_t output_pcap = 1;
 
 static uint32_t s_id = 0;
 static struct session_info *s_pointer = 0;
@@ -40,8 +38,6 @@ uint32_t now = 0;
 void session_init(unsigned start_sid, int console, const char *gsmtap_target, const char *pcap_target, int callback)
 {
 	output_console = console;
-	output_gsmtap = (gsmtap_target == NULL ? 0 : 1);
-	output_pcap = (pcap_target == NULL ? 0 : 1);
 
 	// Reset both domains
 	memset(_s, 0, sizeof(_s));
@@ -188,26 +184,6 @@ void session_free(struct session_info *s)
 
 	session_free_msg_list(s);
 	free(s);
-}
-
-void session_stream(struct session_info *s)
-{
-	struct radio_message *m;
-
-	assert(s != NULL);
-
-	m = s->first_msg;
-	while (m) {
-		if (m->flags & MSG_DECODED) {
-			net_send_msg(m);
-#if 0
-			if (msg_verbose && m->info[0]) {
-				printf("%c %s\n", m->bb.arfcn[0] & ARFCN_UPLINK ? 'U' : 'D', m->info);
-			}
-#endif
-		}
-		m = m->next;
-	}
 }
 
 void session_print(struct session_info *s)
@@ -517,10 +493,6 @@ void session_close(struct session_info *s)
 		}
 	}
 #endif
-
-	/* Output functions */
-	if ((output_gsmtap || output_pcap) && !auto_reset)
-		session_stream(s);
 
 	if (output_console)
 		session_print(s);
