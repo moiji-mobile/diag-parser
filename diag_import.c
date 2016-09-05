@@ -136,7 +136,7 @@ process_file(char *infile_name, int do_init)
 		infile = stdin;
 	} else
 	{
-		infile = fopen(infile_name, "rb");
+		infile = fopen(infile_name, "rb+");
 	}
 
 	if (!infile)
