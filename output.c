@@ -178,14 +178,12 @@ void net_init(const char *gsmtap_target, const char *pcap_target)
 		iptotlen_offset = 16;
 	} else if (gsmtap_target) {
 		/* GSMTAP init */
-		int rc;
 		gti = gsmtap_source_init(gsmtap_target, GSMTAP_UDP_PORT, 0);
 		if (!gti) {
 			fprintf(stderr, "Cannot initialize GSMTAP\n");
 			abort();
 		}
-		rc = gsmtap_source_add_sink(gti);
-		assert(rc >= 0);
+		gsmtap_source_add_sink(gti);
 	}
 }
 
