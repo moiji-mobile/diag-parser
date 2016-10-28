@@ -20,6 +20,29 @@ $ ./diag_import -g A.B.C.D -p local_file.pcap trace.bin
 ```
 
 
+Dependencies
+------------
+
+The system is using libosmocore of Osmocom. The build/build_loca.sh will
+git clone and configure it.
+
+
+Usage
+-----
+
+-h: Display the help output
+
+-g A.B.C.D: Send GSMTAP frames to A.B.C.D:4729
+
+-p file.pcap: Write GSMTAP to PCAP file
+
+-i: Initialize DIAG interface on the device
+
+
+Wireshark has GSMTAP display support and will automatically display
+and decode GSM/3G for these frames.
+
+
 Devices
 -------
 
