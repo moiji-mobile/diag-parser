@@ -75,13 +75,11 @@ void diag_destroy(unsigned *last_sid, unsigned *last_cid)
 	session_destroy(last_sid, last_cid);
 }
 
-inline
 uint32_t get_fn(struct diag_packet *dp)
 {
 	return (dp->timestamp/204800)%GSM_MAX_FN;
 }
 
-inline
 uint32_t get_epoch(uint8_t *qd_time)
 {
 	double qd_ts;
@@ -111,7 +109,6 @@ uint32_t get_epoch(uint8_t *qd_time)
 	return qd_ts;
 }
 
-inline
 void print_common(struct diag_packet *dp, unsigned len)
 {
 	printf("%u [%02u] ", get_fn(dp), dp->len);
