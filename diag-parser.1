@@ -1,0 +1,51 @@
+.TH diag-parser 1
+.SH NAME
+diag-parser \- DIAG parser and to GSMTAP converter
+.SH SYNOPSIS
+.B diag-parser
+.RI [ options ] " [filenames]"
+.SH DESCRIPTION
+.B diag-parser
+Parse the Qualcomm DIAG format and convert 2G, 3G and 4G radio messages to
+Osmocom GSMTAP for analysis in wireshark and other utilities.
+
+Wireshark has GSMTAP display support and will automatically display
+and decode GSM/3G for these frames.
+
+.SH OPTIONS
+.TP
+.B
+\-g A.B.C.D
+Send GSMTAP frames to A.B.C.D:4729
+.TP
+.B
+\-p file.pcap
+Write GSMTAP to PCAP file
+.TP
+.B
+\-i /dev/ttyXXX
+Initialize DIAG interface on the device
+.TP
+.B
+\-f <filelist>
+Read list of input files from <filelist>
+.TP
+.B
+\-v
+Verbose messages
+.TP
+
+.SH USAGE EXAMPLES
+.TP
+.B diag-parser -g A.B.C.D -p local_file.pcap -i /dev/ttyUSB0
+Use -i to configure logging using DIAG on device /dev/ttyUSB0 and write the GSMTAP-output to A.B.C.D and to file local_file.pcap
+.TP
+.B diag-parser -g A.B.C.D -p local_file.pcap trace.bin
+Read input from an existing DIAG file
+
+.SH AUTHOR
+.I diag-parser
+was written by Holger Hans Peter Freyther <holger@moiji-mobile.com>
+.PP
+This manual page was written by Martin Hauke <mardnh@gmx.de>
+
