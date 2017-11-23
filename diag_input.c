@@ -246,14 +246,9 @@ struct radio_message * handle_4G(struct diag_packet *dp, unsigned len)
 			return NULL;
 		}
 		// verify len
-		payload_len = dp->data[12]-1;
-		if (payload_len > len - 14) {
-			return 0;
-		}
-		if (payload_len > sizeof(m->bb.data)) {
-			return 0;
-		}
-		data = &dp->data[13+1];
+		/* payload_len = dp->data[12]-1; */
+		payload_len=len-14;
+		data = &dp->data[14];
 		break;
 	case 0xb0e0: // LTE NAS ESM DL (protected)
 	case 0xb0ea: // LTE NAS EMM DL (protected)
