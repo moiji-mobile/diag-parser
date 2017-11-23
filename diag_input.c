@@ -192,17 +192,8 @@ struct radio_message * handle_4G(struct diag_packet *dp, unsigned len)
 		return 0;
 	}
 
-	payload_len = dp->len - 16;
-
-	if (payload_len > len - 16) {
-		return 0;
-	}
-
-	if (payload_len > sizeof(m->bb.data)) {
-		return 0;
-	}
-
-	data = &dp->data[0];
+	payload_len = len - 7;
+	data = &dp->data[1];
 
 	m = (struct radio_message *) malloc(sizeof(struct radio_message));
 
