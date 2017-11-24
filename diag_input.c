@@ -192,16 +192,7 @@ struct radio_message * handle_4G(struct diag_packet *dp, unsigned len)
 		return 0;
 	}
 
-	payload_len = dp->len - 16;
-
-	if (payload_len > len - 16) {
-		return 0;
-	}
-
-	if (payload_len > sizeof(m->bb.data)) {
-		return 0;
-	}
-
+	payload_len = len - 7;
 	data = &dp->data[1];
 
 	m = (struct radio_message *) malloc(sizeof(struct radio_message));
@@ -216,13 +207,6 @@ struct radio_message * handle_4G(struct diag_packet *dp, unsigned len)
 	case 0xb0c0: // LTE RRC
 		m->flags = MSG_BCCH; // it's not really BCCH, just indicates RRC
 		m->bb.arfcn[0] = ((uint16_t) dp->data[4]) << 8 | dp->data[3];
-		if (dp->data[0]) {
-			// Uplink
-			m->bb.arfcn[0] |= ARFCN_UPLINK;
-		} else {
-			// Downlink
-		}
-
 		/* Qualcomm to wireshark conversion */
 		switch (dp->data[7]) {
 		case 2:	// BCCH-DL-SCH
@@ -242,30 +226,25 @@ struct radio_message * handle_4G(struct diag_packet *dp, unsigned len)
 			break;
 		case 7: // UL-CCCH
 			m->chan_nr = 2;
+			m->bb.arfcn[0] |= ARFCN_UPLINK;
 			break;
 		case 8: // UL-DCCH
 			m->chan_nr = 3;
+			m->bb.arfcn[0] |= ARFCN_UPLINK;
 			break;
 		default:
 			// Unhandled
 			return NULL;
 		}
-		// verify len
-		payload_len = ((uint16_t)dp->data[9]) << 8 | dp->data[8];
-		if (payload_len > len - 15) {
-			return 0;
-		}
-		if (payload_len > sizeof(m->bb.data)) {
-			return 0;
-		}
-		data = &dp->data[10];
+		payload_len=len-14;
+		data = &dp->data[14];
 		break;
 	case 0xb0e0: // LTE NAS ESM DL (protected)
 	case 0xb0ea: // LTE NAS EMM DL (protected)
 		m->flags = MSG_SDCCH | MSG_CIPHERED;
 		m->bb.arfcn[0] = 0;
 		break;
-	case 0xb0e1: // LTE NAS ESM DL (protected)
+	case 0xb0e1: // LTE NAS ESM UL (protected)
 	case 0xb0eb: // LTE NAS EMM UL (protected)
 		m->flags = MSG_SDCCH | MSG_CIPHERED;
 		m->bb.arfcn[0] = ARFCN_UPLINK;
@@ -686,7 +665,6 @@ void handle_diag(uint8_t *msg, unsigned len)
 				m->bb.arfcn[i] = last_burst.arfcn[i];
 			}
 		}
-
 		handle_radio_msg(_s, m);
 	}
 }
