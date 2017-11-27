@@ -252,8 +252,8 @@ void net_send_msg(struct radio_message *m)
 		break;
 	case RAT_LTE:
 		if (m->flags & MSG_SDCCH) {
-			msgb = gsmtap_makemsg_ex(0x0e, m->bb.arfcn[0], 0,
-					 0, 0, 0, 0, 0, m->bb.data, m->msg_len);
+		  msgb = gsmtap_makemsg_ex(GSMTAP_TYPE_LTE_NAS, m->bb.arfcn[0],0,
+					   (m->flags&MSG_CIPHERED)>0, 0, 0, 0, 0, m->bb.data, m->msg_len);
 		} else if (m->flags & MSG_BCCH) {
 			msgb = gsmtap_makemsg_ex(GSMTAP_TYPE_LTE_RRC, m->bb.arfcn[0], 0,
 					 m->chan_nr, 0, 0, 0, 0, m->bb.data, m->msg_len);
